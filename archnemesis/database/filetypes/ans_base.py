@@ -243,7 +243,7 @@ class AnsDatabaseFile:
 	def iter_mol_grps(
 			self,
 			x_grp_name : str = '/',
-	) -> Iterator[h5py.Group]:
+	) -> Iterator[tuple[str,h5py.Group]]:
 		with self.open():
 			x_grp = self._file_hdl[x_grp_name]
 			
@@ -257,7 +257,7 @@ class AnsDatabaseFile:
 	def iter_iso_grps(
 			self,
 			x_grp_name : str = '/',
-	) -> Iterator[h5py.Group]:
+	) -> Iterator[tuple[str,h5py.Group]]:
 
 		for mol_name, mol_grp in self.iter_mol_grps(x_grp_name):
 			yield from mol_grp.items()
@@ -267,7 +267,7 @@ class AnsDatabaseFile:
 	def iter_leaf_grps(
 			self,
 			x_grp_name : str = '/',
-	) -> Iterator[h5py.Group]:
+	) -> Iterator[tuple[str,h5py.Group]]:
 		for iso_name, iso_grp in self.iter_iso_grps(x_grp_name):
 			yield from iso_grp.items()
 		return
@@ -408,6 +408,93 @@ class AnsDatabaseFile:
 		
 		self._update_from_sources()
 	
+	def add_source_data_grp(
+			self,
+			name : str,
+			grp : h5py.Group,
+			sub_grp_name : None | str = None, # If not `None` will put in the  "/sources/<name>/{self.target_group_name}/sub_grp_name" location. Otherwise will guess from name of `grp`
+			resolve_virtual_datasets : bool = True,
+			**src_attrs : dict[str,Any], # Attributes to have on the "/sources/<name>" group.
+	):
+		"""
+		Add data from an HDF5 group to the "/sources/<name>" group
+		"""
+		
+		class GrpIsVirtual:
+			def __init__(self):
+				self.result = False
+			def visitor(self,name, obj):
+				self.result = self.result or (isinstance(obj, h5py.Dataset) and obj.is_virtual)
+		grp_is_virtual = GrpIsVirtual()
+
+		grp.visititems(grp_is_virtual.visitor)
+		
+
+		with self.open('a'):
+			s_grp = self._get_sources_grp(self._file_hdl)
+			xs_grp = h5py_helper.ensure_grp(s_grp, name, attrs=src_attrs)
+			
+			if sub_grp_name is not None:
+				xsd_grp = h5py_helper.ensure_grp(xs_grp, self.target_group_name)
+				dest_grp = xsd_grp
+				sub_grp_name_parts = sub_grp_name.split('/')
+				for part in sub_grp_name_parts[:-1]:
+					if len(part) > 0:
+						dest_grp = h5py_helper.ensure_grp(dest_grp, part)
+						
+				new_grp_name = sub_grp_name_parts[-1]
+				grp.copy(grp, dest_grp, name=new_grp_name)
+				
+			elif grp.name.endswith(self.target_group_name):
+				new_grp_name = self.target_group_name
+				grp.copy(grp, xs_grp, name=new_grp_name)
+				
+			elif (idx := grp.name.find(self.target_group_name)) >= 0:
+				parts = grp.name[idx:].split('/')
+				print(f'{parts=}')
+				dest_grp = xs_grp
+				for part in parts[:-1]:
+					if len(part) > 0:
+						dest_grp = h5py_helper.ensure_grp(dest_grp, part)
+					print(f'{dest_grp.name=}')
+				print(f'{grp.name=}')
+				
+				new_grp_name = parts[-1]
+				grp.file.copy(grp.name, dest_grp, name=new_grp_name)
+				
+				
+				
+			else:
+				raise RuntimeError('Cannot work out where to put passed group automatically. Pass "sub_grp_name" to disambiguate.')
+			
+			
+			if grp_is_virtual.result:
+				if resolve_virtual_datasets:
+					#grp_prefix = grp.name.rsplit('/', maxsplit=1)[0]
+					
+					def resolve_virtual_datasets(name, obj):
+						if isinstance(obj, h5py.Dataset) and obj.is_virtual:
+							obj_rel_path = obj.name[len(grp.name):]
+							
+							del dest_grp[f'{new_grp_name}/{obj_rel_path}']
+							h5py_helper.store_data(
+								dest_grp,
+								f'{new_grp_name}/{obj_rel_path}',
+								obj[tuple()], # copy data
+								dtype=obj.dtype
+							)
+					grp.visititems(resolve_virtual_datasets)
+					
+				else:
+					raise RuntimeWarning(f'Source group {grp} has virtual datasets inside it that will not be resolved. Relative paths will break.')
+				
+			
+				self._validate_data_group(self._get_data_grp(xs_grp))
+		
+		self._update_from_sources()
+		
+		
+		
 	def _get_virtual_dataset_target_info(
 			self,
 			target_file_path_str : str, # Path (as a string) that `x_grp` resides in. Can be relative to the eventual destination HDF5 file, use '.' to denote the destination HDF5 file

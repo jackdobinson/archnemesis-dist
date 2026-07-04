@@ -847,6 +847,7 @@ class OptimalEstimation_0:
 
                 f.write('Variable '+str(ivar+1)+"\n")
                 f.write("\t %i \t %i \t %i\n" % (Variables.VARIDENT[ivar,0],Variables.VARIDENT[ivar,1],Variables.VARIDENT[ivar,2]))
+                
                 f.write("%10.8e \t %10.8e \t %10.8e \t %10.8e \t %10.8e\n" % (Variables.VARPARAM[ivar,0],Variables.VARPARAM[ivar,1],Variables.VARPARAM[ivar,2],Variables.VARPARAM[ivar,3],Variables.VARPARAM[ivar,4]))
 
                 l = ['i','ix','xa','sa_err','xn','xn_err']

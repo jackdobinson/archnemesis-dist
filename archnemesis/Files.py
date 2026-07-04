@@ -683,7 +683,7 @@ def read_mre(runname,MakePlot=False):
     retprof1 = np.zeros([nx,nvar])
     reterr1 = np.zeros([nx,nvar])
     varident = np.zeros([nvar,3],dtype='int')
-    varparam = np.zeros([nvar,5])
+    varparam = np.zeros([nvar,500])
     
     for i in range(nvar):
         
@@ -703,17 +703,24 @@ def read_mre(runname,MakePlot=False):
         varident[i, :] = np.array(parts, dtype=int)
 
         # 3) The next line is the varparam (5 floats)
-        line = f.readline().strip()
-        parts = line.split()
-        if len(parts) != 5:
-            raise ValueError(f"Expected 5 floats for varparam, got: {parts}")
-        varparam[i, :] = np.array(parts, dtype=float)
+        
+        j = 0
+        while True:
+            try:
+                line = f.readline().strip()
+                parts = line.split()
+                _ = float(parts[0])
+            except ValueError:
+                break
             
-        # 4) The next line is typically the header for data lines ("i, ix, xa ...")
-        #    We just read it and ignore.
-        f.readline()
+            if len(parts) != 5:
+                raise ValueError(f"Expected 5 floats for varparam, got: {parts}")
+            
+            varparam[i, j*5:(j+1)*5] = np.array(parts, dtype=float)
+            j+=1 
+    
 
-        # 5) Now read each profile line for this variable
+        # 4) Now read each profile line for this variable
         #    We know the data lines each have 6 columns.
         varlines = []
         while True:
