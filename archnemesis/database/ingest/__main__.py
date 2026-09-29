@@ -10,13 +10,13 @@ import argparse as ap
 
 def action_spectral_data_source_helper_ingest(
 		dir : Path,
-		ans_database_fpath : None | Path = None
+		output : None | Path = None
 ):
 	from .spectral_data_source_helper import create_hdf5_linedata_file_from
 	
 	output_fpath = create_hdf5_linedata_file_from(
 		dir,
-		ans_database_fpath=ans_database_fpath,
+		ans_database_fpath=output,
 	)
 	print(f'Ingested spectral data to "{output_fpath}"')
 	
