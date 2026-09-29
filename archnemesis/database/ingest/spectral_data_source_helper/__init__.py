@@ -77,7 +77,7 @@ def create_hdf5_linedata_file_from(
 	pfdh_dict = {}
 
 	for pf_file in pf_files:
-		iso_slug, ds_name = pf_file.stem.split('__', 1)[0]
+		iso_slug, ds_name = pf_file.stem.split('__', 1)
 		iso_name = iso_slug_to_iso_name(iso_slug)
 		
 		pfdh_tabulated = pfdh_dict.setdefault(
