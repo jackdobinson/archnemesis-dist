@@ -37,7 +37,7 @@ def create_parser():
 	spectral_data_source_helper_sp.add_argument('dir', metavar='<directory>', type=Path, help='Directory to look for structured array files within')
 	spectral_data_source_helper_sp.add_argument('-o', '--output', metavar='<path>', type=Path, help='Path to the ArchNEMESIS spectral database file to add data to, will be created if does not exist. (default = "<directory> / line_database.h5")', default=None)
 	
-
+	return parser
 
 if __name__ == '__main__':
 	
