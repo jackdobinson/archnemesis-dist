@@ -71,11 +71,11 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 				target_grp = x_grp[s_path]
 				for mol_grp_name, mol_grp in target_grp.items():
 					for iso_grp_name, iso_grp in mol_grp.items():
-						print(f'{mol_grp_name=} {iso_grp_name=}')
+						_lgr.debug(f'{mol_grp_name=} {iso_grp_name=}')
 						
 						iso_grp_src_list = []
 						for leaf_grp_name, leaf_grp in iso_grp.items():
-							print(f'{leaf_grp_name=}')
+							_lgr.debug(f'{leaf_grp_name=}')
 							if leaf_grp_name.startswith(self.leaf_group_prefix) and isinstance(leaf_grp, h5py.Group):
 								iso_grp_src_list.append(
 									(
@@ -104,9 +104,9 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 			finally:
 				if s_file != '.':
 					x_grp.file.close()
-			print('Performing update...')
+			_lgr.debug('Performing update...')
 			for (mol_grp_name, iso_grp_name), iso_grp_src_list in source_map.items():
-				print(f'{mol_grp_name=} {iso_grp_name=}')
+				_lgr.debug(f'{mol_grp_name=} {iso_grp_name=}')
 				mol_grp = h5py_helper.ensure_grp(d_grp, mol_grp_name)
 				iso_grp = h5py_helper.ensure_grp(mol_grp, iso_grp_name)
 				
@@ -122,19 +122,19 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 				for to_delete in to_delete_list:
 					del iso_grp[to_delete]
 				
-				print('Deleted existing leaf groups...')
+				_lgr.debug('Deleted existing leaf groups...')
 				
 				# Order the leaf group sources
 				sorted_iso_grp_src_list = sorted(iso_grp_src_list, key= lambda x: x[0])
-				print('iso_grp_src_list has been sorted...')
-				print(f'{len(sorted_iso_grp_src_list)=}')
-				print(f'{len(sorted_iso_grp_src_list[0])=}')
-				print(f'{len(sorted_iso_grp_src_list[0][0])=}')
+				_lgr.debug('iso_grp_src_list has been sorted...')
+				_lgr.debug(f'{len(sorted_iso_grp_src_list)=}')
+				_lgr.debug(f'{len(sorted_iso_grp_src_list[0])=}')
+				_lgr.debug(f'{len(sorted_iso_grp_src_list[0][0])=}')
 				
 				# add sources
 				idx = 0
 				for leaf_grp_src_pc_parameters, leaf_grp_src_info in sorted_iso_grp_src_list:
-					print(f'Adding source {leaf_grp_src_pc_parameters=}')
+					_lgr.debug(f'Adding source {leaf_grp_src_pc_parameters=}')
 					vleaf_grp_name = self.get_leaf_grp_name(idx)
 					if vleaf_grp_name in iso_grp:
 						# if `vleaf_grp_name` is in `iso_grp` at this point, it is because it is a non-virtual group
@@ -147,7 +147,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 							idx += 1
 							vleaf_grp_name = self.get_leaf_grp_name(idx)
 					
-					print('Write virtual dataset')
+					_lgr.debug('Write virtual dataset')
 					# Write the virtual datsets
 					vleaf_grp = h5py_helper.ensure_grp(iso_grp, vleaf_grp_name)
 					self._create_virtual_datasets_from(
@@ -253,7 +253,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 			
 			delta_temp = target_temp - t_ref
 			
-			#print(f'AnsPseudoContinuumFile :: {leaf_grp_name=} {s_max=} {t_ref=} {p_ref=} {delta_s_min=} {delta_temp=} {mismatch_s_max=} {mismatch_temp=}')
+			#_lgr.debug(f'AnsPseudoContinuumFile :: {leaf_grp_name=} {s_max=} {t_ref=} {p_ref=} {delta_s_min=} {delta_temp=} {mismatch_s_max=} {mismatch_temp=}')
 			
 			if (
 				(
@@ -321,14 +321,14 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 				# don't exit, we want to find the largest index
 				leaf_grp_idx = i
 				"""
-				print(f'{(leaf_grp_pc_parameters == test_grp_pc_parameters)=}')
-				print(f'{all(k in leaf_grp_attrs for k in test_grp_attrs)=}')
-				print(f'{all(k in test_grp_attrs for k in leaf_grp_attrs)=}')
-				print(f'{all(leaf_grp_attrs[k] == v for k,v in test_grp_attrs.items())=}')
-				print(f'{np.all(p_grp[test_pc_grp_name]['wn_bin_center'].ndim == data_holder.wn_bin_center.ndim)=}')
-				print(f'{all(x==y for x,y in zip(p_grp[test_pc_grp_name]['wn_bin_center'].shape, data_holder.wn_bin_center.shape))=}')
-				print(f'{np.all(p_grp[test_pc_grp_name]['wn_bin_center'] == data_holder.wn_bin_center)=}')
-				print(f'{np.all(p_grp[test_pc_grp_name]['wn_bin_width'] == data_holder.wn_bin_width)=}')
+				_lgr.debug(f'{(leaf_grp_pc_parameters == test_grp_pc_parameters)=}')
+				_lgr.debug(f'{all(k in leaf_grp_attrs for k in test_grp_attrs)=}')
+				_lgr.debug(f'{all(k in test_grp_attrs for k in leaf_grp_attrs)=}')
+				_lgr.debug(f'{all(leaf_grp_attrs[k] == v for k,v in test_grp_attrs.items())=}')
+				_lgr.debug(f'{np.all(p_grp[test_pc_grp_name]['wn_bin_center'].ndim == data_holder.wn_bin_center.ndim)=}')
+				_lgr.debug(f'{all(x==y for x,y in zip(p_grp[test_pc_grp_name]['wn_bin_center'].shape, data_holder.wn_bin_center.shape))=}')
+				_lgr.debug(f'{np.all(p_grp[test_pc_grp_name]['wn_bin_center'] == data_holder.wn_bin_center)=}')
+				_lgr.debug(f'{np.all(p_grp[test_pc_grp_name]['wn_bin_width'] == data_holder.wn_bin_width)=}')
 				"""
 				
 				if ( # Do some tests to see if we should overwrite this group instead
@@ -438,7 +438,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 		Return an empty dataset, but it should be ready to accept extra lines if required therefore need to compute a decent value for
 		`wn_bin_center` and `wn_bin_width`.
 		"""
-		#print(f'TESTING: {requested_wn_range=}')
+		#_lgr.debug(f'TESTING: {requested_wn_range=}')
 		if wn_bin_width is not None:
 			if wn_bin_center is None:
 				if isinstance(wn_bin_width, float):
@@ -534,14 +534,14 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 			                         when applying `wn_mask_fn` to the upper edges, the last bin will only be correctly excluded if a small number,
 			                         `wn_bin_upper_edge_eta` is added to it.
 		"""
-		#print('AnsPseudoContinuumFile::get_data(...) ARGUMENTS')
-		#print(f'\t{mol_name=}')
-		#print(f'\t{local_iso_id=}')
-		#print(f'\t{temperature=}')
-		#print(f'\t{s_max=}')
-		#print(f'\t{ambient_gasses=}')
-		#print(f'\t{requested_wn_range=}')
-		#print(f'\t{wn_bin_upper_edge_eta=}')
+		#_lgr.debug('AnsPseudoContinuumFile::get_data(...) ARGUMENTS')
+		#_lgr.debug(f'\t{mol_name=}')
+		#_lgr.debug(f'\t{local_iso_id=}')
+		#_lgr.debug(f'\t{temperature=}')
+		#_lgr.debug(f'\t{s_max=}')
+		#_lgr.debug(f'\t{ambient_gasses=}')
+		#_lgr.debug(f'\t{requested_wn_range=}')
+		#_lgr.debug(f'\t{wn_bin_upper_edge_eta=}')
 		
 		if ambient_gasses is None:
 			ambient_gasses = tuple()
