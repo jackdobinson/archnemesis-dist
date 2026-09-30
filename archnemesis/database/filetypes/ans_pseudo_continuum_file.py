@@ -165,6 +165,8 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 		"""
 		Validate the contents of "/<target_group_name>" as much as possible. Should throw an error if any incompatibilities are found.
 		"""
+		_lgr.debug(f'{d_grp=}')
+		
 		for mol_grp_name, mol_grp in d_grp.items():
 			for iso_grp_name, iso_grp in mol_grp.items():
 			
@@ -368,6 +370,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 			leaf_grp_name, 
 			attrs = leaf_grp_attrs
 		)
+		_lgr.debug(f'Got target leaf group {leaf_grp}')
 		return leaf_grp
 	
 	def _add_data(

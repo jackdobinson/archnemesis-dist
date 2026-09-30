@@ -13,7 +13,7 @@ import numpy as np
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
 
 HDR_MAX_SIZE = 1024 * 1024
 NULL_BYTE =  b'\0'[0]
