@@ -6,18 +6,24 @@ import h5py
 
 from archnemesis.database.data_layouts.structured_qualifiers import StructuredQualifier
 
+# Logging
+import archnemesis.cfg.logs as logging
+_lgr = logging.getLogger(__name__)
+#_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DEBUG)
+
 class RecordLayoutMeta(type):
 	def __new__(meta, name, bases, ctx):
-		#print(f'Creating class {name}')
+		_lgr.debug(f'Creating class {name}')
 		
 		
 		annotations = ctx.get('__annotations__',dict())
 		for attr, annotation in annotations.items():
 			assert isinstance(annotation, Type) or (get_origin(annotation) is Annotated)
 			if get_origin(annotation) is Annotated:
-				#print(f'{len(get_args(annotation))=}')
-				#print(f'{get_args(annotation)[1]=}')
-				#print(f'{isinstance(get_args(annotation)[1], StructuredQualifier)=}')
+				_lgr.debug(f'{len(get_args(annotation))=}')
+				_lgr.debug(f'{get_args(annotation)[1]=}')
+				_lgr.debug(f'{isinstance(get_args(annotation)[1], StructuredQualifier)=}')
 				assert (len(get_args(annotation)) <= 2) and isinstance(get_args(annotation)[1], StructuredQualifier)
 		
 		default_attrs = tuple(k for k,v in ctx.items() if (not k.startswith('__')) and (not hasattr(v, '__func__')) and (not callable(v)))
@@ -35,13 +41,15 @@ class RecordLayoutMeta(type):
 		ctx['_types'] = (*itertools.chain.from_iterable(getattr(b, "_types", tuple()) for b in bases), *field_types)
 		ctx['_metadata'] = (*itertools.chain.from_iterable(getattr(b, "_metadata", tuple()) for b in bases), *metadata)
 		
+		_lgr.debug(f'{ctx["_fields"]=}')
+		
 		ctx['__slots__'] = ctx['_fields']
 
 		x = super().__new__(meta, name, bases, ctx)
 		return x
 	
 	def __init__(meta, name, bases, ctx):
-		#print(f'Initialising class {name}')
+		_lgr.debug(f'Initialising class {name}')
 		super().__init__(name, bases, ctx)
 	
 	def __call__(cls, *args, **kwargs):

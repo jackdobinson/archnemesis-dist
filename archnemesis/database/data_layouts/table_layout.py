@@ -16,6 +16,7 @@ class TableLayoutMeta(type):
 		
 		
 		record_format = ctx.get('record_format',None)
+		_lgr.debug(f'{record_format=}')
 		assert record_format is not None and issubclass(record_format, RecordLayout), "TableLayout class must have a `record_layout` class attribute of class (or subclass) `RecordLayout`"
 		
 		ctx['__slots__'] = record_format._fields
