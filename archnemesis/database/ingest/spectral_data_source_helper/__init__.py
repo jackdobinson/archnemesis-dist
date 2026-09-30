@@ -143,7 +143,8 @@ def create_hdf5_linedata_file_from(
 
 				zeros = np.zeros_like(cont_data['line_strength_sum'])
 				nonzero_line_strength_sum = cont_data['line_strength_sum'] != 0
-
+				
+				_lgr.info(f'Creating pseudo-continuum line data holder for iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}` dataset name `{pc_dfs.ds_name}`')
 				pc_dh = PseudoContinuumDataHolder(
 					pc_dfs.ds_name,
 					f"This data was created from files at {dir}. With iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}` dataset name `{pc_dfs.ds_name}`",
@@ -174,7 +175,7 @@ def create_hdf5_linedata_file_from(
 					
 				)
 
-
+				_lgr.info('Adding pseudo-continuum line data to database...')
 				ans_pc_file.add_source_data(
 					pc_dh.name,
 					pc_dh,
@@ -183,7 +184,7 @@ def create_hdf5_linedata_file_from(
 				
 				_lgr.info(f'ADDED PSEUDO CONTINUUM DATA FOR {iso_name} {ds_name} ...')
 				
-				
+				_lgr.info(f'Creating line data holder for iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}` dataset name `{pc_dfs.ds_name}`')
 				ld_dh = LineDataHolder(
 					pc_dfs.ds_name,
 					f"This data was created from files at {dir}. With iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}` dataset name `{pc_dfs.ds_name}`",
@@ -211,6 +212,7 @@ def create_hdf5_linedata_file_from(
 					),
 				)
 				
+				_lgr.info('Adding line data to database ...')
 				ans_ld_file.add_source_data(
 					ld_dh.name,
 					ld_dh,
