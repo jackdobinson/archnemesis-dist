@@ -311,8 +311,11 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 		i=0
 		test_pc_grp_name = self.get_leaf_grp_name(i)
 		while test_pc_grp_name in p_grp:
+			_lgr.debug(f'{test_pc_grp_name=}')
 			test_grp_attrs = p_grp[test_pc_grp_name].attrs
 			test_grp_pc_parameters = self._get_pseudo_continuum_parameters(test_grp_attrs)
+			_lgr.debug(f'{leaf_grp_pc_parameters=}')
+			_lgr.debug(f'{test_grp_pc_parameters=}')
 			if (leaf_grp_idx < 0) and (leaf_grp_pc_parameters <= test_grp_pc_parameters): # NOTE: `test_grp_pc_parameters` should always be ordered such that the first one `leaf_grp_pc_parameters` is less than is where this data should be inserted.
 				# leaf_grp should be inserted before the current test grp so use the current index
 				# don't exit, we want to find the largest index
