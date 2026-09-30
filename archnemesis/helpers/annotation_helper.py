@@ -11,8 +11,6 @@ if (sys.version_info.major, sys.version_info.minor) >= (3, 14):
 		annotations = d.get('__annotations__', None)
 		annotate_fn = annotationlib.get_annotate_from_class_namespace(d)
 		
-		print(f'get_annotations_from_dict(...) :: {annotations=} {annotate_fn=}')
-		
 		if annotations is None:
 			if annotate_fn is None:
 				return dict()

@@ -5,6 +5,8 @@ from collections import namedtuple
 
 import numpy as np
 
+from archnemesis.helpers.annotation_helper import get_annotations_from_dict
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 _lgr.setLevel(logging.INFO)
@@ -91,7 +93,7 @@ class FixedWidthFormatMeta(type):
     
     def __new__(meta, name, bases, ctx):
         
-        annotations = ctx.get('__annotations__',dict())
+        annotations = get_annotations_from_dict(ctx)
         default_attrs = tuple(k for k,v in ctx.items() if (not k.startswith('__')) and (not hasattr(v, '__func__')))
         anno_attrs = tuple(k for k in annotations)
 

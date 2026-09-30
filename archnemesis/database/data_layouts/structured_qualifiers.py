@@ -1,7 +1,7 @@
 
 
 import itertools
-
+from archnemesis.helpers.annotation_helper import get_annotations_from_dict
 
 class StructuredQualifierMeta(type):
 
@@ -9,7 +9,7 @@ class StructuredQualifierMeta(type):
 		#print(f'Creating class {name}')
 		
 		
-		annotations = ctx.get('__annotations__',dict())
+		annotations = get_annotations_from_dict(ctx)
 		default_attrs = tuple(k for k,v in ctx.items() if (not k.startswith('__')) and (not hasattr(v, '__func__')) and (not callable(v)))
 		anno_attrs = tuple(k for k in annotations)
 
