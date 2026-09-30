@@ -407,7 +407,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 				data_holder.line_strength_weighted_gamma_self[iso_mask],
 				data_holder.line_strength_weighted_n_self[iso_mask],
 			)
-			
+			_lgr.debug(f'{data_table=}')
 			data_table.to_hdf5(leaf_grp)
 			_lgr.debug(f'{leaf_grp=}')
 			
