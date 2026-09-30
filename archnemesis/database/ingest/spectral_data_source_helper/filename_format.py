@@ -5,6 +5,10 @@ import re
 
 from archnemesis.Data.gas_data import gas_info, atom_mass
 
+import archnemesis.cfg.logs as logging
+_lgr = logging.getLogger(__name__)
+_lgr.setLevel(logging.INFO)
+
 atom_names = tuple(atom_mass.keys())
 
 iso_slug_regex = re.compile(r'(\d+)([A-Z][a-zA-Z]*)(\d*)')
@@ -68,14 +72,20 @@ def mol_name_to_mol_spec(mol_name, atom_names = atom_names):
 def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 	rt_mol_id = None
 	rt_iso_id = None
+	
+	_lgr.info(f'{mol_spec=}')
+	_lgr.info(f'{iso_name=}')
+	_lgr.info(f'{gas_info=}')
 
 	uncontained_iso_atom_regex = re.compile(r'[A-Z][a-zA-Z]*(?!\))')
 	uncontained_iso_atom_subs = {'H' : '(1H)', 'D' : '(2H)'}
 
 	for mol_id, mol_data in gas_info.items():
 		mol_name = mol_data['name']
+		_lgr.info(f'{mol_id=} {mol_name=}')
 		
 		rt_mol_spec = mol_name_to_mol_spec(mol_name, atom_names=atom_names)
+		_lgr.info(f'{rt_mol_spec=}')
 		if rt_mol_spec != mol_spec:
 			continue
 		
@@ -84,6 +94,7 @@ def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 		
 		for iso_id, iso_data in mol_data['isotope'].items():
 			iso_name = iso_data['name']
+			_lgr.info(f'{iso_id=} {iso_name=}')
 			canonical_iso_name = ''
 			i = 0
 			j = 0
@@ -93,6 +104,7 @@ def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 				canonical_iso_name += uncontained_iso_atom_subs[match[0]]
 				i = match.end()
 			canonical_iso_name += iso_name[i:]
+			_lgr.info(f'{canonical_iso_name=}')
 			#print(f'{iso_name=}')
 			#print(f'{canonical_iso_name=}')
 			if canonical_iso_name != iso_name:
