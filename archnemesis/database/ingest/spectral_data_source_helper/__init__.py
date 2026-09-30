@@ -20,6 +20,9 @@ from archnemesis.database.data_holders.pseudo_continuum_broadener_part import Ps
 from archnemesis.database.data_holders.line_data_holder import LineDataHolder
 from archnemesis.database.data_holders.line_broadener_holder import LineBroadenerHolder
 
+import archnemesis.cfg.logs as logging
+_lgr = logging.getLogger(__name__)
+_lgr.setLevel(logging.INFO)
 
 def get_filesets(dir : Path) -> dict[dict[str,list[PCDataFileSet]]]:
 
@@ -64,9 +67,14 @@ def create_hdf5_linedata_file_from(
 		dir : Path,
 		ans_database_fpath : None | Path
 ) -> Path:
+	_lgr.info(f'{dir=}')
+	_lgr.info(f'{ans_database_fpath=}')
+	
 	pc_dfss = get_filesets(dir)
+	_lgr.info(f'{pc_dfss=}')
 	
 	pf_files = [fpath for fpath in dir.iterdir() if fpath.suffix == '.pf'] # e.g. 12C-1H4__YT10to10.pf
+	_lgr.info(f'{pf_files=}')
 	
 	ans_database_fpath = ans_database_fpath if ans_database_fpath is not None else (dir / "line_database.h5")
 	
@@ -79,6 +87,8 @@ def create_hdf5_linedata_file_from(
 	for pf_file in pf_files:
 		iso_slug, ds_name = pf_file.stem.split('__', 1)
 		iso_name = iso_slug_to_iso_name(iso_slug)
+		_lgr.info(f'{pf_file=}')
+		_lgr.info(f'{iso_slug=} {ds_name=} {iso_name=}')
 		
 		pfdh_tabulated = pfdh_dict.setdefault(
 			ds_name,
