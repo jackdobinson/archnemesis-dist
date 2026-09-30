@@ -384,6 +384,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 		"""
 		Add data from `data_holder` into `d_grp`
 		"""
+		_lgr.debug(f'{d_grp=}')
 		mol_mask = np.ones_like(data_holder.mol_id, dtype=bool)
 		iso_mask = np.ones_like(data_holder.mol_id, dtype=bool)
 		
@@ -408,6 +409,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 			)
 			
 			data_table.to_hdf5(leaf_grp)
+			_lgr.debug(f'{leaf_grp=}')
 			
 			b_grp = h5py_helper.ensure_grp(leaf_grp, 'broadeners', attrs={'description':'Foreign broadening values for the pseudo-continuum'})
 			if data_holder.broadeners is not None:
