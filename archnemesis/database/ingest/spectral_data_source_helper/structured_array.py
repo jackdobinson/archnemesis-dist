@@ -321,6 +321,7 @@ class StructuredArrayFile:
 	def read_header(self, encoding : str = 'ascii') -> str:
 		#print(f'reading dtype {self.fhdl.name=}', flush=True)
 		# Read 4 bytes at a time until string ends with null character
+		_lgr.debug(f'{self.fpath=}')
 		_lgr.debug(f'{self.fhdl.tell()=}')
 		hdr_part = self.read_bytes(4)
 		_lgr.debug(f'four_bytes={hdr_part}')
@@ -348,7 +349,7 @@ class StructuredArrayFile:
 		hdr = self.read_header(encoding=encoding)
 		return dtype_from_string(hdr) if hdr is not None else None
 	
-	def read(self, count : int = -1) -> np.ndarray:	
+	def read(self, count : int = -1) -> np.ndarray:
 		if self.arr_dtype is None:
 			self.arr_dtype = self.read_dtype()
 
@@ -385,11 +386,13 @@ class StructuredArrayFile:
 
 
 def tofile(fpath : Path, arr : np.ndarray):
+	_lgr.debug(f'{fpath=}')
 	with StructuredArrayFile(fpath, 'wb') as f:
 		f.write(arr)
 
 
 def fromfile(fpath : Path):
+	_lgr.debug(f'{fpath=}')
 	with StructuredArrayFile(fpath, 'rb') as f:
 		return f.read()
 

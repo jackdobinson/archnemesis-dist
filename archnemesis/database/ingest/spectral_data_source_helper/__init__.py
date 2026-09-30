@@ -123,7 +123,7 @@ def create_hdf5_linedata_file_from(
 	
 	for (iso_name, ds_name), pfdh in pfdh_dict.items():
 		ans_pf_file.add_source_data(pfdh.name, pfdh, pfdh.description)
-		_lgr.info('ADDED LINE DATA FOR {iso_name} {ds_name} ...')
+		_lgr.info(f'ADDED PARTITION FUNCTION DATA FOR {iso_name} {ds_name} ...')
 
 	for iso_name, a in pc_dfss.items():
 		for ds_name, pc_dfs_list in a.items():
@@ -212,6 +212,6 @@ def create_hdf5_linedata_file_from(
 					ld_dh.description
 				)
 				
-				_lgr.info('ADDED LINE DATA FOR {iso_name} {ds_name} ...')
+				_lgr.info(f'ADDED LINE DATA FOR {iso_name} {ds_name} ...')
 	
 	return ans_database_fpath
