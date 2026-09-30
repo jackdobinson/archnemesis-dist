@@ -16,6 +16,8 @@ class RecordLayoutMeta(type):
 	def __new__(meta, name, bases, ctx):
 		_lgr.debug(f'Creating class {name}')
 		
+		for k,v in ctx.items():
+			_lgr.debug(f'    {k} : {v}')
 		
 		annotations = ctx.get('__annotations__',dict())
 		_lgr.debug(f'{annotations=}')
