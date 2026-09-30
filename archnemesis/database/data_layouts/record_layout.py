@@ -18,6 +18,7 @@ class RecordLayoutMeta(type):
 		
 		
 		annotations = ctx.get('__annotations__',dict())
+		_lgr.debug(f'{annotations=}')
 		for attr, annotation in annotations.items():
 			assert isinstance(annotation, Type) or (get_origin(annotation) is Annotated)
 			if get_origin(annotation) is Annotated:
@@ -28,6 +29,8 @@ class RecordLayoutMeta(type):
 		
 		default_attrs = tuple(k for k,v in ctx.items() if (not k.startswith('__')) and (not hasattr(v, '__func__')) and (not callable(v)))
 		anno_attrs = tuple(k for k in annotations)
+		_lgr.debug(f'{default_attrs=}')
+		_lgr.debug(f'{anno_attrs=}')
 		
 		for attr in default_attrs:
 			if attr not in anno_attrs:
