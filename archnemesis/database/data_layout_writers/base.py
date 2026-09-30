@@ -8,6 +8,11 @@ from archnemesis.helpers import h5py_helper
 from archnemesis.database.data_layouts.record_layout import RecordLayout
 from archnemesis.database.data_layouts.table_layout import TableLayout
 
+# Logging
+import archnemesis.cfg.logs as logging
+_lgr = logging.getLogger(__name__)
+#_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DEBUG)
 
 class BaseTableWriter(TableLayout):
 	record_format : type[RecordLayout] = RecordLayout
@@ -18,7 +23,7 @@ class BaseTableWriter(TableLayout):
 			extend : None | Literal['stack'] | int = None
 	):
 		for i, name in enumerate(self.__slots__):
-			#print(f'LineDataTableFormat.to_hdf5(...) {grp=} {i=} {name=} {len(getattr(self, name))=}')
+			_lgr.debug(f'{grp=} {i=} {name=} {len(getattr(self, name))=}')
 			h5py_helper.ensure_dataset(
 				grp, 
 				name, 
