@@ -11,6 +11,10 @@ from pathlib import Path
 
 import numpy as np
 
+import archnemesis.cfg.logs as logging
+_lgr = logging.getLogger(__name__)
+_lgr.setLevel(logging.DEBUG)
+
 HDR_MAX_SIZE = 1024 * 1024
 NULL_BYTE =  b'\0'[0]
 
@@ -308,13 +312,15 @@ class StructuredArrayFile:
 		
 		return
 	
-	def read_bytes(self, n : int = -1):
+	def read_bytes(self, n : int = -1) -> bytes:
 		if self.reader is None:
-			return self.fhdl.read(n if n >=0 else -1)
+			result= self.fhdl.read(n if n >=0 else -1)
 		else:
-			return self.reader.read(n if n >=0 else -1)
+			result= self.reader.read(n if n >=0 else -1)
+		_lgr.debug(f'{result=}')
+		return result
 	
-	def read_header(self, encoding : str = 'ascii'):
+	def read_header(self, encoding : str = 'ascii') -> str:
 		#print(f'reading dtype {self.fhdl.name=}', flush=True)
 		# Read 4 bytes at a time until string ends with null character
 		hdr_part = self.read_bytes(4)
@@ -325,6 +331,9 @@ class StructuredArrayFile:
 		while hdr_part[-1] != NULL_BYTE and len(hdr_part) <= HDR_MAX_SIZE:
 			hdr_part += self.read_bytes(4)
 		
+		_lgr.debug(f'{len(hdr_part)=}')
+		_lgr.debug(f'{hdr_part=}')
+		
 		if len(hdr_part) > HDR_MAX_SIZE:
 			raise RuntimeError(f'Header exceeded maximum size ({HDR_MAX_SIZE} bytes). First 128 bytes: {hdr_part[:128]}')
 		
@@ -333,7 +342,7 @@ class StructuredArrayFile:
 		self.header_byte_end = len(hdr_part)+1
 		return hdr_part.decode(encoding)
 	
-	def read_dtype(self, encoding : str = 'ascii'):
+	def read_dtype(self, encoding : str = 'ascii') -> np.dtype:
 		hdr = self.read_header(encoding=encoding)
 		return dtype_from_string(hdr) if hdr is not None else None
 	
