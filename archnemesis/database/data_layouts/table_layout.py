@@ -7,8 +7,8 @@ from archnemesis.database.data_layouts.record_layout import RecordLayout
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-#_lgr.setLevel(logging.INFO)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 class TableLayoutMeta(type):
 	def __new__(meta, name, bases, ctx):
@@ -36,6 +36,8 @@ class TableLayout(metaclass = TableLayoutMeta):
 	def __init__(self, *args, **kwargs):
 		#print(f'TableFormat.__init__(...) {[a.shape for a in args]=} {self.__slots__=}')
 		_lgr.debug(f'{[a.shape for a in args]=} {self.__slots__=}')
+		assert len(self.__slots__) != 0, "Any TableLayout subclass MUST have a non-empty `__slots__` attribute."
+		
 		for attr, value in zip(self.__slots__, args):
 			assert attr not in kwargs, f"Must not have positional and keyword argument setting the same attribute '{attr}'"
 			setattr(self, attr, value)

@@ -10,8 +10,8 @@ from archnemesis.helpers.annotation_helper import get_annotations_from_dict
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-#_lgr.setLevel(logging.INFO)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 
 
@@ -20,9 +20,6 @@ _lgr.setLevel(logging.DEBUG)
 class RecordLayoutMeta(type):
 	def __new__(meta, name, bases, ctx):
 		_lgr.debug(f'Creating class {name}')
-		
-		for k,v in ctx.items():
-			_lgr.debug(f'    {k} : {v}')
 		
 		annotations = get_annotations_from_dict(ctx)
 		_lgr.debug(f'{annotations=}')

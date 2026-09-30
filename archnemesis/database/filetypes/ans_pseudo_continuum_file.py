@@ -23,8 +23,8 @@ from archnemesis.database.datatypes.pseudo_continuum_data import PseudoContinuum
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-#_lgr.setLevel(logging.INFO)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 
 P_REF_DEFAULT = 1.0 # atmospheres

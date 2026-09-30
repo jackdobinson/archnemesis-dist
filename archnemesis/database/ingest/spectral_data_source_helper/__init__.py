@@ -22,7 +22,8 @@ from archnemesis.database.data_holders.line_broadener_holder import LineBroadene
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 def get_filesets(dir : Path) -> dict[dict[str,list[PCDataFileSet]]]:
 

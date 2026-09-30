@@ -11,8 +11,8 @@ from archnemesis.database.data_layouts.table_layout import TableLayout
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-#_lgr.setLevel(logging.INFO)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 class BaseTableWriter(TableLayout):
 	record_format : type[RecordLayout] = RecordLayout
