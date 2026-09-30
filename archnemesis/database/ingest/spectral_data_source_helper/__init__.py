@@ -129,7 +129,7 @@ def create_hdf5_linedata_file_from(
 	for iso_name, a in pc_dfss.items():
 		for ds_name, pc_dfs_list in a.items():
 			for pc_dfs in pc_dfs_list:
-				_lgr.info(f'Working on iso {pc_dfs.iso_name} dataset {pc_dfs.ds_name} with t_cont {pc_dfs.t_cont=}')
+				_lgr.info(f'Working on iso {pc_dfs.iso_name} dataset {pc_dfs.ds_name} with t_cont {pc_dfs.t_cont}')
 				_lgr.debug(f'{pc_dfs=}')
 				cont_bin_center, cont_bin_width, cont_data, stronglines_data = read_cont_data(pc_dfs)
 				_lgr.debug(f'{cont_bin_center[:10]=} {cont_bin_width[:10]=} {cont_data[:10]=}')
