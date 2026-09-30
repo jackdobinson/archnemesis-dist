@@ -73,19 +73,18 @@ def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 	rt_mol_id = None
 	rt_iso_id = None
 	
-	_lgr.info(f'{mol_spec=}')
-	_lgr.info(f'{iso_name=}')
-	_lgr.info(f'{gas_info=}')
+	_lgr.debug(f'{mol_spec=}')
+	_lgr.debug(f'{iso_name=}')
 
 	uncontained_iso_atom_regex = re.compile(r'[A-Z][a-zA-Z]*(?!\))')
 	uncontained_iso_atom_subs = {'H' : '(1H)', 'D' : '(2H)'}
 
 	for mol_id, mol_data in gas_info.items():
 		mol_name = mol_data['name']
-		_lgr.info(f'{mol_id=} {mol_name=}')
+		_lgr.debug(f'{mol_id=} {mol_name=}')
 		
 		rt_mol_spec = mol_name_to_mol_spec(mol_name, atom_names=atom_names)
-		_lgr.info(f'{rt_mol_spec=}')
+		_lgr.debug(f'{rt_mol_spec=}')
 		if rt_mol_spec != mol_spec:
 			continue
 		
@@ -94,7 +93,7 @@ def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 		
 		for iso_id, iso_data in mol_data['isotope'].items():
 			test_iso_name = iso_data['name']
-			_lgr.info(f'{iso_id=} {test_iso_name=}')
+			_lgr.debug(f'{iso_id=} {test_iso_name=}')
 			canonical_iso_name = ''
 			i = 0
 			j = 0
@@ -104,7 +103,7 @@ def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 				canonical_iso_name += uncontained_iso_atom_subs[match[0]]
 				i = match.end()
 			canonical_iso_name += test_iso_name[i:]
-			_lgr.info(f'{canonical_iso_name=}')
+			_lgr.debug(f'{canonical_iso_name=}')
 			#print(f'{iso_name=}')
 			#print(f'{canonical_iso_name=}')
 			if canonical_iso_name != iso_name:
@@ -120,5 +119,5 @@ def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 	if rt_mol_id is None:
 		raise RuntimeError(f'Could not fine RADTRAN molecule id for {mol_spec}')
 	
-	print(f'{rt_mol_id=} {rt_iso_id=}')
+	_lgr.info(f'{rt_mol_id=} {rt_iso_id=}')
 	return rt_mol_id, rt_iso_id
