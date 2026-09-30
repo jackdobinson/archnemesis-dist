@@ -314,22 +314,24 @@ class StructuredArrayFile:
 	
 	def read_bytes(self, n : int = -1) -> bytes:
 		if self.reader is None:
-			result= self.fhdl.read(n if n >=0 else -1)
+			return self.fhdl.read(n if n >=0 else -1)
 		else:
-			result= self.reader.read(n if n >=0 else -1)
-		_lgr.debug(f'{result=}')
-		return result
+			return self.reader.read(n if n >=0 else -1)
 	
 	def read_header(self, encoding : str = 'ascii') -> str:
 		#print(f'reading dtype {self.fhdl.name=}', flush=True)
 		# Read 4 bytes at a time until string ends with null character
+		_lgr.debug(f'{self.fhdl.tell()=}')
 		hdr_part = self.read_bytes(4)
+		_lgr.debug(f'four_bytes={hdr_part}')
 		if len(hdr_part) == 0:
 			self.header_byte_end = 0
 			return None
 		
 		while hdr_part[-1] != NULL_BYTE and len(hdr_part) <= HDR_MAX_SIZE:
-			hdr_part += self.read_bytes(4)
+			four_bytes = self.read_bytes(4)
+			_lgr.debug(f'{four_bytes=}')
+			hdr_part += four_bytes
 		
 		_lgr.debug(f'{len(hdr_part)=}')
 		_lgr.debug(f'{hdr_part=}')
