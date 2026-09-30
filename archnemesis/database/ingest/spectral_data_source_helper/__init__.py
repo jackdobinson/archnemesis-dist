@@ -139,6 +139,10 @@ def create_hdf5_linedata_file_from(
 				broadener_names = tuple(x[len("strength_weighted_gamma_"):] for x in cont_data.dtype.names if (x.startswith("strength_weighted_gamma_") and not x.endswith('self')))
 				_lgr.debug(f'{broadener_names=}')
 
+
+				zeros = np.zeros_like(cont_data['line_strength_sum'])
+				nonzero_line_strength_sum = cont_data['line_strength_sum'] != 0
+
 				pc_dh = PseudoContinuumDataHolder(
 					pc_dfs.ds_name,
 					f"This data was created from files at {dir}. With iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}` dataset name `{pc_dfs.ds_name}`",
@@ -152,18 +156,18 @@ def create_hdf5_linedata_file_from(
 					wn_bin_center = cont_bin_center,
 					wn_bin_width = cont_bin_width,
 					line_strength_sum = cont_data['line_strength_sum'],
-					line_strength_weighted_mean_lower_energy_state = cont_data['strength_weighted_sum_E"'] / cont_data['line_strength_sum'],
+					line_strength_weighted_mean_lower_energy_state = np.where(nonzero_line_strength_sum, cont_data['strength_weighted_sum_E"'] / cont_data['line_strength_sum'], zeros),
 					
 					# self broadening
-					line_strength_weighted_gamma_self = cont_data['strength_weighted_gamma_self'] / cont_data['line_strength_sum'],
-					line_strength_weighted_n_self = cont_data['strength_weighted_n_self'] / cont_data['line_strength_sum'],
+					line_strength_weighted_gamma_self = np.where(nonzero_line_strength_sum, cont_data['strength_weighted_gamma_self'] / cont_data['line_strength_sum'], zeros),
+					line_strength_weighted_n_self = np.where(nonzero_line_strength_sum, cont_data['strength_weighted_n_self'] / cont_data['line_strength_sum'], zeros),
 					
 					# foreign broadening
 					broadeners = tuple(
 						PseudoContinuumBroadenerPart(
 							name = x,
-							line_strength_weighted_gamma_amb = cont_data[f'strength_weighted_gamma_{x}'] / cont_data['line_strength_sum'],
-							line_strength_weighted_n_amb = cont_data[f'strength_weighted_n_{x}'] / cont_data['line_strength_sum'],
+							line_strength_weighted_gamma_amb = np.where(nonzero_line_strength_sum, cont_data[f'strength_weighted_gamma_{x}'] / cont_data['line_strength_sum'], zeros),
+							line_strength_weighted_n_amb = np.where(nonzero_line_strength_sum, cont_data[f'strength_weighted_n_{x}'] / cont_data['line_strength_sum'], zeros),
 						) for x in broadener_names
 					),
 					
