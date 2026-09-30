@@ -23,7 +23,8 @@ class BaseTableWriter(TableLayout):
 			extend : None | Literal['stack'] | int = None
 	):
 		for i, name in enumerate(self.__slots__):
-			_lgr.debug(f'{grp=} {i=} {name=} {len(getattr(self, name))=}')
+			print(f'BaseTableWriter::to_hdf5(...) :: {grp=} {i=} {name=} {len(getattr(self, name))=}')
+			#_lgr.debug(f'{grp=} {i=} {name=} {len(getattr(self, name))=}')
 			h5py_helper.ensure_dataset(
 				grp, 
 				name, 
