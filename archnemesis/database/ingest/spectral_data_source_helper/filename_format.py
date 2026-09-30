@@ -93,17 +93,17 @@ def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 		rt_mol_id = int(mol_id)
 		
 		for iso_id, iso_data in mol_data['isotope'].items():
-			iso_name = iso_data['name']
-			_lgr.info(f'{iso_id=} {iso_name=}')
+			test_iso_name = iso_data['name']
+			_lgr.info(f'{iso_id=} {test_iso_name=}')
 			canonical_iso_name = ''
 			i = 0
 			j = 0
-			for match in uncontained_iso_atom_regex.finditer(iso_name):
+			for match in uncontained_iso_atom_regex.finditer(test_iso_name):
 				j = match.start()
-				canonical_iso_name += iso_name[i:j]
+				canonical_iso_name += test_iso_name[i:j]
 				canonical_iso_name += uncontained_iso_atom_subs[match[0]]
 				i = match.end()
-			canonical_iso_name += iso_name[i:]
+			canonical_iso_name += test_iso_name[i:]
 			_lgr.info(f'{canonical_iso_name=}')
 			#print(f'{iso_name=}')
 			#print(f'{canonical_iso_name=}')
