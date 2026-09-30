@@ -25,7 +25,7 @@ class PCDataFileSet:
 		x, dsname = x.rsplit('__', 1)
 		iso_slug = x
 		
-		known_ftypes = ('continuum', 'contbins', 'stronglines')
+		known_ftypes = ('contbins', 'continuum', 'stronglines')
 		if ftype not in known_ftypes:
 			raise RuntimeError(f'Pseudo-continuum file extension {ftype} not recognised, must be one of {known_ftypes}')
 		
@@ -40,7 +40,7 @@ class PCDataFileSet:
 		
 		iso_name = iso_slug_to_iso_name(iso_slug)
 		
-		known_ftypes = ('.continuum', '.contbins', '.stronglines')
+		known_ftypes = ('.contbins', '.continuum', '.stronglines') # Must be in same order as in class definition
 		found_ftype_paths = [None, None, None]
 		
 		for i, x in enumerate(known_ftypes):
