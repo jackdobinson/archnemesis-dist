@@ -11,6 +11,8 @@ if (sys.version_info.major, sys.version_info.minor) >= (3, 14):
 	def get_annotations_from_dict(d):
 		annotations = d.get('__annotations__', None)
 		annotate_fn = d.get('__annotate__',None)
+		if annotate_fn is None:
+			annotate_fn = d.get('__annotate_func__',None)
 		
 		if annotations is None:
 			if annotate_fn is None:
@@ -19,7 +21,10 @@ if (sys.version_info.major, sys.version_info.minor) >= (3, 14):
 				annotationlib.call_annotate_function(annotate_fn, annotationlib.Format.FORWARDREF)
 		else:
 			if annotate_fn is not None:
-				d['__annotate__'] = None
+				if '__annotate__' in d:
+					d['__annotate__'] = None
+				if '__annotate_func__' in d:
+					d['__annotate_func__'] = None
 			return annotations
 else:
 	def get_annotations(obj):
