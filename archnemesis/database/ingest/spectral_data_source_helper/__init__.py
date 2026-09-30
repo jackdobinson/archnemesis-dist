@@ -57,8 +57,8 @@ def read_cont_data(pc_dfs):
 	cont_bin_width = np.diff(cont_bin_edge)
 	#_lgr.debug(f'{cont_bin_width=}')
 
-	cont_data = structured_array_from_file(pc_dfs.continuum)
 	stronglines_data = structured_array_from_file(pc_dfs.stronglines)
+	cont_data = structured_array_from_file(pc_dfs.continuum)
 	
 	return cont_bin_center, cont_bin_width, cont_data, stronglines_data
 
@@ -91,7 +91,7 @@ def create_hdf5_linedata_file_from(
 		_lgr.debug(f'{iso_slug=} {ds_name=} {iso_name=}')
 		
 		pfdh_tabulated = pfdh_dict.setdefault(
-			ds_name,
+			(iso_name, ds_name),
 			PartitionFunctionDataHolder(
 				ds_name,
 				f"This data was created from files at {dir}. With iso_slug `{iso_slug}` dataset name {ds_name}",
@@ -121,8 +121,9 @@ def create_hdf5_linedata_file_from(
 			tab_pf_data
 		)
 	
-	for pfdh in pfdh_dict.values():
+	for (iso_name, ds_name), pfdh in pfdh_dict.items():
 		ans_pf_file.add_source_data(pfdh.name, pfdh, pfdh.description)
+		_lgr.info('ADDED LINE DATA FOR {iso_name} {ds_name} ...')
 
 	for iso_name, a in pc_dfss.items():
 		for ds_name, pc_dfs_list in a.items():
