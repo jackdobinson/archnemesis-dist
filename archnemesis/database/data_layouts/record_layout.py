@@ -5,12 +5,17 @@ import numpy as np
 import h5py
 
 from archnemesis.database.data_layouts.structured_qualifiers import StructuredQualifier
+from archnemesis.helpers.annotation_helper import get_annotations_from_dict
 
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 #_lgr.setLevel(logging.INFO)
 _lgr.setLevel(logging.DEBUG)
+
+
+
+
 
 class RecordLayoutMeta(type):
 	def __new__(meta, name, bases, ctx):
@@ -19,7 +24,7 @@ class RecordLayoutMeta(type):
 		for k,v in ctx.items():
 			_lgr.debug(f'    {k} : {v}')
 		
-		annotations = ctx.get('__annotations__',dict())
+		annotations = get_annotations_from_dict(ctx)
 		_lgr.debug(f'{annotations=}')
 		for attr, annotation in annotations.items():
 			assert isinstance(annotation, Type) or (get_origin(annotation) is Annotated)
