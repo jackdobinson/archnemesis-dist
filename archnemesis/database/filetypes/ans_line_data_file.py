@@ -195,10 +195,12 @@ class AnsLineDataFile(AnsDatabaseFile):
 	) -> dict[str,Any]:
 		
 		return {
-			't_ref': data_holder.t_ref, # Temperature at which pseudo-continuum values were computed
+			't_ref': data_holder.t_ref, # Temperature at which line data is recorded
 			't_unit' : data_holder.t_unit,
 			's_min' : data_holder.s_min, # Maximum line strength included in pseudo-continuum
 			's_unit' : data_holder.s_unit,
+			't_str' : data_holder.t_str, # Temperature at which line strength was calculated for `s_min` cut
+			't_str_unit' : data_holder.t_str_unit,
 			'p_ref' : data_holder.p_ref,
 			'p_unit' : data_holder.p_unit,
 			**self.data_grp_attrs
@@ -209,12 +211,12 @@ class AnsLineDataFile(AnsDatabaseFile):
 			grp_attrs
 	)->tuple[float,float,float]:
 		"""
-		Leaf groups are ordered first by minimum line strength included in in the set, then by reference temperature that the set data was calculated at
+		Leaf groups are ordered first by minimum line strength included in in the set, then by the temperature minimum strength was calculated at
 		
 		## RETURNS ##
-			grp_line_set_parameters : tuple[float,float] - `s_min` and `t_ref` that were used when creating this line set
+			grp_line_set_parameters : tuple[float,float,float] - `s_min`, `t_str`, `t_ref`, `p_ref` that were used when creating this line set
 		"""
-		return (grp_attrs['s_min'], grp_attrs['t_ref'], grp_attrs['p_ref'])
+		return (grp_attrs['s_min'], grp_attrs['t_str'], grp_attrs['t_ref'], grp_attrs['p_ref'])
 	
 	def _select_best_leaf_grp_for_parameters(
 			self,
@@ -223,19 +225,22 @@ class AnsLineDataFile(AnsDatabaseFile):
 			iso_grp
 	) -> tuple[str, h5py.Group , tuple[Any,...]]:
 		"""
-		A line set is worked out at a specific temperature `t_ref`,
-		and made with all the lines that have a strength higher than a minimum value
-		`s_min`. 
+		A line set has two characteristic temperatures:
+		  1) `t_ref`, the reference temperature that all temp-dependent values are relative to
+		  2) `t_str`, the temperature used to calculate the line strengths when excluding via `s_min`
+		
+		`s_min` is the minimum line strength allowed in the dataset.
 		
 		When looking up which line set dataset to use we should
 		always try and match `s_min` exactly as otherwise we will either double-count
 		or miss out some lines. 
 		
-		The best `t_ref` to use is the lowest one that
+		The best `t_str` to use is the lowest one that
 		is greater than the target temperature, but if no temperature greater is available
 		fallback to closest temperature. 
 		
 		Special Cases:
+		`t_str == 0` - no minimum strength was calculated, so we can return whatever we have
 		`s_min == 0` - we can use any temperature as there is no minimum strength
 		`s_min < 0` - We don't care about minimum strength so find best matching temperature
 		
@@ -247,41 +252,95 @@ class AnsLineDataFile(AnsDatabaseFile):
 		best_grp_name = ''
 		best_grp = None
 		best_parameters = None
-		mismatch_temp = np.inf
-		mismatch_s_min = np.inf
+		
+		leaf_grp_names = []
+		s_min_arr = []
+		t_str_arr = []
+		t_ref_arr = []
+		p_ref_arr = []
+		
 		for i, leaf_grp_name, leaf_grp in self.get_increasing_leaf_grp_name_in_grp_iterable(iso_grp):
-			s_min, t_ref, p_ref = self._get_line_set_parameters(leaf_grp.attrs)
-			
-			if target_s_min <= 0:
-				delta_s_min = 0
+			s_min, t_str, t_ref, p_ref = self._get_line_set_parameters(leaf_grp.attrs)
+			leaf_grp_names.append(leaf_grp_name)
+			s_min_arr.append(s_min)
+			t_str_arr.append(t_str)
+			t_ref_arr.append(t_ref)
+			p_ref_arr.append(p_ref)
+		
+		s_min_arr = np.array(s_min_arr, dtype=float)
+		t_str_arr = np.array(t_str_arr, dtype=float)
+		t_ref_arr = np.array(t_ref_arr, dtype=float)
+		p_ref_arr = np.array(p_ref_arr, dtype=float)
+		
+		accept_mask = np.ones(s_min_arr.shape, dtype=bool)
+		
+		# De-select s_min values that are not closest, prefer smaller `s_min` if any available
+		if target_s_min >0:
+			delta_s_min = target_s_min - s_min_arr
+			x = delta_s_min >= 0
+			if np.any(x):
+				delta_s_min[~x] = np.inf
+				accept_mask &= np.isclose(np.min(delta_s_min), delta_s_min, atol=1E-60)
 			else:
-				delta_s_min = target_s_min - s_min
+				delta_s_min *= -1
+				delta_s_min[x] = np.inf
+				accept_mask &= np.isclose(np.min(delta_s_min), delta_s_min, atol=1E-60)
+		
+			# Accept best `t_str` that has not already been rejected
+			delta_t_str = t_str_arr - target_temp
+			t_str_metric = np.abs(delta_t_str)
+			t_str_metric[delta_t_str > 0] += 1E-3 # add very small amount to metric for values > target so we prefer values smaller than target if possible
+			t_str_metric[~accept_mask] = np.inf # do not consider any pre-rejected values
+			accept_mask &= np.isclose(np.min(t_str_metric), t_str_metric, atol=1E-9)
 			
-			delta_temp = target_temp - t_ref
+			# Accept best `t_ref` that has not already been rejected
+			delta_t_ref = t_ref_arr - target_temp
+			t_ref_metric = np.abs(delta_t_ref)
+			t_ref_metric[delta_t_ref > 0] += 1E-3 # add very small amount to metric for values > target so we prefer values smaller than target if possible
+			t_ref_metric[~accept_mask] = np.inf # do not consider any pre-rejected values
+			accept_mask &= np.isclose(np.min(t_ref_metric), t_ref_metric, atol=1E-9)
+		
+		elif target_s_min == 0:
+			# Prefer no minimum strength (`t_str == 0`)
+			if np.any(t_str_arr == 0):
+				accept_mask &= t_str_arr == 0
+			else:
+				delta_t_str = t_str_arr - target_temp
+				t_str_metric = np.abs(delta_t_str)
+				t_str_metric[delta_t_str > 0] += 1E-3 # add very small amount to metric for values > target so we prefer values smaller than target if possible
+				t_str_metric[~accept_mask] = np.inf # do not consider any pre-rejected values
+				accept_mask &= np.isclose(np.min(t_str_metric), t_str_metric, atol=1E-9)
 			
-			#print(f'AnsLineDataFile :: {leaf_grp_name=} {s_min=} {t_ref=} {p_ref=} {delta_s_min=} {delta_temp=} {mismatch_s_min=} {mismatch_temp=}')
-			
-			if (
-				(
-					(np.abs(delta_s_min) <= np.abs(mismatch_s_min)) # Want closest `s_min`, prefer `s_min` is less than `target_s_min`
-					and (
-						(delta_s_min >= 0)
-						or ((delta_s_min < 0) and (mismatch_s_min < 0))
-					)
-				)
-				and (
-					(np.abs(delta_temp) <= np.abs(mismatch_temp)) # Want closest `temp`, prefer `t_ref` is greater than `target_temp`
-					and (
-						(delta_temp <= 0)
-						or ((delta_temp > 0) and (mismatch_temp > 0))
-					)
-				)
-			):
-				mismatch_s_min = delta_s_min
-				mismatch_temp = delta_temp
-				best_grp_name = leaf_grp_name
-				best_grp = leaf_grp
-				best_parameters = (s_min, t_ref, p_ref)
+			# Accept best `t_ref` that has not already been rejected
+			delta_t_ref = t_ref_arr - target_temp
+			t_ref_metric = np.abs(delta_t_ref)
+			t_ref_metric[delta_t_ref > 0] += 1E-3 # add very small amount to metric for values > target so we prefer values smaller than target if possible
+			t_ref_metric[~accept_mask] = np.inf # do not consider any pre-rejected values
+			accept_mask &= np.isclose(np.min(t_ref_metric), t_ref_metric, atol=1E-9)
+		
+		else: # target_s_min < 0, just find best matching temp
+			# Accept best `t_ref` that has not already been rejected
+			delta_t_ref = t_ref_arr - target_temp
+			t_ref_metric = np.abs(delta_t_ref)
+			t_ref_metric[delta_t_ref > 0] += 1E-3 # add very small amount to metric for values > target so we prefer values smaller than target if possible
+			t_ref_metric[~accept_mask] = np.inf # do not consider any pre-rejected values
+			accept_mask &= np.isclose(np.min(t_ref_metric), t_ref_metric, atol=1E-9)
+		
+		# select first acceptable value
+		acceptable_idxs = np.flatnonzero(accept_mask)
+		if acceptable_idxs.size == 0:
+			raise RuntimeError("Could not select best leaf group")
+		
+		best_idx = acceptable_idxs[0]
+		
+		best_grp_name = leaf_grp_names[best_idx]
+		best_grp = iso_grp[best_grp_name]
+		best_parameters = (
+			s_min_arr[best_idx],
+			t_str_arr[best_idx],
+			t_ref_arr[best_idx],
+			p_ref_arr[best_idx],
+		)
 		
 		return (best_grp_name, best_grp, best_parameters)
 				

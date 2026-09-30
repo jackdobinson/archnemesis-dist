@@ -190,7 +190,8 @@ def create_hdf5_linedata_file_from(
 					f"This data was created from files at {dir}. With iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}` dataset name `{pc_dfs.ds_name}`",
 					
 					s_min = pc_dfs.s_max,
-					t_ref = pc_dfs.t_cont,
+					t_str = pc_dfs.t_cont,
+					t_ref = 296, # TODO: Make this vary with whatever the source is
 					
 					mol_id = np.ones_like(stronglines_data['wavenumber'], dtype=int)*rt_mol_id,
 					local_iso_id = np.ones_like(stronglines_data['wavenumber'], dtype=int)*rt_iso_id,
