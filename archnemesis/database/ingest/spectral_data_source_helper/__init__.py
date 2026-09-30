@@ -51,11 +51,11 @@ def get_filesets(dir : Path) -> dict[dict[str,list[PCDataFileSet]]]:
 
 def read_cont_data(pc_dfs):
 	cont_bin_edge = np.fromfile(pc_dfs.contbins)
-	#print(f'{cont_bin_edge=}')
+	#_lgr.debug(f'{cont_bin_edge=}')
 	cont_bin_center = 0.5*(cont_bin_edge[:-1] +cont_bin_edge[1:])
-	#print(f'{cont_bin_center=}')
+	#_lgr.debug(f'{cont_bin_center=}')
 	cont_bin_width = np.diff(cont_bin_edge)
-	#print(f'{cont_bin_width=}')
+	#_lgr.debug(f'{cont_bin_width=}')
 
 	cont_data = structured_array_from_file(pc_dfs.continuum)
 	stronglines_data = structured_array_from_file(pc_dfs.stronglines)
@@ -94,7 +94,7 @@ def create_hdf5_linedata_file_from(
 			ds_name,
 			PartitionFunctionDataHolder(
 				ds_name,
-				f"This data was created from files at {dir}. With iso_slug `{iso_slug}`",
+				f"This data was created from files at {dir}. With iso_slug `{iso_slug}` dataset name {ds_name}",
 			)
 		)
 		
@@ -106,6 +106,9 @@ def create_hdf5_linedata_file_from(
 		pf_array = np.loadtxt(pf_file, dtype=float).reshape(-1,2)
 		temp = pf_array[:,0]
 		q = pf_array[:,1]
+		
+		_lgr.debug(f'{temp[:10]=}')
+		_lgr.debug(f'{q[:10]=}')
 		
 		tab_pf_data = TabulatedPFData(
 			temp,
@@ -122,20 +125,22 @@ def create_hdf5_linedata_file_from(
 		ans_pf_file.add_source_data(pfdh.name, pfdh, pfdh.description)
 
 	for iso_name, a in pc_dfss.items():
-		for dsname, b in a.items():
-			for pc_dfs in b.values():
+		for ds_name, pc_dfs_list in a.items():
+			for pc_dfs in pc_dfs_list:
 				
-				print(f'{pc_dfs=}')
+				_lgr.debug(f'{pc_dfs=}')
 				cont_bin_center, cont_bin_width, cont_data, stronglines_data = read_cont_data(pc_dfs)
+				_lgr.debug(f'{cont_bin_center[:10]=} {cont_bin_width[:10]=} {cont_data[:10]=}')
 				
 				rt_mol_id, rt_iso_id = get_rt_mol_iso_ids(pc_dfs.mol_spec, pc_dfs.iso_name)
-				print(f'LOOP: {rt_mol_id=} {rt_iso_id=}')
+				_lgr.debug(f'LOOP: {rt_mol_id=} {rt_iso_id=}')
 				
 				broadener_names = tuple(x[len("strength_weighted_gamma_"):] for x in cont_data.dtype.names if (x.startswith("strength_weighted_gamma_") and not x.endswith('self')))
+				_lgr.debug(f'{broadener_names=}')
 
 				pc_dh = PseudoContinuumDataHolder(
-					pc_dfs.dsname,
-					f"This data was created from files at {dir}. With iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}`",
+					pc_dfs.ds_name,
+					f"This data was created from files at {dir}. With iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}` dataset name `{pc_dfs.ds_name}`",
 					
 					t_cont = pc_dfs.t_cont,
 					s_max = pc_dfs.s_max, 
@@ -170,12 +175,12 @@ def create_hdf5_linedata_file_from(
 					pc_dh.description
 				)
 				
-				print('ADDED PSEUDO CONTINUUM DATA...')
+				_lgr.info(f'ADDED PSEUDO CONTINUUM DATA FOR {iso_name} {ds_name} ...')
 				
 				
 				ld_dh = LineDataHolder(
-					"EXOMOL_test",
-					"This data is a test that has been extracted from exomol",
+					pc_dfs.ds_name,
+					f"This data was created from files at {dir}. With iso_slug `{pc_dfs.contbins.name.split('__',1)[0]}` dataset name `{pc_dfs.ds_name}`",
 					
 					s_min = pc_dfs.s_max,
 					t_ref = pc_dfs.t_cont,
@@ -206,6 +211,6 @@ def create_hdf5_linedata_file_from(
 					ld_dh.description
 				)
 				
-				print('ADDED LINE DATA...')
+				_lgr.info('ADDED LINE DATA FOR {iso_name} {ds_name} ...')
 	
 	return ans_database_fpath
