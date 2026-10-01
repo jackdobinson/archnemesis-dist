@@ -39,7 +39,7 @@ class PCDataFileSet:
 		iso_name = iso_slug_to_iso_name(iso_slug)
 		
 		known_ftypes = ('.contbins', '.continuum') # Must be in same order as in class definition
-		found_ftype_paths = [None, None, None]
+		found_ftype_paths = [None, None]
 		
 		for i, x in enumerate(known_ftypes):
 			if fpath.with_suffix(x).exists():
