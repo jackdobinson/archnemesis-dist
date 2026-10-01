@@ -39,7 +39,7 @@ def to_si_bytes(x):
 			break
 		else:
 			x /= factor
-			i+1
+			i+=1
 	
 	return f'{x:.2f} {prefix[i]}B'
 
@@ -417,7 +417,7 @@ class StructuredArrayFile:
 				this_chunk_size = len(b)
 				this_chunk_count = this_chunk_size // self.arr_dtype.itemsize
 			
-				result[n_records_read:n_records_read + this_chunk_count] = np.from_buffer(
+				result[n_records_read:n_records_read + this_chunk_count] = np.frombuffer(
 					b,
 					dtype=self.arr_dtype,
 					count = this_chunk_count
