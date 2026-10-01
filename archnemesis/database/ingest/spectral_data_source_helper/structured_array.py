@@ -433,7 +433,7 @@ class StructuredArrayFile:
 				
 				n_bytes_to_fill_a_chunk = chunk_size - len(b)
 				n_bytes_to_read = n_bytes_to_fill_a_chunk if n_bytes_to_fill_a_chunk < n_remaining_bytes_to_read else n_remaining_bytes_to_read
-				
+			progress_lgr.info('\n')
 		
 		return result
 	
