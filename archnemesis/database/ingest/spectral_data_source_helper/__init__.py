@@ -411,7 +411,7 @@ def create_hdf5_linedata_file_from(
 
 	for iso_name, a in pc_dfss.items():
 		for ds_name, (stronglines_fpath, pc_dfs_list) in a.items():
-			_lgr.info(f'Working on iso {iso_name} dataset {ds_name} {stronglines_fpath=}')
+			_lgr.info(f'Working on iso {iso_name} dataset {ds_name} {stronglines_fpath=!s}')
 			
 			add_line_data_file_to(ans_ld_file, stronglines_fpath)
 		
