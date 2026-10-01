@@ -13,7 +13,11 @@ import numpy as np
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DEBUG)
+
+progress_lgr = logging.getLogger(__name__, progress=True)
+progress_lgr.setLevel(logging.INFO)
 
 HDR_MAX_SIZE = 1024 * 1024
 NULL_BYTE =  b'\0'[0]
@@ -24,6 +28,20 @@ class BinaryReader(Protocol):
 	def read(n : int) -> bytes:
 		...
 
+
+def to_si_bytes(x):
+	prefix = ('', 'K', 'M', 'G', 'T', 'P', 'E', 'Y')
+	factor = 1024
+	
+	i = 0
+	for p in prefix:
+		if x < factor:
+			break
+		else:
+			x /= factor
+			i+1
+	
+	return f'{x:.2f} {prefix[i]}B'
 
 
 def dtype_is_structured(dtype) -> bool:
@@ -349,19 +367,75 @@ class StructuredArrayFile:
 		hdr = self.read_header(encoding=encoding)
 		return dtype_from_string(hdr) if hdr is not None else None
 	
-	def read(self, count : int = -1) -> np.ndarray:
+	def read(self, count : int = -1, max_chunk_size : int = 10*1024*1024) -> np.ndarray:
 		if self.arr_dtype is None:
 			self.arr_dtype = self.read_dtype()
 
-		#print(f'{self.arr_dtype=}')
+		_lgr.debug(f'{self.arr_dtype=}')
+		
+		count_per_chunk = max_chunk_size // self.arr_dtype.itemsize
+		_lgr.debug(f'{count_per_chunk=}')
 
-		result = np.frombuffer(
-			self.read_bytes(count*self.arr_dtype.itemsize), 
-			dtype=self.arr_dtype, 
-			count=-1
-		)
-
-		self.n_records_read += result.size
+		if count_per_chunk == 0:
+			# We can read the whole file in one chunk
+			result = np.frombuffer(
+				self.read_bytes(count*self.arr_dtype.itemsize), 
+				dtype=self.arr_dtype, 
+				count=-1
+			)
+			self.n_records_read += result.size
+		else:
+			# We need to read the file in multiple chunks
+			pos = self.fhdl.tell()
+			self.fhdl.seek(0,2)
+			data_size_bytes = self.fhdl.tell() - pos
+			self.fhdl.seek(pos,0)
+			n_total_records = data_size_bytes // self.add_dtype.itemsize
+			remainder_bytes = data_size_bytes % self.add_dtype.itemsize
+			assert remainder_bytes == 0, "Must have a whole number of records to read"
+			
+			_lgr.debug(f'Allocating space for {n_total_records} records. Require {to_si_bytes(data_size_bytes)} of space...')
+			
+			result = np.empty((n_total_records,), dtype=self.arr_dtype)
+			_lgr.debug(f'{to_si_bytes(data_size_bytes)} allocated.')
+			
+			
+			chunk_size = count_per_chunk * self.arr_dtype.itemsize
+			n_total_chunks = data_size_bytes // chunk_size + (1 if ((data_size_bytes % chunk_size) != 0) else 0) # complete and partial chunks
+			
+			_lgr.debug(f'Reading {count_per_chunk} records ({to_si_bytes(chunk_size)}) per chunk.')
+			n_remaining_bytes_to_read = data_size_bytes
+			i = 0
+			n_bytes_read = 0
+			n_records_read = 0
+			n_bytes_to_read = chunk_size
+			b = b''
+			while (n_bytes_read < data_size_bytes):
+				progress_lgr.info(f'Read {i}/{n_total_chunks} chunks {n_records_read}/{n_total_records} records {to_si_bytes(n_bytes_read)} of {to_si_bytes(data_size_bytes)}')
+				b += self.read_bytes(n_bytes_to_read)
+				
+				this_chunk_size = len(b)
+				this_chunk_count = this_chunk_size // self.arr_dtype.itemsize
+			
+				result[n_records_read:n_records_read + this_chunk_count] = np.from_buffer(
+					b,
+					dtype=self.arr_dtype,
+					count = this_chunk_count
+				)
+				b = b[this_chunk_count * self.arr_dtype.itemsize:]
+				n_remaining_bytes_to_read -= this_chunk_size
+				
+				self.n_records_read += this_chunk_count
+				n_records_read += this_chunk_count
+				n_records_read += this_chunk_size
+				i += 1
+				
+				n_bytes_to_fill_a_chunk = chunk_size - len(b)
+				n_bytes_to_read = n_bytes_to_fill_a_chunk if n_bytes_to_fill_a_chunk > n_remaining_bytes_to_read else n_remaining_bytes_to_read
+				
+				
+		
+		
 		
 		return result
 	
