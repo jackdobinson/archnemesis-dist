@@ -282,8 +282,9 @@ def add_line_data_file_to(
 	
 	rt_mol_id, rt_iso_id = get_rt_mol_iso_ids(mol_spec, iso_name)
 	
+	_lgr.info(f'Loading line data from "{ld_fpath.name}"...')
 	stronglines_data = structured_array_from_file(ld_fpath)
-	_lgr.info(f'Loaded line data from "{ld_fpath!s}"')
+	_lgr.info(f'Loaded line data from "{ld_fpath.name}".')
 	
 	broadener_names = tuple(x[len("gamma_"):] for x in stronglines_data.dtype.names if (x.startswith("gamma_") and not x.endswith('self')))
 	
