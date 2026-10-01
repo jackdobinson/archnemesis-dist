@@ -14,7 +14,6 @@ class PCDataFileSet:
 	s_max : float = 1E-26
 	contbins : None | Path = None
 	continuum : None | Path = None
-	stronglines : None | Path = None
 	
 	@staticmethod
 	def parse_fname(fname : str) -> tuple:
@@ -25,7 +24,7 @@ class PCDataFileSet:
 		x, dsname = x.rsplit('__', 1)
 		iso_slug = x
 		
-		known_ftypes = ('contbins', 'continuum', 'stronglines')
+		known_ftypes = ('contbins', 'continuum')
 		if ftype not in known_ftypes:
 			raise RuntimeError(f'Pseudo-continuum file extension {ftype} not recognised, must be one of {known_ftypes}')
 		
@@ -33,14 +32,13 @@ class PCDataFileSet:
 	
 	@classmethod
 	def from_path(cls, fpath : Path) -> Self:
-		# 12C-1H4__YT10to10_T240.0.continuum
-		# 12C-1H4__YT10to10_T240.0.contbins
-		# 12C-1H4__YT10to10_T240.0.stronglines
+		# 12C-1H4__YT10to10_T240.0_S1E-30.continuum
+		# 12C-1H4__YT10to10_T240.0_S1E-30.contbins
 		ftype, iso_slug, dsname, t_cont, s_max = cls.parse_fname(fpath.name)
 		
 		iso_name = iso_slug_to_iso_name(iso_slug)
 		
-		known_ftypes = ('.contbins', '.continuum', '.stronglines') # Must be in same order as in class definition
+		known_ftypes = ('.contbins', '.continuum') # Must be in same order as in class definition
 		found_ftype_paths = [None, None, None]
 		
 		for i, x in enumerate(known_ftypes):
