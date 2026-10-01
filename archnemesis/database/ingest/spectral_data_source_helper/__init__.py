@@ -204,10 +204,9 @@ def get_attrs_from_sdsh_filename(fname : str) -> dict[str,Any]:
 		}
 	}
 	
-	#get_
-	
-	
 	stem, ext = fname.rsplit('.',1) if '.' in fname else (fname,None)
+	ext = '.'+ext
+	
 	remainder = stem
 	
 	default_attrs = dict() # names and defaults of all arguments we should have
@@ -251,8 +250,9 @@ def get_attrs_from_sdsh_filename(fname : str) -> dict[str,Any]:
 					remainder = remainder[:idx]
 					attrs[n] = prefix_attrs['parsers'][n](q[len(p_tags[j]):])
 	
-	# Finally deal with last positional
-	attrs[last_positional_name] = last_positional_parser(remainder)
+	# Finally deal with last positional if present
+	if last_positional_name is not None:
+		attrs[last_positional_name] = last_positional_parser(remainder)
 	
 	# Now validate that we have the correct attrs, and add defaults if needed
 	for n, d in default_attrs.items():
