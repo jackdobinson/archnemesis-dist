@@ -417,19 +417,18 @@ class StructuredArrayFile:
 				this_chunk_size = len(b)
 				this_chunk_count = this_chunk_size // self.arr_dtype.itemsize
 			
-				result[n_records_read:n_records_read + this_chunk_count] = np.frombuffer(
+				result[n_records_read:(n_records_read + this_chunk_count)] = np.frombuffer(
 					b,
 					dtype=self.arr_dtype,
 					count = this_chunk_count
 				)
 				b = b[this_chunk_count * self.arr_dtype.itemsize:]
 				
-				n_bytes_read += this_chunk_size
 				n_remaining_bytes_to_read -= this_chunk_size
 				
 				self.n_records_read += this_chunk_count
 				n_records_read += this_chunk_count
-				n_records_read += this_chunk_size
+				n_bytes_read += this_chunk_size
 				i += 1
 				
 				n_bytes_to_fill_a_chunk = chunk_size - len(b)
