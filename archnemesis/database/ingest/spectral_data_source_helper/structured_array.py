@@ -367,7 +367,7 @@ class StructuredArrayFile:
 		hdr = self.read_header(encoding=encoding)
 		return dtype_from_string(hdr) if hdr is not None else None
 	
-	def read(self, count : int = -1, max_chunk_size : int = 10*1024*1024) -> np.ndarray:
+	def read(self, count : int = -1, max_chunk_size : int = 128*1024*1024) -> np.ndarray:
 		if self.arr_dtype is None:
 			self.arr_dtype = self.read_dtype()
 
@@ -411,7 +411,7 @@ class StructuredArrayFile:
 			n_bytes_to_read = chunk_size
 			b = b''
 			while (n_bytes_read < data_size_bytes):
-				progress_lgr.info(f'From {self.fpath.name} read {i}/{n_total_chunks} chunks {n_records_read}/{n_total_records} records {to_si_bytes(n_bytes_read)} of {to_si_bytes(data_size_bytes)}')
+				progress_lgr.info(f'From "{self.fpath.name}" read {i}/{n_total_chunks} chunks {n_records_read}/{n_total_records} records {to_si_bytes(n_bytes_read)} of {to_si_bytes(data_size_bytes)}')
 				b += self.read_bytes(n_bytes_to_read)
 				
 				this_chunk_size = len(b)
