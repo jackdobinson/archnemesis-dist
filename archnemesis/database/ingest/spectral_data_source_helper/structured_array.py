@@ -423,6 +423,8 @@ class StructuredArrayFile:
 					count = this_chunk_count
 				)
 				b = b[this_chunk_count * self.arr_dtype.itemsize:]
+				
+				n_bytes_read += this_chunk_size
 				n_remaining_bytes_to_read -= this_chunk_size
 				
 				self.n_records_read += this_chunk_count
