@@ -270,6 +270,7 @@ def add_line_data_file_to(
 		ans_ld_file : AnsLineDataFile,
 		ld_fpath : Path,
 ):
+	_lgr.info(f'Adding line data from "{ld_fpath!s}" to "{ans_ld_file.path!s}"')
 	ld_attrs = get_attrs_from_sdsh_filename(ld_fpath.name)
 	iso_slug = ld_attrs['iso_slug']
 	ds_name = ld_attrs['ds_name']
@@ -282,13 +283,14 @@ def add_line_data_file_to(
 	rt_mol_id, rt_iso_id = get_rt_mol_iso_ids(mol_spec, iso_name)
 	
 	stronglines_data = structured_array_from_file(ld_fpath)
+	_lgr.info(f'Loaded line data from "{ld_fpath!s}"')
 	
 	broadener_names = tuple(x[len("gamma_"):] for x in stronglines_data.dtype.names if (x.startswith("gamma_") and not x.endswith('self')))
 	
 	_lgr.info(f'Creating line data holder for iso_slug `{iso_slug}` dataset name `{ds_name}`')
 	ld_dh = LineDataHolder(
 		ds_name,
-		f"This data was created from files at {ld_fpath.parent}. With iso_slug `{iso_slug}` dataset name `{ds_name}`",
+		f"This data was created from files at {ld_fpath.parent!s}. With iso_slug `{iso_slug}` dataset name `{ds_name}`",
 		
 		s_min = s_min,
 		t_ref = 296, # TODO: Make this vary with whatever the source is
