@@ -13,8 +13,8 @@ import numpy as np
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-#_lgr.setLevel(logging.INFO)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 progress_lgr = logging.getLogger(__name__, progress=True)
 progress_lgr.setLevel(logging.INFO)
@@ -390,20 +390,20 @@ class StructuredArrayFile:
 			self.fhdl.seek(0,2)
 			data_size_bytes = self.fhdl.tell() - pos
 			self.fhdl.seek(pos,0)
-			n_total_records = data_size_bytes // self.add_dtype.itemsize
-			remainder_bytes = data_size_bytes % self.add_dtype.itemsize
+			n_total_records = data_size_bytes // self.arr_dtype.itemsize
+			remainder_bytes = data_size_bytes % self.arr_dtype.itemsize
 			assert remainder_bytes == 0, "Must have a whole number of records to read"
 			
-			_lgr.debug(f'Allocating space for {n_total_records} records. Require {to_si_bytes(data_size_bytes)} of space...')
+			_lgr.info(f'Allocating space for {n_total_records} records. Require {to_si_bytes(data_size_bytes)} of space...')
 			
 			result = np.empty((n_total_records,), dtype=self.arr_dtype)
-			_lgr.debug(f'{to_si_bytes(data_size_bytes)} allocated.')
+			_lgr.info(f'{to_si_bytes(data_size_bytes)} allocated.')
 			
 			
 			chunk_size = count_per_chunk * self.arr_dtype.itemsize
 			n_total_chunks = data_size_bytes // chunk_size + (1 if ((data_size_bytes % chunk_size) != 0) else 0) # complete and partial chunks
 			
-			_lgr.debug(f'Reading {count_per_chunk} records ({to_si_bytes(chunk_size)}) per chunk.')
+			_lgr.info(f'Reading {count_per_chunk} records ({to_si_bytes(chunk_size)}) per chunk.')
 			n_remaining_bytes_to_read = data_size_bytes
 			i = 0
 			n_bytes_read = 0
