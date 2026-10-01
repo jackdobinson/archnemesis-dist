@@ -269,7 +269,6 @@ def get_attrs_from_sdsh_filename(fname : str) -> dict[str,Any]:
 def add_line_data_file_to(
 		ans_ld_file : AnsLineDataFile,
 		ld_fpath : Path,
-		broadener_names,
 ):
 	ld_attrs = get_attrs_from_sdsh_filename(ld_fpath.name)
 	iso_slug = ld_attrs['iso_slug']
