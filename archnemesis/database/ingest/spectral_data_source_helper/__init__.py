@@ -23,8 +23,8 @@ from archnemesis.database.data_holders.line_broadener_holder import LineBroadene
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.INFO)
-#_lgr.setLevel(logging.DEBUG)
+#_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DEBUG)
 
 class ATTR_MISSING:
 	pass
@@ -215,13 +215,16 @@ def get_attrs_from_sdsh_filename(fname : str) -> dict[str,Any]:
 	last_positional_parser = None
 	
 	for exts, attr_parser_dict in ext_attr_parser_map.items():
+		_lgr.debug(f'{ext=} {exts=}')
 		if ext in exts:
+			_lgr.debug('HIT')
 			if (pos_attrs := attr_parser_dict.get('pos_attrs',None)) is not None:
 				# Positional attributes are always at the start, so consume from left to right
 				for n in pos_attrs['names']:
 					default_attrs[n] = ATTR_REQUIRED # Positional arguments are always required
 				
 				one_less_positionals, remainder = remainder.split(pos_attrs['sep'], len(pos_attrs['names'])-1) if ((pos_attrs['sep'] in remainder) and ((len(pos_attrs['names'])-1) > 0)) else ([], remainder)
+				_lgr.debug(f'{one_less_positionals=}')
 				last_positional_name = pos_attrs['names'][-1]
 				last_positional_parser = pos_attrs['parsers'][-1]
 				
@@ -272,18 +275,17 @@ def add_line_data_file_to(
 ):
 	_lgr.info(f'Adding line data from "{ld_fpath!s}" to "{ans_ld_file.path!s}"')
 	ld_attrs = get_attrs_from_sdsh_filename(ld_fpath.name)
-	print('HERE 1', flush=True)
 	iso_slug = ld_attrs['iso_slug']
 	ds_name = ld_attrs['ds_name']
 	s_min = ld_attrs['s_min']
-	print('HERE 2', flush=True)
 	assert ld_attrs['t_str'] is ATTR_MISSING, f"Expected no `t_str` attribute in filename of '{ld_fpath}'"
 	
-	print('HERE 3', flush=True)
+	_lgr.info(f'{iso_slug=} {ds_name=} {s_min=}')
 	iso_name = iso_slug_to_iso_name(iso_slug)
+	_lgr.info(f'{iso_name=}')
 	mol_spec = mol_spec_from_iso_name(iso_name)
+	_lgr.info(f'{mol_spec=}')
 	
-	print('HERE 4', flush=True)
 	rt_mol_id, rt_iso_id = get_rt_mol_iso_ids(mol_spec, iso_name)
 	
 	_lgr.info(f'Loading line data from "{ld_fpath.name}"...')

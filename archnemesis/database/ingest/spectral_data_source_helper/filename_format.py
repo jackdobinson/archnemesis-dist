@@ -74,6 +74,8 @@ def get_rt_mol_iso_ids(mol_spec, iso_name, gas_info=gas_info):
 	rt_mol_id = None
 	rt_iso_id = None
 	
+	assert len(mol_spec) > 0, "mol_spec must have non-zero length"
+	assert len(iso_name) > 0, "iso_name must have non-zero length"
 	_lgr.debug(f'{mol_spec=}')
 	_lgr.debug(f'{iso_name=}')
 
