@@ -411,7 +411,7 @@ class StructuredArrayFile:
 			n_bytes_to_read = chunk_size
 			b = b''
 			while (n_bytes_read < data_size_bytes):
-				_lgr.info(f'From {self.fpath.name} read {i}/{n_total_chunks} chunks {n_records_read}/{n_total_records} records {to_si_bytes(n_bytes_read)} of {to_si_bytes(data_size_bytes)}')
+				progress_lgr.info(f'From {self.fpath.name} read {i}/{n_total_chunks} chunks {n_records_read}/{n_total_records} records {to_si_bytes(n_bytes_read)} of {to_si_bytes(data_size_bytes)}')
 				b += self.read_bytes(n_bytes_to_read)
 				
 				this_chunk_size = len(b)
@@ -432,7 +432,7 @@ class StructuredArrayFile:
 				i += 1
 				
 				n_bytes_to_fill_a_chunk = chunk_size - len(b)
-				n_bytes_to_read = n_bytes_to_fill_a_chunk if n_bytes_to_fill_a_chunk > n_remaining_bytes_to_read else n_remaining_bytes_to_read
+				n_bytes_to_read = n_bytes_to_fill_a_chunk if n_bytes_to_fill_a_chunk < n_remaining_bytes_to_read else n_remaining_bytes_to_read
 				
 		
 		return result
