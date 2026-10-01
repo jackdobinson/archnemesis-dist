@@ -223,7 +223,14 @@ def get_attrs_from_sdsh_filename(fname : str) -> dict[str,Any]:
 				for n in pos_attrs['names']:
 					default_attrs[n] = ATTR_REQUIRED # Positional arguments are always required
 				
-				one_less_positionals, remainder = remainder.split(pos_attrs['sep'], len(pos_attrs['names'])-1) if ((pos_attrs['sep'] in remainder) and ((len(pos_attrs['names'])-1) > 0)) else ([], remainder)
+				if ((pos_attrs['sep'] in remainder) and ((len(pos_attrs['names'])-1) > 0)):
+					i = remainder.rindex(pos_attrs['sep'])
+					x = remainder[:i]
+					one_less_positionals = tuple(x.split(pos_attrs['sep']))
+					remainder = remainder[i+len(pos_attrs['sep']):]
+				else:
+					one_less_positionals = tuple()
+				
 				_lgr.debug(f'{one_less_positionals=}')
 				last_positional_name = pos_attrs['names'][-1]
 				last_positional_parser = pos_attrs['parsers'][-1]
