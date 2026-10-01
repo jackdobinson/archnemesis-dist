@@ -371,13 +371,20 @@ class StructuredArrayFile:
 		if self.arr_dtype is None:
 			self.arr_dtype = self.read_dtype()
 
+		pos = self.fhdl.tell()
+		self.fhdl.seek(0,2)
+		data_size_bytes = self.fhdl.tell() - pos
+		self.fhdl.seek(pos,0)
+
 		_lgr.debug(f'{self.arr_dtype=}')
 		
 		count_per_chunk = max_chunk_size // self.arr_dtype.itemsize
+		chunk_size = count_per_chunk * self.arr_dtype.itemsize
+		n_total_chunks = data_size_bytes // chunk_size + (1 if ((data_size_bytes % chunk_size) != 0) else 0) # complete and partial chunks
 		_lgr.debug(f'{count_per_chunk=}')
 
-		if count_per_chunk == 0:
-			# We can read the whole file in one chunk
+		if n_total_chunks <= 1:
+			# We can read the whole file in one chunk, so just read it
 			result = np.frombuffer(
 				self.read_bytes(count*self.arr_dtype.itemsize), 
 				dtype=self.arr_dtype, 
@@ -386,10 +393,7 @@ class StructuredArrayFile:
 			self.n_records_read += result.size
 		else:
 			# We need to read the file in multiple chunks
-			pos = self.fhdl.tell()
-			self.fhdl.seek(0,2)
-			data_size_bytes = self.fhdl.tell() - pos
-			self.fhdl.seek(pos,0)
+			
 			n_total_records = data_size_bytes // self.arr_dtype.itemsize
 			remainder_bytes = data_size_bytes % self.arr_dtype.itemsize
 			assert remainder_bytes == 0, "Must have a whole number of records to read"
@@ -398,10 +402,6 @@ class StructuredArrayFile:
 			
 			result = np.empty((n_total_records,), dtype=self.arr_dtype)
 			_lgr.info(f'{to_si_bytes(data_size_bytes)} allocated.')
-			
-			
-			chunk_size = count_per_chunk * self.arr_dtype.itemsize
-			n_total_chunks = data_size_bytes // chunk_size + (1 if ((data_size_bytes % chunk_size) != 0) else 0) # complete and partial chunks
 			
 			_lgr.info(f'Reading {count_per_chunk} records ({to_si_bytes(chunk_size)}) per chunk.')
 			n_remaining_bytes_to_read = data_size_bytes
