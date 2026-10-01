@@ -272,14 +272,18 @@ def add_line_data_file_to(
 ):
 	_lgr.info(f'Adding line data from "{ld_fpath!s}" to "{ans_ld_file.path!s}"')
 	ld_attrs = get_attrs_from_sdsh_filename(ld_fpath.name)
+	print('HERE 1', flush=True)
 	iso_slug = ld_attrs['iso_slug']
 	ds_name = ld_attrs['ds_name']
 	s_min = ld_attrs['s_min']
+	print('HERE 2', flush=True)
 	assert ld_attrs['t_str'] is ATTR_MISSING, f"Expected no `t_str` attribute in filename of '{ld_fpath}'"
 	
+	print('HERE 3', flush=True)
 	iso_name = iso_slug_to_iso_name(iso_slug)
 	mol_spec = mol_spec_from_iso_name(iso_name)
 	
+	print('HERE 4', flush=True)
 	rt_mol_id, rt_iso_id = get_rt_mol_iso_ids(mol_spec, iso_name)
 	
 	_lgr.info(f'Loading line data from "{ld_fpath.name}"...')
