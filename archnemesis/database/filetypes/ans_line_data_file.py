@@ -241,7 +241,12 @@ class AnsLineDataFile(AnsDatabaseFile):
 		## RETURNS ##
 			grp_line_set_parameters : tuple[float,float,float] - `s_min`, `t_str`, `t_ref`, `p_ref` that were used when creating this line set
 		"""
-		return (grp_attrs['s_min'], grp_attrs['t_str'], grp_attrs['t_ref'], grp_attrs['p_ref'])
+		return (
+			grp_attrs['s_min'], 
+			grp_attrs.get('t_str', np.empty((0,), dtype=float)), 
+			grp_attrs['t_ref'], 
+			grp_attrs['p_ref']
+		)
 	
 	def _select_best_leaf_grp_for_parameters(
 			self,
@@ -342,9 +347,9 @@ class AnsLineDataFile(AnsDatabaseFile):
 		best_grp = iso_grp[best_grp_name]
 		best_parameters = (
 			s_min_arr[best_idx],
+			t_str_arr[best_idx],
 			t_ref_arr[best_idx],
 			p_ref_arr[best_idx],
-			t_str_arr[best_idx],
 		)
 		
 		# Warn if more than one result was acceptable
@@ -617,9 +622,9 @@ class AnsLineDataFile(AnsDatabaseFile):
 				if n_lines > 0:
 					result = LineSetData(
 						leaf_grp_parameters[0],
-						leaf_grp_parameters[1],
 						leaf_grp_parameters[2],
 						leaf_grp_parameters[3],
+						leaf_grp_parameters[1],
 						requested_wn_range,
 						*(leaf_grp[x][mask] for x in line_fields_to_populate),
 						*(np.empty((n_lines, n_ambient_gasses), dtype=LineBroadenerRecordLayout.type(x)) for x in broadener_felds_to_populate)
