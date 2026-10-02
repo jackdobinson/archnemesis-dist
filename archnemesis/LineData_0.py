@@ -674,6 +674,7 @@ class LineSetSpecData:
     s_min : float
     t_ref : float
     p_ref : float
+    t_str : float
     rt_gas_desc : RadtranGasDescriptor
     broadening_molecule_ids : tuple[int,...]
     req_wn_range : tuple[float,float]
@@ -701,6 +702,7 @@ class LineSetSpecData:
             single_iso_line_set_data.s_min,
             single_iso_line_set_data.t_ref,
             single_iso_line_set_data.p_ref,
+            single_iso_line_set_data.t_str,
             rt_gas_desc,
             (-1, *(int(x) for x in ambient_gasses)),
             single_iso_line_set_data.req_wn_range,
@@ -751,6 +753,8 @@ class LineSetSpecData:
         
         self._data.flags.writeable = False
         self._data_hash = hash(bytes(self._data))
+        
+        
     
     @property
     def n_lines(self):
@@ -1024,7 +1028,25 @@ class LineSetSpecData:
         
         return result
 
-    def remove_lines(
+    def remove_weak_lines_at_t_str(
+            self,
+            target_t_str : float,
+            target_s_min : float,
+            partition_function : PFList,
+    ):
+        if target_s_min > 0 and target_t_str > 0:
+            # If there is a minimum strength and a temperature at which that strength is supposed to have been calculated
+            # ensure it is true by removing lines weaker than `s_min` at `t_str`
+            line_strength = self.get_line_strength(
+                t_calc = target_t_str,
+                partition_function = partition_function
+            )
+            mask = line_strength <= target_s_min
+            self.remove_masked_lines(mask)
+            self.t_str = target_t_str
+            self.s_min = target_s_min
+
+    def remove_masked_lines(
             self,
             mask : np.ndarray
     ):
@@ -1266,6 +1288,9 @@ class PseudoContSpecData:
         """
         Add lines with strength below `s_max` to the pseudo continuum from `line_set_data` 
         """
+        if self.t_cont != line_set_data.t_str:
+            _lgr.warn(f'Adding lines from line set data to pseudo-continuum, but t_cont={self.t_cont} is not identical to {line_set_data.t_str}. This *may* mean that not all lines are accounted for')
+        
         self._data.flags.writeable = True
         
         self._data[3:] *= self._data[2:3] # multiply "line strength weighted means" by line strength sum
@@ -1301,7 +1326,7 @@ class PseudoContSpecData:
         self._data.flags.writeable=False
         self._data_hash = hash(bytes(self._data))
         
-        line_set_data.remove_lines(ls_mask)
+        line_set_data.remove_masked_lines(ls_mask)
         line_set_data.s_min = s_max
         
         assert not np.any(np.isnan(self._data)), "No data should be NAN when adding lines to PseudoContSpecData"
@@ -1585,22 +1610,31 @@ class AnsDatabase:
             iso_id : int,
             wn_min : float, # Always wavenumber (cm^{-1})
             wn_max : float, # Always wavenumber (cm^{-1})
-            s_min : float = -1, # 
+            s_min : float = -1, # <0 - prioritise matching `t_ref`, 0 - prioritise lowest `s_min`, >0 - prioritise matching `s_min` and `t_str`
             temperature : float = 0, # Kelvin
             ambient_gasses : tuple[ans.enum.AmbientGasEnum,...] = (ans.enum.AmbientGasEnum.AIR,),
             refresh : bool = False,
     ) -> tuple[LineSetData, PseudoContinuumData]:
+        """
+        Get LineSetData and PseudoContinuumData for a single isotopologue.
+        """
 
         ld_instance = None
         
+        # CHECK CACHE: Get `ld_instance` from cache if possible
         if self.cache is not None:
             # build data group
             ld_cache_bucket = (self.LINE_DATABASE, 'line_data')
             ld_cache_identity = (mol_id, iso_id, s_min, temperature, *ambient_gasses)
             
             ld_instance = self.cache.get(ld_cache_bucket, ld_cache_identity, None)
+        # END CHECK CACHE
         
-        if refresh or ld_instance is None or not wn_range_is_within((wn_min, wn_max), ld_instance.req_wn_range):
+        if (
+            refresh 
+            or (ld_instance is None) 
+            or (not wn_range_is_within((wn_min, wn_max), ld_instance.req_wn_range))
+        ):
             # Get line set data. Returned `ls_instance.s_min` should be less than or equal to `s_min`, but accept larger values if no smaller ones are available
             ld_instance = self._ans_line_data_file.get_data(
                 mol_name = RadtranGasDescriptor(mol_id, iso_id).gas_name, 
@@ -1614,6 +1648,10 @@ class AnsDatabase:
             if self.cache is not None:
                 self.cache.set(ld_cache_bucket, ld_cache_identity, ld_instance)
     
+        # Optimisation: when looking up pseudo-continuum data, use more restrictive values based on the ones gotten from line data
+        s_min = ld_instance.s_min if s_min <= 0 else s_min # try to match to `ld_instance` if possible
+        temperature = ld_instance.t_str if ld_instance.t_str != 0 else temperature # try to match to `ld_instance` if possible
+    
         if wn_min == 0:
             wn_min = np.min(ld_instance.nu)
         if wn_max == np.inf:
@@ -1621,28 +1659,34 @@ class AnsDatabase:
     
         if self._ans_pseudo_continuum_file is None:
             pc_instance = AnsPseudoContinuumFile._get_null_data(
-                ld_instance.s_min,
-                ld_instance.t_ref,
-                ld_instance.p_ref,
-                (wn_min, wn_max),
-                len(ambient_gasses),
+                s_max = ld_instance.s_min,
+                t_cont = ld_instance.t_str,
+                p_cont = ld_instance.p_ref,
+                requested_wn_range = (wn_min, wn_max),
+                n_ambient_gasses = len(ambient_gasses),
             )
         else:
             pc_instance = None
             
+            # CHECK CACHE
             if self.cache is not None:
                 pc_cache_bucket = (self.CONTINUUM_DATABASE, 'pseudo_continuum')
-                pc_cache_identity = (mol_id, iso_id, ld_instance.s_min, ld_instance.t_ref, *ambient_gasses)
+                pc_cache_identity = (mol_id, iso_id, s_min, temperature, *ambient_gasses)
             
                 pc_instance = self.cache.get(pc_cache_bucket, pc_cache_identity, None)
+            # END CHECK CACHE
             
-            if refresh or pc_instance is None or not wn_range_is_within((wn_min, wn_max), pc_instance.req_wn_range):
+            if (
+                refresh 
+                or (pc_instance is None) 
+                or (not wn_range_is_within((wn_min, wn_max), pc_instance.req_wn_range))
+            ):
                 # Get continuum data. `pc_instance.s_min` should be less than or equal to `s_min`, if not satisfied return null data
                 pc_instance = self._ans_pseudo_continuum_file.get_data(
                         mol_name = RadtranGasDescriptor(mol_id, iso_id).gas_name,
                         local_iso_id = iso_id,
-                        temperature = ld_instance.t_ref, # try to match temperature to `ld_instance` if possible
-                        s_max = ld_instance.s_min if s_min <= 0 else s_min, # in special cases, match to `ld_instance`, otherwise use passed value
+                        temperature = temperature, 
+                        s_max = s_min, # in special cases, match to `ld_instance`, otherwise use passed value
                         s_max_null = ld_instance.s_min, # always match to `ld_instance` when returning null data
                         ambient_gasses = ambient_gasses,
                         requested_wn_range = (wn_min, wn_max),
@@ -1650,6 +1694,12 @@ class AnsDatabase:
                 _lgr.debug(f'{pc_instance=}')
                 if self.cache is not None:
                     self.cache.set(pc_cache_bucket, pc_cache_identity, pc_instance)
+        
+        if ld_instance.t_str != pc_instance.t_cont:
+            _lgr.warn(f'When fetching line data for {mol_id=} {iso_id=} {s_min=} {temperature=}, could not get line set data and pseudo-continuum data where line strengths were calculated at the same temperature ({ld_instance.t_str=} vs. {pc_instance.t_cont=}). This *may* mean some lines are not accounted for correctly.')
+        
+        if ld_instance.s_min > pc_instance.s_max:
+            _lgr.error(f'When fetching line data for {mol_id=} {iso_id=} {s_min=} {temperature=}, could not get a strenth limit for line set data that is identical to or less than pseudo-continuum strength limit ({ld_instance.s_min=} vs. {pc_instance.s_max=}). This *probably* means that some lines are not accounted for as there is a gap.')
         
         return ld_instance, pc_instance
     
@@ -2095,23 +2145,42 @@ class LineData_0:
                 #print(f'DEBUG: {i=} {mol_id=} {iso_id=} {line_data.s_min=} {cont_data.s_max=}')
                 
                 self.line_data[i] = LineSetSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, line_data, cache=self.cache)
+                self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.line_data[i].t_str, target_s_min = self.line_data[i].s_min)
                 self.continuum_data[i] = PseudoContSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, cont_data, cache=self.cache)
         
                 #print(f'DEBUG: {self._params.s_min=} {self.line_data[i].s_min=} {self.continuum_data[i].s_min=}')
         
                 # If we need to, add more lines into the continuum so that we always have the requested `s_min` for both the line set data and continuum data.
-                if (self._params.s_min > self.line_data[i].s_min):
-                    if (self._params.s_min > self.continuum_data[i].s_min):
-                        #print('DEBUG: Adding lines')
-                        
-                        self.continuum_data[i].add_lines(
-                            self.line_data[i],
-                            self.partition_fn_data[i],
-                            self._params.s_min
-                        )
-                    elif (self._params.s_min < self.continuum_data[i].s_min):
-                        raise RuntimeError(f'Have retrieved continuum data that has a larger `s_min` ({self.continuum_data[i].s_min=}) than requested ({self._params.s_min=}). This is not allowed as it can lead to double-counting of absorption lines.')
-        
+                
+                if (self.line_data[i].t_str == self.continuum_data[i].t_cont):
+                    _lgr.warn(f'Line data `t_str` ({self.line_data[i].t_str}) is not equal to than corresponding continuum data `t_cont` ({self.continuum_data[i].t_cont}). This implies they were not meant to be used together and *may* not behave as expected.')
+                
+                
+                if (self.line_data[i].s_min < self.continuum_data[i].s_min):
+                    _lgr.warn(f'Line data `s_min` ({self.line_data[i].s_min}) is smaller than corresponding continuum data `s_min` ({self.continuum_data[i].s_min}). This implies they were not meant to be used together and *may* not behave as expected. Lines below continuum data `s_min` will be dropped.')
+                    self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.continuum_data[i].t_cont, target_s_min = self.continuum_data[i].s_min)
+                    
+                if (self._params.s_min < self.continuum_data[i].s_min):
+                    raise RuntimeError(f'Have retrieved continuum data that has a larger `s_min` ({self.continuum_data[i].s_min=}) than requested ({self._params.s_min=}). This is not allowed as it can lead to double-counting of absorption lines.')
+                
+                elif (self._params.s_min > self.continuum_data[i].s_min):
+                    _lgr.warn(f'Continuum data has a smaller `s_min` ({self.continuum_data[i].s_min=}) than requeqsted ({self._params.s_min=}). Need to move lines from corresponding line data into continuum')
+                
+                    if (self.line_data[i].s_min > self.continuum_data[i].s_min):
+                        raise RuntimeError(f'Line data `s_min` ({self.line_data[i].s_min}) is larger than corresponding continuum data `s_min` ({self.continuum_data[i].s_min}). Therefore, there will be a gap in the lines that are accounted for even if lines are moved from line set data into continuum.')
+                    
+                    self.continuum_data[i].add_lines(
+                        self.line_data[i],
+                        self.partition_fn_data[i],
+                        self._params.s_min
+                    )
+                
+                if (self.line_data[i].s_min != self.continuum_data[i].s_min):
+                    _lgr.warn(f'Continuum data and line set data do not have the same minimum strengths ({self.continuum_data[i].s_min=}) ({self.line_data[i].s_min=}). This *may* mean not all lines are accounted for.')
+                
+                if (self._params.s_min < self.line_data[i].s_min):
+                    _lgr.warn(f'Line data has a larger `s_min` ({self.line_data[i].s_min=}) than requested ({self._params.s_min=}). Therefore some lines *may* not be accounted for')
+                
         if self.cache is not None:
             # Store result in cache
             self.cache.set(ld_pc_cache_bucket, ld_pc_cache_identity, (self.line_data, self.continuum_data))

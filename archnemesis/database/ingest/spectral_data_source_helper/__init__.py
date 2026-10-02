@@ -279,8 +279,21 @@ def get_attrs_from_sdsh_filename(fname : str) -> dict[str,Any]:
 def add_line_data_file_to(
 		ans_ld_file : AnsLineDataFile,
 		ld_fpath : Path,
+		t_str : None | float | np.ndarray = None, # Kelvin
 ):
 	_lgr.info(f'Adding line data from "{ld_fpath!s}" to "{ans_ld_file.path!s}"')
+	
+	# Get `t_str` into correct format
+	if t_str is None:
+		t_str = np.empty((0,), dtype=float)
+	elif np.issubdtype(type(t_str), np.floating):
+		t_str = np.array([t_str], dtype=float)
+	elif isinstance(t_str, np.ndarray):
+		t_str = t_str.astype(float)
+	else:
+		raise TypeError('Argument `t_str` cannot be converted into a numpy floating point array.')
+	
+	
 	ld_attrs = get_attrs_from_sdsh_filename(ld_fpath.name)
 	iso_slug = ld_attrs['iso_slug']
 	ds_name = ld_attrs['ds_name']
@@ -308,6 +321,7 @@ def add_line_data_file_to(
 		
 		s_min = s_min,
 		t_ref = 296, # TODO: Make this vary with whatever the source is
+		t_str = t_str,
 		
 		mol_id = np.ones_like(stronglines_data['wavenumber'], dtype=int)*rt_mol_id,
 		local_iso_id = np.ones_like(stronglines_data['wavenumber'], dtype=int)*rt_iso_id,
