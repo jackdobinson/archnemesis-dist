@@ -2,6 +2,7 @@
 from pathlib import Path
 
 import argparse as ap
+import textwrap
 
 import numpy as np
 
@@ -22,12 +23,14 @@ def add_subcommand_to(subparser_adder) -> ap.ArgumentParser:
 	parser = subparser_adder.add_parser(_subcommand_name, help=_subcommand_help)
 	parser.set_defaults(func = _action_list)
 	parser.add_argument('-m', '--no_separate_molecules', action='store_true', help='If present, will not separate molecules in output table', default=False)
+	parser.add_argument('-u', '--include_units', action='store_true', help='If present, will include units in the output table', default=False)
 
 def _action_list(
 	line_database : Path,
 	partition_function_database : None | Path,
 	pseudo_continuum_database : None | Path,
-	no_separate_molecules : bool = False
+	no_separate_molecules : bool = False,
+	include_units : bool = False,
 ):
 	_lgr.info(f'{line_database=}')
 	_lgr.info(f'{partition_function_database=}')
@@ -59,6 +62,23 @@ def _action_list(
 	
 	
 	cols = ('mol_name', 'iso_id', 'LD', 'PF', 'PC', 'p_ref', 't_ref', 's_min', 't_cont')
+	if include_units:
+		cols = ('mol_name', 'iso_id', 'LD', 'PF', 'PC', 'p_ref', 'p_unit', 't_ref', 't_unit', 's_min', 's_unit', 't_cont')
+	
+	footer = {
+		'mol_name' : 'Name of the molecule',
+		'iso_id' : 'Isotopologue ID (radtrans ID number)',
+		'LD' : 'HDF5 `/line_data/<mol>/<iso>` leaf group index for the dataset',
+		'PF' : 'HDF5 `/partition_function/<mol>/<iso>` leaf group index of the dataset',
+		'PC' : 'HDF5 `/pseudo_continuum/<mol>/<iso>` leaf group index of the dataset',
+		'p_ref' : 'Reference pressure of the line data',
+		'p_unit' : 'Unit of pressure (specified in `line_data` and `pseudo_continuum` datasets)',
+		't_ref' : 'Reference temperature of the line data',
+		't_unit' : 'Unit of temperature (specified in `line_data` and `pseudo_continuum` datasets)',
+		's_min' : 'Lines with strength equal to or less than this value (at `t_cont`) are part of the pseudo-continuum',
+		's_unit' : 'Unit of line strength (specified in `line_data` and `pseudo_continuum` datasets)',
+		't_cont' : 'The strength of the lines that are part of the pseudo-continuum are calculated at this temperature',
+	}
 	
 	
 	table = dict((c,[]) for c in cols)
@@ -101,8 +121,11 @@ def _action_list(
 			'PF' : 'X',
 			'PC' : pc_attr[8],
 			'p_ref' : pc_attr[2],
+			'p_unit' : pc_attr[5],
 			't_ref' : 'X',
+			't_unit' : pc_attr[7],
 			's_min' : pc_attr[3],
+			's_unit' : pc_attr[6],
 			't_cont' : pc_attr[4],
 		}
 		
@@ -141,8 +164,11 @@ def _action_list(
 			'PF' : 'X',
 			'PC' : 'X',
 			'p_ref' : ld_attr[2],
+			'p_unit' : ld_attr[5],
 			't_ref' : ld_attr[9],
+			't_unit' : ld_attr[7],
 			's_min' : ld_attr[3],
+			's_unit' : ld_attr[6],
 			't_cont' : ld_attr[4],
 		}
 	
@@ -172,8 +198,11 @@ def _action_list(
 			'PF' : pf_attr[2],
 			'PC' : 'X',
 			'p_ref' : 'X',
+			'p_unit' : 'X',
 			't_ref' : 'X',
+			't_unit' : 'X',
 			's_min' : 'X',
+			's_unit' : 'X',
 			't_cont' : 'X',
 		}
 		table_add_row(table, v)
@@ -212,4 +241,15 @@ def _action_list(
 				last_mol = row[0]
 		print(c_idx_fmt.format(*row))
 	
+	print(frame_top_bottom)
+	blank_footer_line = r_pref + ' '*(r_width - len(r_pref) - len(r_suff)) + r_suff
+	for k,v in footer.items():
+		k_str = f'{k} : '
+		w = r_width - 2 - len(k_str) - len(r_pref) - len(r_suff)
+		k_fill = ' '*len(k_str)
+		first, *tail = textwrap.wrap(v,width=w)
+		print(r_pref + ' ' + k_str + first + (w-len(first))*' ' + ' ' + r_suff)
+		for x in tail:
+			print(r_pref + ' ' + k_fill + x + (w-len(x))*' ' + ' ' + r_suff)
+		print(blank_footer_line)
 	print(frame_top_bottom)
