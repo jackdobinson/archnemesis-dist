@@ -71,7 +71,7 @@ def _action_list(
 	ld_attrs = []
 	for x in ld_info_tpl:
 		print(f'{x=}')
-		t_str = x.get('t_str', tuple(0,))
+		t_str = x.get('t_str', (0,))
 		t_str_unit = x.get('t_str_unit', x['t_unit'])
 		if not isinstance(t_str, np.ndarray):
 			t_str = np.array(t_str)
