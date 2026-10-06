@@ -37,20 +37,20 @@ import archnemesis.enum
 
 #import archnemesis.helpers.maths_helper as maths_helper
 #from archnemesis.helpers.io_helper import SimpleProgressTracker
-import archnemesis.database
-#from archnemesis.database.filetypes.lbltable import LblDataTProfilesAtPressure#, LblDataTPGrid
-from archnemesis.database.datatypes.wave_point import WavePoint
-#from archnemesis.database.datatypes.wave_range import WaveRange
-from archnemesis.database.datatypes.gas_isotopes import GasIsotopes
-from archnemesis.database.datatypes.gas_descriptor import RadtranGasDescriptor
+import archnemesis.spectral_data.database
+#from archnemesis.spectral_data.database.filetypes.lbltable import LblDataTProfilesAtPressure#, LblDataTPGrid
+from archnemesis.spectral_data.database.datatypes.wave_point import WavePoint
+#from archnemesis.spectral_data.database.datatypes.wave_range import WaveRange
+from archnemesis.spectral_data.database.datatypes.gas_isotopes import GasIsotopes
+from archnemesis.spectral_data.database.datatypes.gas_descriptor import RadtranGasDescriptor
 
-from archnemesis.database.datatypes.line_set_data import LineSetData
-from archnemesis.database.datatypes.pseudo_continuum_data import PseudoContinuumData
-from archnemesis.database.datatypes.pf_list import PFList
+from archnemesis.spectral_data.database.datatypes.line_set_data import LineSetData
+from archnemesis.spectral_data.database.datatypes.pseudo_continuum_data import PseudoContinuumData
+from archnemesis.spectral_data.database.datatypes.pf_list import PFList
 
-from archnemesis.database.filetypes.ans_line_data_file import AnsLineDataFile
-from archnemesis.database.filetypes.ans_partition_fn_data_file import AnsPartitionFunctionDataFile
-from archnemesis.database.filetypes.ans_pseudo_continuum_file import AnsPseudoContinuumFile
+from archnemesis.spectral_data.database.filetypes.ans_line_data_file import AnsLineDataFile
+from archnemesis.spectral_data.database.filetypes.ans_partition_fn_data_file import AnsPartitionFunctionDataFile
+from archnemesis.spectral_data.database.filetypes.ans_pseudo_continuum_file import AnsPseudoContinuumFile
 
 from archnemesis.download.database import get_reference_database_downloader_from_path
 

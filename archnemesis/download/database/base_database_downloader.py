@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 
-from ...database.utils import fetch
+from archnemesis.spectral_data.database.utils import fetch
 
 from ...ui.terminal import ui_show, ui_ask_yn
 

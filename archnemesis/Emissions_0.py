@@ -30,7 +30,7 @@ import os
 import os.path
 #import archnemesis as ans
 #from numba import jit, njit
-#from archnemesis.database.datatypes.wave_range import WaveRange
+#from archnemesis.spectral_data.database.datatypes.wave_range import WaveRange
 
 from archnemesis.helpers import h5py_helper, path_redirect
 #import matplotlib.pyplot as plt
