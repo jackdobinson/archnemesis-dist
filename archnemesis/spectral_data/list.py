@@ -109,6 +109,20 @@ def _action_list(
 				print(empty_entry)
 			last_mol_name = mol_name
 	
+	
+		v = {
+			'mol_name' : mol_name,
+			'iso_id' : iso_id,
+			'line_set_index' : '----',
+			'LD' : 'N',
+			'PF' : 'N',
+			'p_ref' : '0',
+			't_ref' : '0',
+			's_min' : '0',
+			't_cont' : 'No PC data'
+		}
+	
+	
 		for ld_info in ld_info_tpl:
 			if (mol_name, iso_id) != (ld_info['mol_name'], ld_info['iso_id']):
 				continue
@@ -129,7 +143,7 @@ def _action_list(
 				if (tuple(pc_info[x] for x in attrs_match_iso) == match_iso) and all(f(x,y) for f,x,y in zip(ld_pc_comps, ld_attrs, pc_attrs)):
 					has_t_conts.append(pc_info['t_cont'])
 			
-			v = {
+			v.update({
 				'mol_name' : mol_name,
 				'iso_id' : iso_id,
 				'line_set_index' : ld_info['leaf_grp_id'].rsplit('_',1)[1],
@@ -139,9 +153,9 @@ def _action_list(
 				't_ref' : ld_info['t_ref'],
 				's_min' : ld_info.get('s_min', 0),
 				't_cont' : str(has_t_conts) if len(has_t_conts) > 0 else 'No PC data'
-			}
-			#print(v)
-			#print(c_key_fmt)
-			print(c_key_fmt.format(**v))
+			})
+		#print(v)
+		#print(c_key_fmt)
+		print(c_key_fmt.format(**v))
 			
 	print(header_sep)
