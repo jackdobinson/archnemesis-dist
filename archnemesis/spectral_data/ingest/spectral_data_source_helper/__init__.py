@@ -443,7 +443,9 @@ def create_hdf5_linedata_file_from(
 		for ds_name, (stronglines_fpath, pc_dfs_list) in a.items():
 			_lgr.info(f'Working on iso {iso_name} dataset {ds_name} {stronglines_fpath=!s}')
 			
-			add_line_data_file_to(ans_ld_file, stronglines_fpath)
+			# In this case, if we have `stronglines` file, then the `t_str` should be the array of all associated pseudo-continuum files `t_cont`
+			
+			add_line_data_file_to(ans_ld_file, stronglines_fpath, t_str=np.array([x.t_cont for x in pc_dfs_list]))
 		
 			for pc_dfs in pc_dfs_list:
 				_lgr.info(f'    t_cont {pc_dfs.t_cont}')
