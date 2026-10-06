@@ -99,6 +99,8 @@ def _action_list(
 		
 		# Find matching line data
 		for i, ld_attr in enumerate(ld_attrs):
+			print(f'{pc_attr=}')
+			print(f'{ld_attr=}')
 			if pc_attr[:8] == ld_attr[:8]:
 				v['LD'] = ld_attr[8]
 				v['t_ref'] = ld_attr[9]
