@@ -82,7 +82,9 @@ def _action_list(
 
 	pf_attrs = [(x['mol_name'], x['iso_id'], x['leaf_grp_id'].rsplit('_',1)[1], *x['t_domain']) for x in pf_info_tpl]
 
-
+	print(f'{len(ld_attrs)=}')
+	print(f'{len(pc_attrs)=}')
+	print(f'{len(pf_attrs)=}')
 
 	matched_ld_idxs = []
 	matched_pf_idxs = []
