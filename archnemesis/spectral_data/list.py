@@ -43,6 +43,10 @@ def _action_list(
 	pf_info_tpl = tuple(ans_pf_file.iter_contents_info())
 	pc_info_tpl = tuple(ans_pc_file.iter_contents_info())
 	
+	print(f'{len(ld_info_tpl)=}')
+	print(f'{len(pc_info_tpl)=}')
+	print(f'{len(pf_info_tpl)=}')
+	
 	
 	mol_iso_pairs = []
 	for z in (ld_info_tpl, pf_info_tpl, pc_info_tpl):
