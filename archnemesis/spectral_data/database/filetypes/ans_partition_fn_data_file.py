@@ -53,6 +53,7 @@ class AnsPartitionFunctionDataFile(AnsDatabaseFile):
 				'mol_name' : mol_name,
 				'iso_id' : iso_id,
 				'leaf_grp_id': leaf_grp_id,
+				't_domain' : leaf_grp['domain'][tuple()],
 				**dict(mol_grp.attrs.items()),
 				**dict(iso_grp.attrs.items()),
 				**dict(leaf_grp.attrs.items())
