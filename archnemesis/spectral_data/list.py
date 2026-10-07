@@ -2,10 +2,12 @@
 from pathlib import Path
 
 import argparse as ap
-import textwrap
+
+
 
 import numpy as np
 
+from archnemesis.ui.table import Table
 from archnemesis.spectral_data.database.filetypes.ans_line_data_file import AnsLineDataFile
 from archnemesis.spectral_data.database.filetypes.ans_partition_fn_data_file import AnsPartitionFunctionDataFile
 from archnemesis.spectral_data.database.filetypes.ans_pseudo_continuum_file import AnsPseudoContinuumFile
@@ -46,9 +48,9 @@ def _action_list(
 	pf_info_tpl = tuple(ans_pf_file.iter_contents_info())
 	pc_info_tpl = tuple(ans_pc_file.iter_contents_info())
 	
-	print(f'{len(ld_info_tpl)=}')
-	print(f'{len(pc_info_tpl)=}')
-	print(f'{len(pf_info_tpl)=}')
+	#print(f'{len(ld_info_tpl)=}')
+	#print(f'{len(pc_info_tpl)=}')
+	#print(f'{len(pf_info_tpl)=}')
 	
 	
 	mol_iso_pairs = []
@@ -65,7 +67,7 @@ def _action_list(
 	if include_units:
 		cols = ('mol_name', 'iso_id', 'LD', 'PF', 'PC', 'p_ref', 'p_unit', 't_ref', 't_unit', 's_min', 's_unit', 't_cont')
 	
-	footer = {
+	column_descriptions = {
 		'mol_name' : 'Name of the molecule',
 		'iso_id' : 'Isotopologue ID (radtrans ID number)',
 		'LD' : 'HDF5 `/line_data/<mol>/<iso>` leaf group index for the dataset',
@@ -90,7 +92,7 @@ def _action_list(
 	
 	ld_attrs = []
 	for x in ld_info_tpl:
-		print(f'{x=}')
+		#print(f'{x=}')
 		t_str = x.get('t_str', (0,))
 		t_str_unit = x.get('t_str_unit', x['t_unit'])
 		if not isinstance(t_str, np.ndarray):
@@ -105,9 +107,9 @@ def _action_list(
 
 	pf_attrs = [(x['mol_name'], x['iso_id'], x['leaf_grp_id'].rsplit('_',1)[1], *x['t_domain']) for x in pf_info_tpl]
 
-	print(f'{len(ld_attrs)=}')
-	print(f'{len(pc_attrs)=}')
-	print(f'{len(pf_attrs)=}')
+	#print(f'{len(ld_attrs)=}')
+	#print(f'{len(pc_attrs)=}')
+	#print(f'{len(pf_attrs)=}')
 
 	matched_ld_idxs = []
 	matched_pf_idxs = []
@@ -131,8 +133,8 @@ def _action_list(
 		
 		# Find matching line data
 		for i, ld_attr in enumerate(ld_attrs):
-			print(f'{pc_attr=}')
-			print(f'{ld_attr=}')
+			#print(f'{pc_attr=}')
+			#print(f'{ld_attr=}')
 			if pc_attr[:8] == ld_attr[:8]:
 				v['LD'] = ld_attr[8]
 				v['t_ref'] = ld_attr[9]
@@ -207,49 +209,26 @@ def _action_list(
 		}
 		table_add_row(table, v)
 	
-	r_pref = '|'
-	d_pref = ' '
-	d_suff = ' '
-	sep = '|'
-	r_suff = '|'
-	c_min_widths = tuple(len(x) for x in cols)
-	c_max_data_widths = tuple(max(len(str(x))for x in table[c]) for c in cols)
-	c_data_widths = tuple(max(x,y) for x,y in zip(c_min_widths, c_max_data_widths))
-	c_total_widths = tuple(w+len(d_pref)+len(d_suff) for w in c_data_widths) # includes a space on either end
-	r_width = len(r_pref) + sum(c_total_widths) + (len(cols)-1)*len(sep) + len(r_suff)
-	
-	c_idx_fmt = r_pref + sep.join(tuple(f'{d_pref}{{{i}: >{w}}}{d_suff}' for i,w in enumerate(c_data_widths))) + r_suff
-	print(f'{c_idx_fmt=}')
-	
-	frame_top_bottom = '-'*r_width
-	header_sep = r_pref + sep.join('#'*w for w in c_total_widths) + r_suff
-	empty_entry = r_pref + sep.join('-'*w for w in c_total_widths) + r_suff
-	
-	head = c_idx_fmt.format(*table.keys())
 	
 	
-	print(frame_top_bottom)
-	print(head)
-	print(header_sep)
-	last_mol = None
-	for row in sorted(zip(*table.values()), key=lambda x: x[0]):
-		if not no_separate_molecules:
-			if last_mol is None:
-				last_mol = row[0]
-			elif last_mol != row[0]:
-				print(empty_entry)
-				last_mol = row[0]
-		print(c_idx_fmt.format(*row))
+	table_instance = Table.create(
+		table,
+		col_descs = tuple(column_descriptions[c] for c in cols)
+	)
 	
-	print(frame_top_bottom)
-	blank_footer_line = r_pref + ' '*(r_width - len(r_pref) - len(r_suff)) + r_suff
-	for k,v in footer.items():
-		k_str = f'{k} : '
-		w = r_width - 2 - len(k_str) - len(r_pref) - len(r_suff)
-		k_fill = ' '*len(k_str)
-		first, *tail = textwrap.wrap(v,width=w)
-		print(r_pref + ' ' + k_str + first + (w-len(first))*' ' + ' ' + r_suff)
-		for x in tail:
-			print(r_pref + ' ' + k_fill + x + (w-len(x))*' ' + ' ' + r_suff)
-		print(blank_footer_line)
-	print(frame_top_bottom)
+	class MolNameSectionBreaker:
+		def __init__(self):
+			self.last_mol_name = None
+		def __call__(self, x):
+			if self.last_mol_name is None:
+				self.last_mol_name = x[0]
+				return False
+			if self.last_mol_name != x[0]:
+				self.last_mol_name = x[0]
+				return True
+			return False
+		
+	
+	table_instance.section_end_fn = MolNameSectionBreaker()
+	table_instance.display()
+	
