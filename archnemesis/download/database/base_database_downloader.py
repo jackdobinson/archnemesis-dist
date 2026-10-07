@@ -1,7 +1,7 @@
 
 import os
 from pathlib import Path
-
+from typing import Self
 
 from archnemesis.spectral_data.database.utils import fetch
 
@@ -9,20 +9,30 @@ from ...ui.terminal import ui_show, ui_ask_yn
 
 
 class BaseDatabaseDownloader:
-    def __init__(self,
-        DBASE_NAME                    : str,
-        DBASE_URL                     : str,
-        DBASE_PATH                    : Path,
-        DBASE_DOWNLOAD_SENTRY_FILE    : Path,
-        DBASE_NO_DOWNLOAD_SENTRY_FILE : Path,
-    ):
-        self.DBASE_NAME = DBASE_NAME
-        self.DBASE_URL = DBASE_URL
-        self.DBASE_PATH = DBASE_PATH
-        self.DBASE_DOWNLOAD_SENTRY_FILE = DBASE_DOWNLOAD_SENTRY_FILE
-        self.DBASE_NO_DOWNLOAD_SENTRY_FILE = DBASE_NO_DOWNLOAD_SENTRY_FILE
-        
-        
+    singleton_registry = dict()
+    
+    def __new__(cls,
+            DBASE_NAME                    : str,
+            DBASE_URL                     : str,
+            DBASE_PATH                    : Path,
+            DBASE_DOWNLOAD_SENTRY_FILE    : Path,
+            DBASE_NO_DOWNLOAD_SENTRY_FILE : Path,
+    ) -> Self:
+        """
+        Want to always get the same object for the same initial arguments.
+        """
+        instance = cls.singleton_registry.get((DBASE_NAME, DBASE_URL, DBASE_PATH, DBASE_DOWNLOAD_SENTRY_FILE, DBASE_NO_DOWNLOAD_SENTRY_FILE), None)
+        if instance is None:
+            instance = super().__new__(cls)
+            instance.DBASE_NAME = DBASE_NAME
+            instance.DBASE_URL = DBASE_URL
+            instance.DBASE_PATH = DBASE_PATH
+            instance.DBASE_DOWNLOAD_SENTRY_FILE = DBASE_DOWNLOAD_SENTRY_FILE
+            instance.DBASE_NO_DOWNLOAD_SENTRY_FILE = DBASE_NO_DOWNLOAD_SENTRY_FILE
+            instance.non_interactive_checked_once = False
+            cls.singleton_registry[(DBASE_NAME, DBASE_URL, DBASE_PATH, DBASE_DOWNLOAD_SENTRY_FILE, DBASE_NO_DOWNLOAD_SENTRY_FILE)] = instance
+        return instance
+    
     def is_database_present(self) -> bool:
         return self.DBASE_PATH.exists()
 
@@ -60,23 +70,30 @@ class BaseDatabaseDownloader:
         return False
 
     def should_do_download_non_interactive(self, refresh : bool = False) -> bool:
+        if self.non_interactive_checked_once and not refresh:
+            return False
+        
         ui_show(f'Checking if download of spectral database "{self.DBASE_NAME}" is required:')
         
         if self.is_in_pytest_environment():
             ui_show('  In `pytest` environment, no downloads will be performed.')
+            self.non_interactive_checked_once = True
             return False
         
         if self.is_database_present():
             ui_show(f'  Database IS present at "{self.DBASE_PATH}".')
             if not refresh:
                 ui_show('  No reason to redownload.')
+                self.non_interactive_checked_once = True
                 return False
             else:
                 ui_show('  Refresh has been requested, redownloading...')
+                self.non_interactive_checked_once = True
                 return True
         else:
             ui_show(f'  Database IS NOT present at "{self.DBASE_PATH}".')
         
+        self.non_interactive_checked_once = True
         return self.get_sentry_file_state()
 
     def should_do_download(self, refresh : bool = False) -> bool:

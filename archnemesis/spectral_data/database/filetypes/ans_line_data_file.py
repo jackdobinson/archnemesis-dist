@@ -32,7 +32,8 @@ def mask_accept_closest(
 		accept_mask : np.ndarray, # <bool> 
 		target_value : float, 
 		value_arr : np.ndarray | Iterable[np.ndarray], 
-		prefer : None | Literal['<', '<=', '>', '>='], eps : float = 1E-9,
+		prefer : None | Literal['<', '<=', '>', '>='] = None, 
+		eps : float = 1E-9,
 		delta_fn : Callable[[float,np.ndarray | Iterable[np.ndarray]], np.ndarray] = lambda t, v: (v - t), # Should be < 0 when v < t, >0 when v > t
 ):
 	delta = delta_fn(target_value, value_arr)
@@ -516,6 +517,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 			s_min : float,
 			t_ref : float,
 			p_ref : float,
+			t_str : float,
 			requested_wn_range : tuple[float,float],
 			n_broadeners : int
 	):
@@ -525,6 +527,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 			s_min,
 			t_ref,
 			p_ref,
+			t_str,
 			requested_wn_range,
 			*(np.empty((0,), dtype=LineDataRecordLayout.type(x)) for x in line_fields_to_populate),
 			*(np.empty((0,n_broadeners), dtype=LineBroadenerRecordLayout.type(x)) for x in broadener_felds_to_populate),
@@ -628,7 +631,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 		with self.open('r'):
 			iso_grp = self._get_data_mol_iso_grp(mol_name, local_iso_id, self._file_hdl, on_missing_target, on_missing_mol, on_missing_iso)
 			if iso_grp is None:
-				return self._get_null_data(s_min,temperature,1,requested_wn_range,n_ambient_gasses)
+				return self._get_null_data(s_min,temperature,1,0, requested_wn_range,n_ambient_gasses)
 			
 			result = None
 		
@@ -676,7 +679,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 			
 			if result is None:
 				_lgr.warn(f'No compatible group found for {target_line_set_params=}. Therefore will return empty data.')
-				return self._get_null_data(s_min, temperature, 1, requested_wn_range, n_ambient_gasses)
+				return self._get_null_data(s_min, temperature, 1, 0, requested_wn_range, n_ambient_gasses)
 			else:
 
 				# Apply defaults to any missing parameters

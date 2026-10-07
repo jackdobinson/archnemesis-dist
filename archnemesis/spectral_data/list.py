@@ -14,7 +14,7 @@ from archnemesis.spectral_data.database.filetypes.ans_pseudo_continuum_file impo
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
 
 
 _subcommand_name = "list"
@@ -39,6 +39,10 @@ def _action_list(
 	_lgr.info(f'{line_database=}')
 	_lgr.info(f'{partition_function_database=}')
 	_lgr.info(f'{pseudo_continuum_database=}')
+	_lgr.info(f'{mol_regex=}')
+	_lgr.info(f'{iso_regex=}')
+	_lgr.info(f'{no_separate_molecules=}')
+	_lgr.info(f'{include_units=}')
 	
 
 	ans_ld_file = AnsLineDataFile(line_database)
@@ -201,7 +205,6 @@ def _action_list(
 	
 	# Remove already matched partition data
 	for idx in sorted(matched_pf_idxs, reverse=True):
-		_lgr.debug(f'{idx=}')
 		pf_attrs.pop(idx)
 
 	# Loop over unmatched partition function data

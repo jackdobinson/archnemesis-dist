@@ -1030,9 +1030,9 @@ class LineSetSpecData:
 
     def remove_weak_lines_at_t_str(
             self,
+            partition_function : PFList,
             target_t_str : float,
             target_s_min : float,
-            partition_function : PFList,
     ):
         if target_s_min > 0 and target_t_str > 0:
             # If there is a minimum strength and a temperature at which that strength is supposed to have been calculated
@@ -2142,9 +2142,10 @@ class LineData_0:
             # as any instance of LineData_0 only everh as one molecule
             
             for i, ((mol_id, iso_id), line_data, cont_data) in enumerate(id_line_cont_triplet):
-                #print(f'DEBUG: {i=} {mol_id=} {iso_id=} {line_data.s_min=} {cont_data.s_max=}')
+                print(f'DEBUG: {i=} {mol_id=} {iso_id=} {line_data.s_min=} {line_data.t_str=} {cont_data.s_max=}')
                 
                 self.line_data[i] = LineSetSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, line_data, cache=self.cache)
+                print(f'DEBUG: {self.line_data[i].t_str=}')
                 self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.line_data[i].t_str, target_s_min = self.line_data[i].s_min)
                 self.continuum_data[i] = PseudoContSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, cont_data, cache=self.cache)
         

@@ -257,46 +257,52 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 			leaf_grp : h5py.Group
 			leaf_parameters : tuple[Any,...]
 		"""
-		
 		best_grp_name = ''
 		best_grp = None
 		best_parameters = None
-		mismatch_temp = np.inf
-		mismatch_s_max = np.inf
-		for i, leaf_grp_name, leaf_grp in self.get_increasing_leaf_grp_name_in_grp_iterable(iso_grp):
-			s_max, t_ref, p_ref = self._get_pseudo_continuum_parameters(leaf_grp.attrs)
-			
-			if target_s_max <= 0:
-				delta_s_max = 0
-			else:
-				delta_s_max = target_s_max - s_max
-			
-			delta_temp = target_temp - t_ref
-			
-			#_lgr.debug(f'AnsPseudoContinuumFile :: {leaf_grp_name=} {s_max=} {t_ref=} {p_ref=} {delta_s_min=} {delta_temp=} {mismatch_s_max=} {mismatch_temp=}')
-			
-			if (
-				(
-					(np.abs(delta_s_max) <= np.abs(mismatch_s_max)) # Want closest `s_max`, must have `s_max` is less than `target_s_max`
-					and (
-						(delta_s_max >= 0)
-					)
-				)
-				and (
-					(np.abs(delta_temp) <= np.abs(mismatch_temp)) # Want closest `temp`, prefer `t_ref` is greater than `target_temp`
-					and (
-						(delta_temp <= 0)
-						or ((delta_temp > 0) and (mismatch_temp > 0))
-					)
-				)
-			):
-				mismatch_s_max = delta_s_max
-				mismatch_temp = delta_temp
-				best_grp_name = leaf_grp_name
-				best_grp = leaf_grp
-				best_parameters = (s_max, t_ref, p_ref)
 		
-		return (best_grp_name, best_grp, best_parameters)
+		leaf_grp_names = []
+		s_max_arr = []
+		t_cont_arr = []
+		p_ref_arr = []
+		
+		for i, leaf_grp_name, leaf_grp in self.get_increasing_leaf_grp_name_in_grp_iterable(iso_grp):
+			s_max, t_cont, p_ref = self._get_pseudo_continuum_parameters(leaf_grp.attrs)
+			leaf_grp_names.append(leaf_grp_name)
+			s_max_arr.append(s_max)
+			t_cont_arr.append(t_cont)
+			p_ref_arr.append(p_ref)
+		
+		s_max_arr = np.array(s_max_arr, dtype=float)
+		t_cont_arr = np.array(t_cont_arr, dtype=float)
+		p_ref_arr = np.array(p_ref_arr, dtype=float)
+		
+		accept_mask = np.ones(s_max_arr.shape, dtype=bool)
+		
+		accept_mask &= s_max_arr <= target_s_max # Only accept elements equal or smaller than `target_s_max`
+		if not np.any(accept_mask):
+			return (None, None, None)
+		
+		# Get best s_max
+		accept_mask &= (s_max_arr == s_max_arr[accept_mask][np.argmin(np.abs(s_max_arr[accept_mask] - target_s_max))]) # Only accept the closest s_max
+		
+		# Get best t_cont
+		accept_mask &= (t_cont_arr == t_cont_arr[accept_mask][np.argmin(np.abs(t_cont_arr[accept_mask] - target_temp))]) # Only accept the closes t_cont
+		
+		n_acceptable = np.count_nonzero(accept_mask)
+		if n_acceptable == 0:
+			return (None, None, None)
+		else:
+			best_idx = np.flatnonzero(accept_mask)[0]
+			best_grp_name = leaf_grp_names[best_idx]
+			best_grp = iso_grp[best_grp_name]
+			best_parameters = (
+				s_max_arr[best_idx],
+				t_cont_arr[best_idx],
+				p_ref_arr[best_idx],
+			)
+			
+			return (best_grp_name, best_grp, best_parameters)
 	
 	
 	def _get_target_leaf_group(
