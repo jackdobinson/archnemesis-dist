@@ -44,15 +44,21 @@ def _action_list(
 	ans_pf_file = AnsPartitionFunctionDataFile(partition_function_database if partition_function_database is not None else line_database)
 	ans_pc_file = AnsPseudoContinuumFile(pseudo_continuum_database if pseudo_continuum_database is not None else line_database)
 	
+	ld_info_tpl = tuple(ans_ld_file.iter_contents_info())
+	pf_info_tpl = tuple(ans_pf_file.iter_contents_info())
+	pc_info_tpl = tuple(ans_pc_file.iter_contents_info())
+	
+	if len(ld_info_tpl) == 0 and len(pc_info_tpl) == 0 and len(pf_info_tpl) == 0:
+		_lgr.warn(f"Cannot list spectral data. No data was present in files: '{ans_ld_file.path}' '{ans_pf_file.path}' '{ans_pc_file.path}'")
+		return
 
-	ld_info_tpl = tuple(x for x in ans_ld_file.iter_contents_info() if mol_regex.fullmatch(x['mol_name']) is not None)
-	pf_info_tpl = tuple(x for x in ans_pf_file.iter_contents_info() if mol_regex.fullmatch(x['mol_name']) is not None)
-	pc_info_tpl = tuple(x for x in ans_pc_file.iter_contents_info() if mol_regex.fullmatch(x['mol_name']) is not None)
-	
-	print(f'{len(ld_info_tpl)=}')
-	print(f'{len(pc_info_tpl)=}')
-	print(f'{len(pf_info_tpl)=}')
-	
+	ld_info_tpl = tuple(filter(lambda x: mol_regex.fullmatch(x['mol_name']) is not None, ld_info_tpl))
+	pf_info_tpl = tuple(filter(lambda x: mol_regex.fullmatch(x['mol_name']) is not None, pf_info_tpl))
+	pc_info_tpl = tuple(filter(lambda x: mol_regex.fullmatch(x['mol_name']) is not None, pc_info_tpl))
+
+	if len(ld_info_tpl) == 0 and len(pc_info_tpl) == 0 and len(pf_info_tpl) == 0:
+		_lgr.warn(f"Cannot list spectral data. No data was selected for listing. `mol_regex` is '{mol_regex.pattern}'")
+		return
 	
 	mol_iso_pairs = []
 	for z in (ld_info_tpl, pf_info_tpl, pc_info_tpl):
