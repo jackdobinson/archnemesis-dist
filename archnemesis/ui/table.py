@@ -49,6 +49,7 @@ class Table:
 		self.cell_widths = None
 		
 		self.section_end_fn : None | Callable[[tuple[Any,...]], bool] = None
+		self.data_sort_fn : None | Callable[[tuple[Any,...]], Any] = None
 	
 	@classmethod
 	def create(
@@ -133,19 +134,30 @@ class Table:
 			self._header_lines = tuple(tuple(x.splitlines() + (y.splitlines() if y is not None else [])) for x, y in zip(self.output_col_names, self.output_col_extras))
 		return self._header_lines
 	
-	def iter_row_cell_strs(self) -> Iterable[None | tuple[str,...]]:
+	def iter_row_tpls(self) -> Iterable[tuple[Any,...]]:
 		col_names = self.output_col_names
-		col_formatters = self.output_col_formatters
-		if self.section_end_fn is None:
-			for j in range(self.n_data_rows):
-				yield tuple(formatter(self.data[c][j]) for c, formatter in zip(col_names, col_formatters))
+		for j in range(self.n_data_rows):
+			yield tuple(self.data[c][j] for c in col_names)
+	
+	def iter_row_tpls_sorted(self) -> Iterable[tuple[Any,...]]:
+		if self.data_sort_fn is not None:
+			yield from sorted(self.iter_row_tpls(), key=self.data_sort_fn)
 		else:
-			last_value_tpl = tuple(self.data[c][0] for c in col_names)
-			for j in range(1,self.n_data_rows):
+			yield from self.iter_row_tpls()
+	
+	def iter_row_cell_strs(self) -> Iterable[None | tuple[str,...]]:
+		col_formatters = self.output_col_formatters
+		row_tpl_iterable = self.iter_row_tpls_sorted()
+		if self.section_end_fn is None:
+			for value_tpl in row_tpl_iterable:
+				yield tuple(formatter(val) for val, formatter in zip(value_tpl, col_formatters))
+		else:
+			last_value_tpl = next(row_tpl_iterable)
+			for value_tpl in row_tpl_iterable:
 				if self.section_end_fn(last_value_tpl):
 					yield None
 				yield (formatter(v) for v, formatter in zip(last_value_tpl, col_formatters))
-				last_value_tpl = tuple(self.data[c][j] for c in col_names)
+				last_value_tpl = value_tpl
 			yield (formatter(v) for v, formatter in zip(last_value_tpl, col_formatters))
 				
 	

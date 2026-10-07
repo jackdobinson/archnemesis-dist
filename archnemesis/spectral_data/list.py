@@ -3,7 +3,7 @@ from pathlib import Path
 
 import argparse as ap
 
-
+import re
 
 import numpy as np
 
@@ -14,7 +14,7 @@ from archnemesis.spectral_data.database.filetypes.ans_pseudo_continuum_file impo
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DEBUG)
 
 
 _subcommand_name = "list"
@@ -31,6 +31,7 @@ def _action_list(
 	line_database : Path,
 	partition_function_database : None | Path,
 	pseudo_continuum_database : None | Path,
+	mol_regex : re.Pattern = re.compile('.*'),
 	no_separate_molecules : bool = False,
 	include_units : bool = False,
 ):
@@ -44,13 +45,13 @@ def _action_list(
 	ans_pc_file = AnsPseudoContinuumFile(pseudo_continuum_database if pseudo_continuum_database is not None else line_database)
 	
 
-	ld_info_tpl = tuple(ans_ld_file.iter_contents_info())
-	pf_info_tpl = tuple(ans_pf_file.iter_contents_info())
-	pc_info_tpl = tuple(ans_pc_file.iter_contents_info())
+	ld_info_tpl = tuple(x for x in ans_ld_file.iter_contents_info() if mol_regex.fullmatch(x['mol_name']) is not None)
+	pf_info_tpl = tuple(x for x in ans_pf_file.iter_contents_info() if mol_regex.fullmatch(x['mol_name']) is not None)
+	pc_info_tpl = tuple(x for x in ans_pc_file.iter_contents_info() if mol_regex.fullmatch(x['mol_name']) is not None)
 	
-	#print(f'{len(ld_info_tpl)=}')
-	#print(f'{len(pc_info_tpl)=}')
-	#print(f'{len(pf_info_tpl)=}')
+	print(f'{len(ld_info_tpl)=}')
+	print(f'{len(pc_info_tpl)=}')
+	print(f'{len(pf_info_tpl)=}')
 	
 	
 	mol_iso_pairs = []
@@ -138,7 +139,8 @@ def _action_list(
 			if pc_attr[:8] == ld_attr[:8]:
 				v['LD'] = ld_attr[8]
 				v['t_ref'] = ld_attr[9]
-				matched_ld_idxs.append(i)
+				if i not in matched_ld_idxs:
+					matched_ld_idxs.append(i)
 				break
 		
 		# Find matching partition functions
@@ -148,7 +150,8 @@ def _action_list(
 				t_domain_max = max(pf_attr[-2:])
 				if (t_domain_min <= v['t_cont']) and (v['t_cont'] <= t_domain_max):
 					v['PF'] = pf_attr[2]
-					matched_pf_idxs.append(i)
+					if i not in matched_pf_idxs:
+						matched_pf_idxs.append(i)
 					break
 		
 		table_add_row(table, v)
@@ -189,6 +192,7 @@ def _action_list(
 	
 	# Remove already matched partition data
 	for idx in sorted(matched_pf_idxs, reverse=True):
+		_lgr.debug(f'{idx=}')
 		pf_attrs.pop(idx)
 
 	# Loop over unmatched partition function data
@@ -228,7 +232,8 @@ def _action_list(
 				return True
 			return False
 		
-	
-	table_instance.section_end_fn = MolNameSectionBreaker()
+	if not no_separate_molecules:
+		table_instance.section_end_fn = MolNameSectionBreaker()
+	table_instance.data_sort_fn = lambda x: x[0]
 	table_instance.display()
 	
