@@ -32,6 +32,7 @@ def _action_list(
 	partition_function_database : None | Path,
 	pseudo_continuum_database : None | Path,
 	mol_regex : re.Pattern = re.compile('.*'),
+	iso_regex : re.Pattern = re.compile('.*'),
 	no_separate_molecules : bool = False,
 	include_units : bool = False,
 ):
@@ -52,9 +53,11 @@ def _action_list(
 		_lgr.warn(f"Cannot list spectral data. No data was present in files: '{ans_ld_file.path}' '{ans_pf_file.path}' '{ans_pc_file.path}'")
 		return
 
-	ld_info_tpl = tuple(filter(lambda x: mol_regex.fullmatch(x['mol_name']) is not None, ld_info_tpl))
-	pf_info_tpl = tuple(filter(lambda x: mol_regex.fullmatch(x['mol_name']) is not None, pf_info_tpl))
-	pc_info_tpl = tuple(filter(lambda x: mol_regex.fullmatch(x['mol_name']) is not None, pc_info_tpl))
+	match_mol_iso_regex = lambda x: (mol_regex.fullmatch(x['mol_name']) is not None) and (iso_regex.fullmatch(x['iso_id']) is not None)
+
+	ld_info_tpl = tuple(filter(match_mol_iso_regex, ld_info_tpl))
+	pf_info_tpl = tuple(filter(match_mol_iso_regex, pf_info_tpl))
+	pc_info_tpl = tuple(filter(match_mol_iso_regex, pc_info_tpl))
 
 	if len(ld_info_tpl) == 0 and len(pc_info_tpl) == 0 and len(pf_info_tpl) == 0:
 		_lgr.warn(f"Cannot list spectral data. No data was selected for listing. `mol_regex` is '{mol_regex.pattern}'")

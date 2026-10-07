@@ -22,6 +22,7 @@ def create_parser() -> ap.ArgumentParser:
 	parser.add_argument('pseudo_continuum_database', metavar='<path>', nargs='?', type=archnemesis_resolve_path, help = 'HDF5 file that contains pseudo-continuum data (if not present will use `line_database`)', default=None)
 	
 	parser.add_argument('-m', '--mol_regex', metavar="<regex>", type=re.compile, help='Select molecules to include via regex pattern to matching (default=".*")', default=re.compile('.*'))
+	parser.add_argument('-i', '--iso_regex', metavar="<regex>", type=re.compile, help='Select isotope numbers to include via regex pattern to matching (default=".*")', default=re.compile('.*'))
 	
 	subparsers = parser.add_subparsers(title='subcommands', description='All arguments after the subcommand will be intepreted by that subcommand.', required=True)
 	list.add_subcommand_to(subparsers)
