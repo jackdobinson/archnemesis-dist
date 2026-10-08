@@ -1,6 +1,7 @@
 
 import sys
 from pathlib import Path
+from typing import Self
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -14,14 +15,22 @@ PYTHON_IN_INTERACTIVE_MODE : bool = hasattr(sys, "ps1") # Only defined when in i
 class ShowPlotFnFactory:
 	registry = dict()
 	
-	def __new__(cls, save_plots_dir : None | Path = None, no_show_plots : bool = False):
+	def __new__(cls, 
+			save_plots_dir : None | Path = None, 
+			no_show_plots : bool = False
+	) -> Self:
 		if (instance := cls.registry.get((save_plots_dir, no_show_plots),None)) is None:
 			instance = super().__new__(cls)
 			instance._save_plots_dir = save_plots_dir
 			instance._show_plots = not no_show_plots
 		return instance
 	
-	def __call__(self, name : str, figure : None | mpl.figure.Figure, savefig_kwargs=dict(), show_kwargs=dict()):
+	def __call__(self, 
+			name : str, 
+			figure : None | mpl.figure.Figure = None, 
+			savefig_kwargs = dict(), 
+			show_kwargs = dict()
+	):
 		if self._save_plots_dir is not None:
 			plot_fpath = self._save_plots_dir / name
 			if figure is None:
