@@ -1,3 +1,5 @@
+
+import os
 from pathlib import Path
 
 import argparse as ap
@@ -5,8 +7,10 @@ import re
 
 #import numpy as np
 
+#import matplotlib as mpl
 from matplotlib import pyplot as plt
 
+from archnemesis.helpers.plot_helper import ShowPlotFnFactory
 from archnemesis import LineData_0
 from archnemesis.enum import (
 	GasEnum,
@@ -20,6 +24,7 @@ import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 _lgr.setLevel(logging.DEBUG)
 
+TEMP_PATH_PLOT_DIR = Path(os.getenv('TMP', '/tmp')) / "archnemesis/spectral_data/plot"
 
 _subcommand_name = "plot"
 _subcommand_help = "Plot spectral data contained within these files"
@@ -35,8 +40,10 @@ def add_subcommand_to(subparser_adder) -> ap.ArgumentParser:
 	parser.add_argument('-T', '--t_calc', type=float, help='Temperature (Kelvin) at which to perform calculations (default=296)', default=296.0)
 	parser.add_argument('-P', '--p_calc', type=float, help='Pressure at which to perform calculations, unit is set via `--p_unit` (default=1)', default=1.0)
 	parser.add_argument('--p_unit', type=str, choices=('atm', 'bar'), help='Unit of pressure to perform calculations with (default="bar")', default='bar')
-	
-	
+	parser.add_argument('--save_plots', nargs='?', type=Path, help=f'If present will save plots to a temporary directory ({TEMP_PATH_PLOT_DIR}), if given with an argument will save plots to the specified directory, if not present will not save plots.', const=TEMP_PATH_PLOT_DIR, default=None)
+	parser.add_argument('--no_show_plots', action='store_true', help='If present, will not show plots (default=False)', default=False)
+
+
 def _action_plot(
 	line_database : Path,
 	partition_function_database : None | Path,
@@ -50,10 +57,12 @@ def _action_plot(
 	t_calc : float = 296.0,
 	p_calc : float = 1.0,
 	p_unit : str = 'bar',
-
+	save_plots : None | Path = None,
+	no_show_plots : bool = False,
 ):
 	if waves is None:
 		waves = (1E-2, 2)
+	
 	_lgr.info(f'{line_database=}')
 	_lgr.info(f'{partition_function_database=}')
 	_lgr.info(f'{pseudo_continuum_database=}')
@@ -66,6 +75,11 @@ def _action_plot(
 	_lgr.info(f'{t_calc=}')
 	_lgr.info(f'{p_calc=}')
 	_lgr.info(f'{p_unit=}')
+	_lgr.info(f'{save_plots=}')
+	_lgr.info(f'{no_show_plots=}')
+	
+	# Get directory to save plots to
+	show_plot_fn = ShowPlotFnFactory(save_plots, no_show_plots)
 	
 	# Get pressure into units of `bar` before doing anything else
 	known_p_units = ('bar', 'atm')
@@ -136,7 +150,7 @@ def _action_plot(
 		plt.xlabel('Wavenumber (cm^{-1})')
 		plt.ylabel('Line Strength (cm^{-1} / [molec cm^{-2}])')
 		plt.yscale('log')
-		plt.show()
+		show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc}_Tref_{"_".join([int(x.t_ref) for x in line_data_instance.line_data])}.png')
 	
 	
 	
