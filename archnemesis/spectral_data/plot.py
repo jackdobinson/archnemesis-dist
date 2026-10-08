@@ -2,8 +2,11 @@
 import os
 from pathlib import Path
 
+from typing import Iterable
+
 import argparse as ap
 import re
+import itertools
 
 #import numpy as np
 
@@ -37,8 +40,8 @@ def add_subcommand_to(subparser_adder) -> ap.ArgumentParser:
 	parser.add_argument('-w', '--waves', type=float, nargs=2, help='Minimum and maximum waves to include in plots, unit set by `--wave_unit` (default=[1E-2,2])', default=None)
 	parser.add_argument('-u', '--wave_unit', choices=tuple(x.name for x in WaveUnitEnum), help='Unit of `--waves` (default="Wavelength_um")', default=WaveUnitEnum.Wavelength_um.name)
 	parser.add_argument('-s', '--s_min', type=float, help='Strength floor above which a line is treated as a discrete line, not part of a continuum (default=0)', default=0.0)
-	parser.add_argument('-T', '--t_calc', type=float, help='Temperature (Kelvin) at which to perform calculations (default=296)', default=296.0)
-	parser.add_argument('-P', '--p_calc', type=float, help='Pressure at which to perform calculations, unit is set via `--p_unit` (default=1)', default=1.0)
+	parser.add_argument('-T', '--t_calc', type=float, nargs='+', help='Temperature (Kelvin) at which to perform calculations (default=296)', default=296.0)
+	parser.add_argument('-P', '--p_calc', type=float, nargs='+', help='Pressure at which to perform calculations, unit is set via `--p_unit` (default=1)', default=1.0)
 	parser.add_argument('--p_unit', type=str, choices=('atm', 'bar'), help='Unit of pressure to perform calculations with (default="bar")', default='bar')
 	parser.add_argument('--save_plots', nargs='?', type=Path, help=f'If present will save plots to a temporary directory ({TEMP_PATH_PLOT_DIR}), if given with an argument will save plots to the specified directory, if not present will not save plots.', const=TEMP_PATH_PLOT_DIR, default=None)
 	parser.add_argument('--no_show_plots', action='store_true', help='If present, will not show plots (default=False)', default=False)
@@ -54,8 +57,8 @@ def _action_plot(
 	waves : None | tuple[float,float] = None,
 	wave_unit : str = WaveUnitEnum.Wavelength_um.name,
 	s_min : float = 0.0,
-	t_calc : float = 296.0,
-	p_calc : float = 1.0,
+	t_calc : float | Iterable[float] = 296.0,
+	p_calc : float | Iterable[float] = 1.0,
 	p_unit : str = 'bar',
 	save_plots : None | Path = None,
 	no_show_plots : bool = False,
@@ -69,6 +72,12 @@ def _action_plot(
 			waves = (5000, 20000)
 		else:
 			raise RuntimeError(f'Cannot set default `waves` for unknown `wave_unit` {wave_unit}. Known units are {tuple(x for x in WaveUnitEnum)}')
+	
+	if isinstance(t_calc, float):
+		t_calc = (t_calc,)
+	
+	if isinstance(p_calc, float):
+		p_calc = (p_calc,)
 	
 	_lgr.info(f'{line_database=}')
 	_lgr.info(f'{partition_function_database=}')
@@ -126,6 +135,7 @@ def _action_plot(
 	
 	line_data_instances = dict()
 	for mol_iso_pair in mol_iso_pairs:
+		_lgr.info(f'Loading line data for {mol_iso_pair[0].name}[ISO_ID={mol_iso_pair[1]}]')
 		line_data_instances[mol_iso_pair] = LineData_0(
 			ID = mol_iso_pair[0],
 			ISO = mol_iso_pair[1],
@@ -137,40 +147,41 @@ def _action_plot(
 		
 		
 	for mol_iso_pair, line_data_instance in line_data_instances.items():
-		line_data_instance.set_params(
-			vmin = vmin,
-			vmax = vmax,
-			s_min = s_min,
-			t_req = t_calc,
-			p_req = p_calc,
-		)
-		
-		line_data_instance.fetch_linedata()
-		
-		line_strengths = line_data_instance.calculate_line_strength(t_calc=t_calc, combined_output=True)
+		for p_calc_i, t_calc_i in itertools.product(p_calc, t_calc):
+			line_data_instance.set_params(
+				vmin = vmin,
+				vmax = vmax,
+				s_min = s_min,
+				t_req = t_calc_i,
+				p_req = p_calc_i,
+			)
+			
+			line_data_instance.fetch_linedata()
+			
+			line_strengths = line_data_instance.calculate_line_strength(t_calc=t_calc_i, combined_output=True)
 
-		print(f'{line_strengths.shape=}')
-		print(f'{line_data_instance.combined_line_data.NU.shape=}')
+			print(f'{line_strengths.shape=}')
+			print(f'{line_data_instance.combined_line_data.NU.shape=}')
 
-		plt.plot(line_data_instance.combined_line_data.NU, line_strengths, linestyle='none', marker='.', markersize=2)
-		plt.title(f'Line strength for ({line_data_instance.ID}, {line_data_instance.ISO})\n{t_calc=} t_ref={[int(x.t_ref) for x in line_data_instance.line_data]}')
-		plt.xlabel('Wavenumber (cm^{-1})')
-		plt.ylabel('Line Strength (cm^{-1} / [molec cm^{-2}])')
-		plt.yscale('log')
-		
-		
-		for iso_continuum_data in line_data_instance.continuum_data:
-			print(f'{iso_continuum_data.WN_BIN_CENTER=}')
-			print(f'{vmin=} {vmax=}')
-			wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
-			plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=2, color='white')
-		
-		for iso_continuum_data in line_data_instance.continuum_data:
-			wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
-			plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=1, color='tab:blue')
-		
-		
-		show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
+			plt.plot(line_data_instance.combined_line_data.NU, line_strengths, linestyle='none', marker='.', markersize=2)
+			plt.title(f'Line strength for ({line_data_instance.ID}, {line_data_instance.ISO})\nt_calc={t_calc_i} p_calc={p_calc_i} t_ref={[int(x.t_ref) for x in line_data_instance.line_data]}')
+			plt.xlabel('Wavenumber (cm^{-1})')
+			plt.ylabel('Line Strength (cm^{-1} / [molec cm^{-2}])')
+			plt.yscale('log')
+			
+			
+			for iso_continuum_data in line_data_instance.continuum_data:
+				print(f'{iso_continuum_data.WN_BIN_CENTER=}')
+				print(f'{vmin=} {vmax=}')
+				wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
+				plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=2, color='white')
+			
+			for iso_continuum_data in line_data_instance.continuum_data:
+				wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
+				plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=1, color='tab:blue')
+			
+			
+			show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
 	
 	
 	
