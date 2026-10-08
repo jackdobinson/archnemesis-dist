@@ -150,7 +150,7 @@ def _action_plot(
 		plt.xlabel('Wavenumber (cm^{-1})')
 		plt.ylabel('Line Strength (cm^{-1} / [molec cm^{-2}])')
 		plt.yscale('log')
-		show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc}_Tref_{"_".join([int(x.t_ref) for x in line_data_instance.line_data])}.png')
+		show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
 	
 	
 	
