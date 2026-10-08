@@ -33,9 +33,9 @@ def add_subcommand_to(subparser_adder) -> ap.ArgumentParser:
 
 	parser = subparser_adder.add_parser(_subcommand_name, help=_subcommand_help)
 	parser.set_defaults(func = _action_plot)
-	parser.add_argument('-a', '--ambient_gas', nargs='+', choices=(x.name for x in AmbientGasEnum), help='Ambient gasses to use when computing line absorption parameters (default="AIR")', default='AIR')
+	parser.add_argument('-a', '--ambient_gas', nargs='+', choices=tuple(x.name for x in AmbientGasEnum), help='Ambient gasses to use when computing line absorption parameters (default="AIR")', default='AIR')
 	parser.add_argument('-w', '--waves', type=float, nargs=2, help='Minimum and maximum waves to include in plots, unit set by `--wave_unit` (default=[1E-2,2])', default=None)
-	parser.add_argument('-u', '--wave_unit', type=lambda x: WaveUnitEnum[x], choices=(x.name for x in WaveUnitEnum), help='Unit of `--waves` (default="Wavelength_um")', default=WaveUnitEnum.Wavelength_um)
+	parser.add_argument('-u', '--wave_unit', choices=tuple(x.name for x in WaveUnitEnum), help='Unit of `--waves` (default="Wavelength_um")', default=WaveUnitEnum.Wavelength_um.name)
 	parser.add_argument('-s', '--s_min', type=float, help='Strength floor above which a line is treated as a discrete line, not part of a continuum (default=0)', default=0.0)
 	parser.add_argument('-T', '--t_calc', type=float, help='Temperature (Kelvin) at which to perform calculations (default=296)', default=296.0)
 	parser.add_argument('-P', '--p_calc', type=float, help='Pressure at which to perform calculations, unit is set via `--p_unit` (default=1)', default=1.0)
@@ -52,7 +52,7 @@ def _action_plot(
 	iso_regex : re.Pattern = re.compile('.*'),
 	ambient_gas : str | tuple[str,...] = 'AIR',
 	waves : None | tuple[float,float] = None,
-	wave_unit : WaveUnitEnum = WaveUnitEnum.Wavelength_um,
+	wave_unit : str = WaveUnitEnum.Wavelength_um.name,
 	s_min : float = 0.0,
 	t_calc : float = 296.0,
 	p_calc : float = 1.0,
@@ -60,8 +60,15 @@ def _action_plot(
 	save_plots : None | Path = None,
 	no_show_plots : bool = False,
 ):
+	wave_unit = WaveUnitEnum[wave_unit]
+
 	if waves is None:
-		waves = (1E-2, 2)
+		if wave_unit == WaveUnitEnum.Wavelength_um:
+			waves = (0.5, 2)
+		elif wave_unit == WaveUnitEnum.Wavenumber_cm:
+			waves = (5000, 20000)
+		else:
+			raise RuntimeError(f'Cannot set default `waves` for unknown `wave_unit` {wave_unit}. Known units are {tuple(x for x in WaveUnitEnum)}')
 	
 	_lgr.info(f'{line_database=}')
 	_lgr.info(f'{partition_function_database=}')
@@ -150,6 +157,19 @@ def _action_plot(
 		plt.xlabel('Wavenumber (cm^{-1})')
 		plt.ylabel('Line Strength (cm^{-1} / [molec cm^{-2}])')
 		plt.yscale('log')
+		
+		
+		for iso_continuum_data in line_data_instance.continuum_data:
+			print(f'{iso_continuum_data.WN_BIN_CENTER=}')
+			print(f'{vmin=} {vmax=}')
+			wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
+			plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=2, color='white')
+		
+		for iso_continuum_data in line_data_instance.continuum_data:
+			wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
+			plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=1, color='tab:blue')
+		
+		
 		show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
 	
 	

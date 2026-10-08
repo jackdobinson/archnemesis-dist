@@ -2543,7 +2543,7 @@ class LineData_0:
             line_style_kw : dict[str,Any] = {},
             ax_style_kw : dict[str,Any] = {},
             legend_style_kw : dict[str,Any] = {},
-    ) -> None:
+    ) -> mpl.figure.Figure:
         """
         Create diagnostic plots of the line data.
         
@@ -2706,6 +2706,7 @@ class LineData_0:
             ax.set(**ax_style_defaults)
 
         plt.tight_layout()
+        return f
 
     def plot_continuumdata(
             self, 
@@ -2714,7 +2715,7 @@ class LineData_0:
             line_style_kw : dict[str,Any] = {},
             ax_style_kw : dict[str,Any] = {},
             legend_style_kw : dict[str,Any] = {},
-    ) -> None:
+    ) -> mpl.figure.Figure:
         """
         Create diagnostic plots of the line data.
         
@@ -2918,6 +2919,7 @@ class LineData_0:
             ax.set_xlabel('Wavenumber (cm$^{-1}$)')
             ax.set_ylabel('Line strength (cm$^{-1}$ / (molec cm$^{-2}$))')
             ax.set(**ax_style_defaults)
+        return f
 
 
 
