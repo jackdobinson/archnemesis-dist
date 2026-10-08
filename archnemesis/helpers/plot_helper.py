@@ -32,6 +32,7 @@ class ShowPlotFnFactory:
 			show_kwargs = dict()
 	):
 		if self._save_plots_dir is not None:
+			self._save_plots_dir.mkdir(parents=True, exist_ok=True)
 			plot_fpath = self._save_plots_dir / name
 			if figure is None:
 				plt.savefig(plot_fpath, **savefig_kwargs)
