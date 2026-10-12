@@ -303,6 +303,8 @@ class AnsLineDataFile(AnsDatabaseFile):
 			best_grp : h5py.Group
 			best_parameters : tuple[Any,...]
 		"""
+		_lgr.debug(f'{target_s_min=}')
+		_lgr.debug(f'{target_temp=}')
 		best_grp_name = ''
 		best_grp = None
 		best_parameters = None
@@ -328,6 +330,10 @@ class AnsLineDataFile(AnsDatabaseFile):
 		
 		accept_mask = np.ones(s_min_arr.shape, dtype=bool)
 		
+		_lgr.debug(f'{s_min_arr=}')
+		_lgr.debug(f'{t_ref_arr=}')
+		_lgr.debug(f'{p_ref_arr=}')
+		_lgr.debug(f'{t_str_arr=}')
 		
 		if target_s_min == 0:
 			# we want the most expansive line set (smallest `s_min` possible), then try to match `t_ref` as close as we can
