@@ -2180,7 +2180,9 @@ class LineData_0:
                 
                 self.line_data[i] = LineSetSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, line_data, cache=self.cache)
                 print(f'DEBUG: {self.line_data[i].t_str=}')
-                self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.line_data[i].t_str, target_s_min = self.line_data[i].s_min)
+                if self.line_data[i].s_min > 0 and self.line_data[i].t_str > 0: # Remove
+                    _lgr.info(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) has `s_min` {self.line_data[i].s_min} `t_str` {self.line_data[i].t_str}. Ensuring lines with strength less than `s_min` at `t_str` are removed.')
+                    self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.line_data[i].t_str, target_s_min = self.line_data[i].s_min)
                 self.continuum_data[i] = PseudoContSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, cont_data, cache=self.cache)
         
                 #print(f'DEBUG: {self._params.s_min=} {self.line_data[i].s_min=} {self.continuum_data[i].s_min=}')
