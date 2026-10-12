@@ -8,8 +8,8 @@ import numpy as np
 @dc.dataclass(slots=True)
 class PseudoContinuumData:
 	s_max                                          : float # Maximum strength of line included in the continuum
-	t_cont                                         : float # Temperature the continuum was calculated at (Kelvin)
-	p_cont                                         : float # Pressure the continuum was calculated at (atm)
+	t_cont                                         : float # Temperature the continuum was calculated at (Kelvin), -1 when no data was found
+	p_cont                                         : float # Pressure the continuum was calculated at (atm), -1 when no data was found
 	req_wn_range                                   : tuple[float,float] # Range of wavenumbers requested (can be less than `min(wn_bin_center)` or more than `max(wn_bin_center)`)
 
 	wn_bin_center                                  : np.ndarray # [N_bins]

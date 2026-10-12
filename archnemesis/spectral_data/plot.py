@@ -73,10 +73,10 @@ def _action_plot(
 		else:
 			raise RuntimeError(f'Cannot set default `waves` for unknown `wave_unit` {wave_unit}. Known units are {tuple(x for x in WaveUnitEnum)}')
 	
-	if isinstance(t_calc, float):
+	if isinstance(t_calc, (float,int)):
 		t_calc = (t_calc,)
 	
-	if isinstance(p_calc, float):
+	if isinstance(p_calc, (float,int)):
 		p_calc = (p_calc,)
 	
 	_lgr.info(f'{line_database=}')
@@ -171,8 +171,6 @@ def _action_plot(
 			
 			
 			for iso_continuum_data in line_data_instance.continuum_data:
-				print(f'{iso_continuum_data.WN_BIN_CENTER=}')
-				print(f'{vmin=} {vmax=}')
 				wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
 				plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=2, color='white')
 			

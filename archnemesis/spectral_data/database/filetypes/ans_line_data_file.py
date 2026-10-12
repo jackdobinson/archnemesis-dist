@@ -631,7 +631,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 		with self.open('r'):
 			iso_grp = self._get_data_mol_iso_grp(mol_name, local_iso_id, self._file_hdl, on_missing_target, on_missing_mol, on_missing_iso)
 			if iso_grp is None:
-				return self._get_null_data(s_min,temperature,1,0, requested_wn_range,n_ambient_gasses)
+				return self._get_null_data(s_min=s_min, t_ref=-1, p_ref=-1, t_str=0, requested_wn_range=requested_wn_range, n_broadeners=n_ambient_gasses)
 			
 			result = None
 		
@@ -640,7 +640,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 			target_line_set_params = (s_min, temperature)
 			#print(f'AnsLineDataFile :: {target_line_set_params=}')
 			
-			leaf_grp_name, leaf_grp, leaf_grp_parameters = self._select_best_leaf_grp_for_parameters(
+			leaf_grp_name, leaf_grp, (lg_s_min, lg_t_str, lg_t_ref, lg_p_ref) = self._select_best_leaf_grp_for_parameters(
 				*target_line_set_params,
 				iso_grp = iso_grp
 			)
@@ -651,10 +651,10 @@ class AnsLineDataFile(AnsDatabaseFile):
 				#print(f'{mol_name=} {local_iso_id=} {n_lines=}')
 				if n_lines > 0:
 					result = LineSetData(
-						leaf_grp_parameters[0],
-						leaf_grp_parameters[2],
-						leaf_grp_parameters[3],
-						leaf_grp_parameters[1],
+						lg_s_min,
+						lg_t_ref,
+						lg_p_ref,
+						lg_t_str,
 						requested_wn_range,
 						*(leaf_grp[x][mask] for x in line_fields_to_populate),
 						*(np.empty((n_lines, n_ambient_gasses), dtype=LineBroadenerRecordLayout.type(x)) for x in broadener_felds_to_populate)
@@ -679,7 +679,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 			
 			if result is None:
 				_lgr.warn(f'No compatible group found for {target_line_set_params=}. Therefore will return empty data.')
-				return self._get_null_data(s_min, temperature, 1, 0, requested_wn_range, n_ambient_gasses)
+				return self._get_null_data(s_min=s_min, t_ref=-1, p_ref=-1, t_str=0, requested_wn_range=requested_wn_range, n_broadeners=n_ambient_gasses)
 			else:
 
 				# Apply defaults to any missing parameters

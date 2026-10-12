@@ -579,7 +579,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 		with self.open('r'):
 			iso_grp = self._get_data_mol_iso_grp(mol_name, local_iso_id, self._file_hdl, on_missing_target, on_missing_mol, on_missing_iso)
 			if iso_grp is None:
-				return self._get_null_data(s_max_null, temperature, P_REF_DEFAULT, requested_wn_range, n_ambient_gasses)
+				return self._get_null_data(s_max=s_max_null, t_cont=-1, p_cont=-1, requested_wn_range=requested_wn_range, n_ambient_gasses=n_ambient_gasses)
 			
 			result = None
 			
@@ -637,7 +637,7 @@ class AnsPseudoContinuumFile(AnsDatabaseFile):
 			
 			if result is None:
 				_lgr.warn(f'No group found that is compatible with {target_grp_parameters=}, will return empty data. ')
-				return self._get_null_data(s_max_null, temperature, P_REF_DEFAULT, requested_wn_range, n_ambient_gasses)
+				return self._get_null_data(s_max=s_max_null, t_cont=-1, p_cont=-1, requested_wn_range=requested_wn_range, n_ambient_gasses=n_ambient_gasses)
 			else:
 				return result
 			
