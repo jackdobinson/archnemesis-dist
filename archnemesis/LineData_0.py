@@ -1103,8 +1103,10 @@ class CombinedLineSetSpecData:
     
     @classmethod
     def create_from(cls, ld_list : list[LineSetSpecData]) -> Self:
+        _lgr.warn(f'{ld_list=}')
+        _lgr.warn(f'{[x.n_lines for x in ld_list]=}')
         n_total_lines = sum(x.n_lines for x in ld_list)
-    
+        _lgr.warn(f'{n_total_lines=}')
             
         if not all(x.n_fields == ld_list[0].n_fields for x in ld_list):
             raise RuntimeError('Cannot create combined line data as different isotopologues have a different number of fields')
