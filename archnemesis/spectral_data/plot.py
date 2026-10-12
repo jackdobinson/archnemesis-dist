@@ -156,8 +156,9 @@ def _action_plot(
 				t_req = t_calc_i,
 				p_req = p_calc_i,
 			)
-			
+			_lgr.debug('line_data_instance parameters set')
 			line_data_instance.fetch_linedata()
+			_lgr.debug('line_data_instance linedata fetched')
 			
 			line_strengths = line_data_instance.calculate_line_strength(t_calc=t_calc_i, combined_output=True)
 

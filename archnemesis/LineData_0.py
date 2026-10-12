@@ -59,8 +59,8 @@ from archnemesis.Data.path_data import archnemesis_path
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.INFO)
-#_lgr.setLevel(logging.DEBUG)
+#_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DEBUG)
 
 if TYPE_CHECKING:
     NWAVE = "Number of wave points"
@@ -847,6 +847,7 @@ class LineSetSpecData:
         wn_calc_range : None | tuple[float,float] = None,
         include_pressure_shift : bool = True,
         use_cache : bool = True,
+        refresh_cache = False,
     ) -> np.ndarray:
         if out is None:
             out = np.zeros_like(wn_grid, dtype=float)
@@ -876,7 +877,8 @@ class LineSetSpecData:
                 wn_calc_range,
                 include_pressure_shift,
             )
-            cache_result = self._result_cache.get(result_bucket, result_identity, None)
+            if not refresh_cache:
+                cache_result = self._result_cache.get(result_bucket, result_identity, None)
             
             if cache_result is not None:
                 out[...] = cache_result
@@ -969,7 +971,8 @@ class LineSetSpecData:
         self,
         t_calc,
         wn_calc_range : None | tuple[float,float] = None,
-        use_cache = True
+        use_cache = True,
+        refresh_cache = False,
     ) -> np.ndarray:
         if self.is_null_data or not self.has_data:
             return np.empty((0,), dtype=float)
@@ -979,7 +982,8 @@ class LineSetSpecData:
         if use_cache:
             result_bucket = (self.__class__.__name__, 'get_doppler_width')
             result_identity = ( wn_calc_range, t_calc, self.cache_identity())
-            result = self._result_cache.get(result_bucket, result_identity, None)
+            if not refresh_cache:
+                result = self._result_cache.get(result_bucket, result_identity, None)
         
         if result is None:
             result = np.empty((self._data.shape[1],))
@@ -1008,7 +1012,8 @@ class LineSetSpecData:
         p_calc,
         mol_mix_frac : np.ndarray,
         wn_calc_range : None | tuple[float,float] = None,
-        use_cache = True
+        use_cache = True,
+        refresh_cache = False,
     ) -> np.ndarray:
         if self.is_null_data or not self.has_data:
             return np.empty((0,), dtype=float)
@@ -1018,7 +1023,8 @@ class LineSetSpecData:
         if use_cache:
             result_bucket = (self.__class__.__name__, 'get_lorentz_width')
             result_identity = ( wn_calc_range, t_calc, p_calc, *mol_mix_frac, self.cache_identity())
-            result = self._result_cache.get(result_bucket, result_identity, None)
+            if not refresh_cache:
+                result = self._result_cache.get(result_bucket, result_identity, None)
         
         if result is None:
             result = np.empty((self._data.shape[1],))
