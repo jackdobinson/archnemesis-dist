@@ -59,8 +59,8 @@ from archnemesis.Data.path_data import archnemesis_path
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-#_lgr.setLevel(logging.INFO)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 if TYPE_CHECKING:
     NWAVE = "Number of wave points"
@@ -651,7 +651,7 @@ class Cache:
             self.n_cache_miss += 1
         else:
             self.n_cache_hit += 1
-            _lgr.debug(f'CACHE HIT:: {bucket=} {identity=}')
+            _lgr.warn(f'CACHE HIT:: {bucket=} {identity=}')
         
         return result
         
@@ -659,7 +659,7 @@ class Cache:
         found_bucket = self._buckets.get(bucket, None)
         if found_bucket is None:
             self._buckets[bucket] = CachePriorityDataHolder(self._n_max_per_bucket)
-        
+        _lgr.warn(f'CACHE SET:: {bucket=} {identity=}')
         return found_bucket.set(identity, value)
         
 _MODULE_CACHE : Cache = Cache()
