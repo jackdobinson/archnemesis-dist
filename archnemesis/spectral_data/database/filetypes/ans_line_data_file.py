@@ -331,7 +331,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 		s_min_arr = np.array(s_min_arr, dtype=float)
 		t_ref_arr = np.array(t_ref_arr, dtype=float)
 		p_ref_arr = np.array(p_ref_arr, dtype=float)
-		t_str_arr = np.array([x[np.argmin(x-target_temp)] if (len(x) > 0) else -1 for x in t_str_arr], dtype=float) # These are ragged (different array sizes) and hold all applicable values, so get closest one
+		t_str_arr = np.array([x[np.argmin(np.abs(x-target_temp))] if (len(x) > 0) else -1 for x in t_str_arr], dtype=float) # These are ragged (different array sizes) and hold all applicable values, so get closest one
 		
 		accept_mask = np.ones(s_min_arr.shape, dtype=bool)
 		
