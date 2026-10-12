@@ -821,6 +821,7 @@ class LineSetSpecData:
             self.s_min,
             self.t_ref,
             self.p_ref,
+            self.t_str,
             self.broadening_molecule_ids,
             self.req_wn_range,
             *self.rt_gas_desc,
