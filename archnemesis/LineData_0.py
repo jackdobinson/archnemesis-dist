@@ -928,7 +928,8 @@ class LineSetSpecData:
         t_calc,
         partition_function : Callable[[float,], float], # Accepts a temperature, returns a partition function value for that temperature for one isotopologue
         wn_calc_range : None | tuple[float,float] = None,
-        use_cache = True
+        use_cache = True,
+        refresh_cache = False,
     ) -> np.ndarray:
         if self.is_null_data or not self.has_data:
             return np.empty((0,), dtype=float)
@@ -938,7 +939,8 @@ class LineSetSpecData:
         if use_cache:
             result_bucket = (self.__class__.__name__, 'get_line_strength')
             result_identity = (wn_calc_range, t_calc, self.cache_identity())
-            result = self._result_cache.get(result_bucket, result_identity, None)
+            if not refresh_cache:
+                result = self._result_cache.get(result_bucket, result_identity, None)
         
         if result is None:
             result = np.empty((self._data.shape[1],))
@@ -1057,12 +1059,19 @@ class LineSetSpecData:
             # ensure it is true by removing lines weaker than `s_min` at `t_str`
             line_strength = self.get_line_strength(
                 t_calc = target_t_str,
-                partition_function = partition_function
+                partition_function = partition_function,
             )
             mask = line_strength <= target_s_min
             self.remove_masked_lines(mask)
             self.t_str = target_t_str
             self.s_min = target_s_min
+            
+            # Ensure we store the new line strengths in the cache
+            self.get_line_strength(
+                t_calc = target_t_str,
+                partition_function = partition_function,
+                refresh_cache=True,
+            )
 
     def remove_masked_lines(
             self,
