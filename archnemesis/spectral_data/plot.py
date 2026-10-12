@@ -164,7 +164,7 @@ def _action_plot(
 			print(f'{line_strengths.shape=}')
 			print(f'{line_data_instance.combined_line_data.NU.shape=}')
 
-			plt.plot(line_data_instance.combined_line_data.NU, line_strengths, linestyle='none', marker='.', markersize=2)
+			plt.plot(line_data_instance.combined_line_data.NU, line_strengths, linestyle='none', marker='.', markersize=1, color='tab:blue', alpha=0.6)
 			plt.title(f'Line strength for ({line_data_instance.ID}, {line_data_instance.ISO})\nt_calc={t_calc_i} p_calc={p_calc_i} t_ref={[int(x.t_ref) for x in line_data_instance.line_data]}')
 			plt.xlabel('Wavenumber (cm^{-1})')
 			plt.ylabel('Line Strength (cm^{-1} / [molec cm^{-2}])')
@@ -173,7 +173,7 @@ def _action_plot(
 			
 			for iso_continuum_data in line_data_instance.continuum_data:
 				wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
-				plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=2, color='white')
+				plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=2, color='white', alpha=0.3)
 			
 			for iso_continuum_data in line_data_instance.continuum_data:
 				wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))

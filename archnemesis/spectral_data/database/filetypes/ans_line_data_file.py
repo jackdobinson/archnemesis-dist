@@ -294,7 +294,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 		fallback to closest temperature. 
 		
 		Special Cases:
-		`t_str == 0` - no minimum strength was calculated, so we can return whatever we have
+		`t_str == -1` - no minimum strength was calculated, so we can return whatever we have
 		`s_min == 0` - we can use any temperature as there is no minimum strength
 		`s_min < 0` - We don't care about minimum strength so find best matching temperature
 		
@@ -324,7 +324,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 		s_min_arr = np.array(s_min_arr, dtype=float)
 		t_ref_arr = np.array(t_ref_arr, dtype=float)
 		p_ref_arr = np.array(p_ref_arr, dtype=float)
-		t_str_arr = np.array([x[np.argmin(x-target_temp)] if (len(x) > 0) else 0 for x in t_str_arr], dtype=float) # These are ragged (different array sizes) and hold all applicable values, so get closest one
+		t_str_arr = np.array([x[np.argmin(x-target_temp)] if (len(x) > 0) else -1 for x in t_str_arr], dtype=float) # These are ragged (different array sizes) and hold all applicable values, so get closest one
 		
 		accept_mask = np.ones(s_min_arr.shape, dtype=bool)
 		
@@ -350,7 +350,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 			# if `t_str_arr` is empty, the line set was not expected to be used with a pseudo-continuum
 			# os should be lowest priority (large delta)
 			t_str_arr_x = t_str_arr[:]
-			t_str_arr_x[t_str_arr==0] = 1E12
+			t_str_arr_x[t_str_arr==-1] = 1E12
 			mask_accept_closest(
 				accept_mask,
 				target_temp,
@@ -631,7 +631,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 		with self.open('r'):
 			iso_grp = self._get_data_mol_iso_grp(mol_name, local_iso_id, self._file_hdl, on_missing_target, on_missing_mol, on_missing_iso)
 			if iso_grp is None:
-				return self._get_null_data(s_min=s_min, t_ref=-1, p_ref=-1, t_str=0, requested_wn_range=requested_wn_range, n_broadeners=n_ambient_gasses)
+				return self._get_null_data(s_min=s_min, t_ref=-1, p_ref=-1, t_str=-1, requested_wn_range=requested_wn_range, n_broadeners=n_ambient_gasses)
 			
 			result = None
 		
@@ -679,7 +679,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 			
 			if result is None:
 				_lgr.warn(f'No compatible group found for {target_line_set_params=}. Therefore will return empty data.')
-				return self._get_null_data(s_min=s_min, t_ref=-1, p_ref=-1, t_str=0, requested_wn_range=requested_wn_range, n_broadeners=n_ambient_gasses)
+				return self._get_null_data(s_min=s_min, t_ref=-1, p_ref=-1, t_str=-1, requested_wn_range=requested_wn_range, n_broadeners=n_ambient_gasses)
 			else:
 
 				# Apply defaults to any missing parameters
