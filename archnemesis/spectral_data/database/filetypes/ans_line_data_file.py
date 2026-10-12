@@ -23,8 +23,8 @@ from archnemesis.spectral_data.database.datatypes.line_set_data import LineSetDa
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.INFO)
-#_lgr.setLevel(logging.DEBUG)
+#_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DEBUG)
 
 
 
@@ -379,7 +379,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 		# Warn if more than one result was acceptable
 		if acceptable_idxs.size > 1:
 			_lgr.warn(f'When selecting best leaf group from {self.path.name}::{iso_grp} with {target_s_min=} {target_temp=}, have found more than one acceptable leaf group. Using the first one found "{best_grp_name}"')
-		
+		_lgr.debug(f'{best_grp_name=} {best_grp=} {best_parameters=}')
 		return (best_grp_name, best_grp, best_parameters)
 				
 			
