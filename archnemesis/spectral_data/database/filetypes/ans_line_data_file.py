@@ -323,6 +323,11 @@ class AnsLineDataFile(AnsDatabaseFile):
 			p_ref_arr.append(p_ref)
 			t_str_arr.append(t_str)
 		
+		_lgr.debug(f'{s_min_arr=}')
+		_lgr.debug(f'{t_ref_arr=}')
+		_lgr.debug(f'{p_ref_arr=}')
+		_lgr.debug(f'{t_str_arr=}')
+		
 		s_min_arr = np.array(s_min_arr, dtype=float)
 		t_ref_arr = np.array(t_ref_arr, dtype=float)
 		p_ref_arr = np.array(p_ref_arr, dtype=float)
