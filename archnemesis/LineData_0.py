@@ -755,59 +755,62 @@ class LineSetSpecData:
         self._data_hash = hash(bytes(self._data))
         
         
+    @property
+    def is_null_data(self) -> bool:
+        return self.t_ref < 0 or self.p_ref < 0
     
     @property
-    def n_lines(self):
-        return self._data.shape[1]
-    
-    @property
-    def n_fields(self):
-        return self._data.shape[0]
-    
-    @property
-    def n_broadeners(self):
-        return len(self.broadening_molecule_ids)
-    
-    @property
-    def has_data(self):
+    def has_data(self) -> bool:
         return self.n_lines != 0
     
     @property
-    def NU(self):
+    def n_lines(self) -> int:
+        return self._data.shape[1]
+    
+    @property
+    def n_fields(self) -> int:
+        return self._data.shape[0]
+    
+    @property
+    def n_broadeners(self) -> int:
+        return len(self.broadening_molecule_ids)
+    
+    @property
+    def NU(self) -> np.ndarray:
         return self._data[0]
     
     @property
-    def SW(self):
+    def SW(self) -> np.ndarray:
         return self._data[1]
     
     @property
-    def ELOWER(self):
+    def ELOWER(self) -> np.ndarray:
         return self._data[2]
     
     @property
-    def STIMULATED_EMISSION_REF(self):
+    def STIMULATED_EMISSION_REF(self) -> np.ndarray:
         return self._data[3]
     
     @property
-    def A(self):
+    def A(self) -> np.ndarray:
         return self._data[4]
     
     @property
-    def SELF_BROADENING_PARAMS(self):
+    def SELF_BROADENING_PARAMS(self) -> np.ndarray:
         """
         gamma_self, n_self, delta_self
         """
         return self._data[5:8]
     
     @property
-    def FOREIGN_BROADENING_PARAMS(self):
+    def FOREIGN_BROADENING_PARAMS(self) -> np.ndarray:
         """
         (gamma_amb, n_amb, delta_amb) for each ambient gas
         """
         return self._data[8:]
     
     @property
-    def ALL_BROADENING_PARAMS(self):
+    def ALL_BROADENING_PARAMS(self) -> np.ndarray:
         """
         (gamma, n, delta) for "self" and each ambient gas
         """
@@ -848,7 +851,7 @@ class LineSetSpecData:
         if out is None:
             out = np.zeros_like(wn_grid, dtype=float)
         
-        if not self.has_data: # Skip all calculation if no data present
+        if self.is_null_data or not self.has_data: # Skip all calculation if no data present
             return out
         
         q_ratio = partition_function(self.t_ref) / partition_function(t_calc)
@@ -927,6 +930,9 @@ class LineSetSpecData:
         wn_calc_range : None | tuple[float,float] = None,
         use_cache = True
     ) -> np.ndarray:
+        if self.is_null_data or not self.has_data:
+            return np.empty((0,), dtype=float)
+        
         result = None
         
         if use_cache:
@@ -963,6 +969,9 @@ class LineSetSpecData:
         wn_calc_range : None | tuple[float,float] = None,
         use_cache = True
     ) -> np.ndarray:
+        if self.is_null_data or not self.has_data:
+            return np.empty((0,), dtype=float)
+        
         result = None
         
         if use_cache:
@@ -999,6 +1008,9 @@ class LineSetSpecData:
         wn_calc_range : None | tuple[float,float] = None,
         use_cache = True
     ) -> np.ndarray:
+        if self.is_null_data or not self.has_data:
+            return np.empty((0,), dtype=float)
+        
         result = None
         
         if use_cache:
@@ -1034,6 +1046,12 @@ class LineSetSpecData:
             target_t_str : float,
             target_s_min : float,
     ):
+        if self.is_null_data:
+            self.remove_masked_lines(np.ones_like(self.NU, dtype=bool)) # remove all data if null
+            return
+        if not self.has_data: # No lines to remove
+            return
+        
         if target_s_min > 0 and target_t_str > 0:
             # If there is a minimum strength and a temperature at which that strength is supposed to have been calculated
             # ensure it is true by removing lines weaker than `s_min` at `t_str`
@@ -1223,50 +1241,54 @@ class PseudoContSpecData:
         self._data_hash = hash(bytes(self._data))
     
     @property
-    def WN_BIN_CENTER(self):
+    def is_null_data(self) -> bool:
+        return self.t_cont < 0 or self.p_cont < 0
+    
+    @property
+    def has_data(self) -> bool:
+        """
+        Return `True` if there is some data in the pseudo continuum that would produce some absorption.
+        """
+        return np.any(self.LINE_STRENGTH_SUM != 0)
+    
+    @property
+    def WN_BIN_CENTER(self) -> np.ndarray:
         return self._data[0]
     
     @property
-    def WN_BIN_WIDTH(self):
+    def WN_BIN_WIDTH(self) -> np.ndarray:
         return self._data[1]
     
     @property
-    def LINE_STRENGTH_SUM(self):
+    def LINE_STRENGTH_SUM(self) -> np.ndarray:
         return self._data[2]
     
     @property
-    def LSW_MEAN_LOWER_STATE_ENERGY(self):
+    def LSW_MEAN_LOWER_STATE_ENERGY(self) -> np.ndarray:
         return self._data[3]
     
     @property
-    def WAVE_AND_LINE_DATA(self):
+    def WAVE_AND_LINE_DATA(self) -> np.ndarray:
         """
         (wn_bin_center, wn_bin_width, line_strength_sum, lsw_mean_lower_state_energy)
         """
         return self._data[:4]
     
     @property
-    def SELF_BROADENING_LSW_PARAMS(self):
+    def SELF_BROADENING_LSW_PARAMS(self) -> np.ndarray:
         return self._data[4:7]
     
     @property
-    def FOREIGN_BROADENING_LSW_PARAMS(self):
+    def FOREIGN_BROADENING_LSW_PARAMS(self) -> np.ndarray:
         return self._data[7:]
     
     @property
-    def ALL_BROADENING_LSW_PARAMS(self):
+    def ALL_BROADENING_LSW_PARAMS(self) -> np.ndarray:
         """
             (gamma, n, delta) for "self" and ambient gasses
         """
         return self._data[4:]
-    
-    @property
-    def has_data(self):
-        """
-        Return `True` if there is some data in the pseudo continuum that would produce some absorption.
-        """
-        return np.any(self._data[2] != 0)
-    
+
     def cache_identity(self) -> tuple:
         return (
             self.s_min,
@@ -1288,48 +1310,60 @@ class PseudoContSpecData:
         """
         Add lines with strength below `s_max` to the pseudo continuum from `line_set_data` 
         """
-        if self.t_cont != line_set_data.t_str:
-            _lgr.warn(f'Adding lines from line set data to pseudo-continuum, but t_cont={self.t_cont} is not identical to {line_set_data.t_str}. This *may* mean that not all lines are accounted for')
+        if line_set_data.has_data and not line_set_data.is_null_data:
+            # Only add lines from data that has lines to add, and is not null data
+            
+            if self.is_null_data: 
+                # We should ensure the data is zeroed before we add to it, but keep bin centers and widths
+                self.LINE_STRENGTH_SUM[...] = 0.0
+                self.LSW_MEAN_LOWER_STATE_ENERGY[...] = 0.0
+                self.ALL_BROADENING_LSW_PARAMS[...] = 0.0
+                # Set the continuum temperature and pressure based upon line data
+                self.t_cont = line_set_data.t_str if line_set_data.t_str > 0 else line_set_data.t_ref
+                self.p_cont = line_set_data.p_ref
+            
+            if self.t_cont != line_set_data.t_str:
+                _lgr.warn(f'Adding lines from line set data to pseudo-continuum, but t_cont={self.t_cont} is not identical to {line_set_data.t_str}. This *may* mean that not all lines are accounted for')
+            
+            self._data.flags.writeable = True
+            
+            self._data[3:] *= self._data[2:3] # multiply "line strength weighted means" by line strength sum
+            
+            # loop through `line_set_data` and add lower state energies and broadening params to correct wn_bins
+            bin_edges = np.zeros((self.WN_BIN_CENTER.shape[0]+1,), dtype=float)
+            bin_edges[:-1] = self.WN_BIN_CENTER - self.WN_BIN_WIDTH/2
+            bin_edges[-1] = self.WN_BIN_CENTER[-1] + self.WN_BIN_WIDTH[-1]/2
+            
+            line_strength = line_set_data.get_line_strength(
+                t_calc = self.t_cont,
+                partition_function = partition_function
+            )
+            
+            # NOTE: We need to use bin edges as otherwise there is a degeneracy between things in 0th bin and
+            # things to the left of 0th bin. However, we must then subtract 1 from the index.
+            ls_idxs = np.digitize(line_set_data.NU, bin_edges, right=False) - 1
+            ls_mask = (line_strength <= s_max) & (ls_idxs > 0) & (ls_idxs < (self._data.shape[1]))
         
-        self._data.flags.writeable = True
-        
-        self._data[3:] *= self._data[2:3] # multiply "line strength weighted means" by line strength sum
-        
-        # loop through `line_set_data` and add lower state energies and broadening params to correct wn_bins
-        bin_edges = np.zeros((self.WN_BIN_CENTER.shape[0]+1,), dtype=float)
-        bin_edges[:-1] = self.WN_BIN_CENTER - self.WN_BIN_WIDTH/2
-        bin_edges[-1] = self.WN_BIN_CENTER[-1] + self.WN_BIN_WIDTH[-1]/2
-        
-        line_strength = line_set_data.get_line_strength(
-            t_calc = self.t_cont,
-            partition_function = partition_function
-        )
-        
-        # NOTE: We need to use bin edges as otherwise there is a degeneracy between things in 0th bin and
-        # things to the left of 0th bin. However, we must then subtract 1 from the index.
-        ls_idxs = np.digitize(line_set_data.NU, bin_edges, right=False) - 1
-        ls_mask = (line_strength <= s_max) & (ls_idxs > 0) & (ls_idxs < (self._data.shape[1]))
-    
-        for i in np.flatnonzero(ls_mask):
-            self.LINE_STRENGTH_SUM[ls_idxs[i]] += line_strength[i]
-            self.LSW_MEAN_LOWER_STATE_ENERGY[ls_idxs[i]] += (line_set_data.ELOWER[i]*line_strength[i])
-            self.SELF_BROADENING_LSW_PARAMS[:,ls_idxs[i]] += (line_set_data.SELF_BROADENING_PARAMS[:,i]*line_strength[i])
-            self.FOREIGN_BROADENING_LSW_PARAMS[:,ls_idxs[i]] += (line_set_data.FOREIGN_BROADENING_PARAMS[:,i]*line_strength[i])
-        
-        zero_mask = self._data[2]==0
-        self._data[3:, ~zero_mask] /= self._data[2:3, ~zero_mask] # divide by line strength sum to get "line strength weighted means" again
-        self._data[3:, zero_mask] = 0.0
-        
-        
-        self.s_min = s_max
-        
-        self._data.flags.writeable=False
-        self._data_hash = hash(bytes(self._data))
-        
-        line_set_data.remove_masked_lines(ls_mask)
-        line_set_data.s_min = s_max
-        
-        assert not np.any(np.isnan(self._data)), "No data should be NAN when adding lines to PseudoContSpecData"
+            for i in np.flatnonzero(ls_mask):
+                self.LINE_STRENGTH_SUM[ls_idxs[i]] += line_strength[i]
+                self.LSW_MEAN_LOWER_STATE_ENERGY[ls_idxs[i]] += (line_set_data.ELOWER[i]*line_strength[i])
+                self.SELF_BROADENING_LSW_PARAMS[:,ls_idxs[i]] += (line_set_data.SELF_BROADENING_PARAMS[:,i]*line_strength[i])
+                self.FOREIGN_BROADENING_LSW_PARAMS[:,ls_idxs[i]] += (line_set_data.FOREIGN_BROADENING_PARAMS[:,i]*line_strength[i])
+            
+            zero_mask = self._data[2]==0
+            self._data[3:, ~zero_mask] /= self._data[2:3, ~zero_mask] # divide by line strength sum to get "line strength weighted means" again
+            self._data[3:, zero_mask] = 0.0
+            
+            
+            self.s_min = s_max
+            
+            self._data.flags.writeable=False
+            self._data_hash = hash(bytes(self._data))
+            
+            line_set_data.remove_masked_lines(ls_mask)
+            line_set_data.s_min = s_max
+            
+            assert not np.any(np.isnan(self._data)), "No data should be NAN when adding lines to PseudoContSpecData"
     
     def add_monochromatic_absorption(
         self,
@@ -1360,7 +1394,7 @@ class PseudoContSpecData:
         if out is None:
             out = np.zeros_like(wn_grid, dtype=float)
         
-        if not self.has_data: # Skip all calculation if no data present
+        if not self.has_data or self.is_null_data: # Skip all calculation if no data present or null data
             return out
         
         
@@ -2153,35 +2187,86 @@ class LineData_0:
         
                 # If we need to, add more lines into the continuum so that we always have the requested `s_min` for both the line set data and continuum data.
                 
-                if (self.line_data[i].t_str == self.continuum_data[i].t_cont):
-                    _lgr.warn(f'Line data `t_str` ({self.line_data[i].t_str}) is not equal to than corresponding continuum data `t_cont` ({self.continuum_data[i].t_cont}). This implies they were not meant to be used together and *may* not behave as expected.')
+                # Warn user if temperature at which line strengths were calculated and temperature at which continuum was calculated are not identical
+                if (self.line_data[i].t_str != self.continuum_data[i].t_cont):
+                    _lgr.warn(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `t_str` ({self.line_data[i].t_str}) is not equal to than corresponding continuum data `t_cont` ({self.continuum_data[i].t_cont}). This implies they were not meant to be used together, they *may* not behave as expected, and there *may* be gaps in the absorption lines.')
                 
                 
-                if (self.line_data[i].s_min < self.continuum_data[i].s_min):
-                    _lgr.warn(f'Line data `s_min` ({self.line_data[i].s_min}) is smaller than corresponding continuum data `s_min` ({self.continuum_data[i].s_min}). This implies they were not meant to be used together and *may* not behave as expected. Lines below continuum data `s_min` will be dropped.')
-                    self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.continuum_data[i].t_cont, target_s_min = self.continuum_data[i].s_min)
+                if (self._params.s_min == self.line_data[i].s_min) and (self._params.s_min == self.line_data[i].s_min): # we have the requested `s_min`, no need to move lines around
+                    continue
+                else:
+                    # Warn about `s_min` mismatch
+                    if (self._params.s_min != self.line_data[i].s_min):
+                        _lgr.warn(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) is not equal to requested `s_min` ({self._params.s_min}). This *may* mean the absorption spectra will not behave as expected.')
                     
-                if (self._params.s_min < self.continuum_data[i].s_min):
-                    raise RuntimeError(f'Have retrieved continuum data that has a larger `s_min` ({self.continuum_data[i].s_min=}) than requested ({self._params.s_min=}). This is not allowed as it can lead to double-counting of absorption lines.')
-                
-                elif (self._params.s_min > self.continuum_data[i].s_min):
-                    _lgr.warn(f'Continuum data has a smaller `s_min` ({self.continuum_data[i].s_min=}) than requeqsted ({self._params.s_min=}). Need to move lines from corresponding line data into continuum')
-                
-                    if (self.line_data[i].s_min > self.continuum_data[i].s_min):
-                        raise RuntimeError(f'Line data `s_min` ({self.line_data[i].s_min}) is larger than corresponding continuum data `s_min` ({self.continuum_data[i].s_min}). Therefore, there will be a gap in the lines that are accounted for even if lines are moved from line set data into continuum.')
+                    if (self._params.s_min != self.continuum_data[i].s_min):
+                        _lgr.warn(f'{i}^th Continuum data ({self.continuum_data[i].rt_gas_desc}) `s_min` ({self.continuum_data[i].s_min}) is not equal to requested `s_min` ({self._params.s_min}). This *may* mean the absorption spectra will not behave as expected.')
                     
-                    self.continuum_data[i].add_lines(
-                        self.line_data[i],
-                        self.partition_fn_data[i],
-                        self._params.s_min
-                    )
-                
-                if (self.line_data[i].s_min != self.continuum_data[i].s_min):
-                    _lgr.warn(f'Continuum data and line set data do not have the same minimum strengths ({self.continuum_data[i].s_min=}) ({self.line_data[i].s_min=}). This *may* mean not all lines are accounted for.')
-                
-                if (self._params.s_min < self.line_data[i].s_min):
-                    _lgr.warn(f'Line data has a larger `s_min` ({self.line_data[i].s_min=}) than requested ({self._params.s_min=}). Therefore some lines *may* not be accounted for')
-                
+                    # Deal with situations where mismatched `s_min` is salvagable
+                    if (self._params.s_min > self.line_data[i].s_min) and (self._params.s_min > self.continuum_data[i].s_min):
+                        _lgr.warn(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) and {i}^th Continuum data ({self.continuum_data[i].rt_gas_desc}) `s_min` ({self.continuum_data[i].s_min}) are both smaller than requested `s_min` ({self._params.s_min}).')
+                        
+                        if (self.line_data[i].s_min > self.continuum_data[i].s_min):
+                            _lgr.error(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) is larger than {i}^th Continuum data ({self.continuum_data[i].rt_gas_desc}) `s_min` ({self.continuum_data[i].s_min}). Therefore there *will* be a gap in the absorption lines, this *may* not be a problem *if you expect it*. Will move lines from `line data` to `continuum data` to meet requested `s_min` ({self._params.s_min}) as best as we can')
+                            self.continuum_data[i].add_lines(
+                                self.line_data[i],
+                                self.partition_fn_data[i],
+                                self._params.s_min
+                            )
+                        
+                        elif (self.line_data[i].s_min < self.continuum_data[i].s_min):
+                            _lgr.warn(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) is smaller than corresponding continuum data `s_min` ({self.continuum_data[i].s_min}). This implies they were not meant to be used together and *may* not behave as expected. Will drop lines below continuum `s_min`, then move lines from `line data` to `continuum data` to meet requested `s_min` ({self._params.s_min}).')
+                            self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.continuum_data[i].t_cont, target_s_min = self.continuum_data[i].s_min)
+                            self.continuum_data[i].add_lines(
+                                self.line_data[i],
+                                self.partition_fn_data[i],
+                                self._params.s_min
+                            )
+                            
+                        else: # self.line_data[i].s_min == self.continuum_data[i].s_min
+                            _lgr.warn(f'{i}^th Line data and Continuum data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) are equal. Will move lines from `line data` to `continuum data` to meet requested `s_min` ({self._params.s_min}).')
+                            self.continuum_data[i].add_lines(
+                                self.line_data[i],
+                                self.partition_fn_data[i],
+                                self._params.s_min
+                            )
+                        
+                    elif (self.line_data[i].s_min > self._params.s_min) and (self._params.s_min > self.continuum_data[i].s_min):
+                        _lgr.error(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) is larger than requested `s_min` ({self._params.s_min}), {i}^th Continuum data ({self.continuum_data[i].rt_gas_desc}) `s_min` ({self.continuum_data[i].s_min}) is smaller than requested `s_min` ({self._params.s_min}). There *will* be a gap in the absorption lines, this *may* not be a problem *if you expect it*. This means requested `s_min` *is not satisfied*.')
+                    
+                    elif (self._params.s_min > self.line_data[i].s_min) and (self.continuum_data[i].s_min > self._params.s_min):
+                        _lgr.error(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) is smaller than requested `s_min` ({self._params.s_min}), {i}^th Continuum data ({self.continuum_data[i].rt_gas_desc}) `s_min` ({self.continuum_data[i].s_min}) is larger than requested `s_min` ({self._params.s_min}). Will drop lines from `line data` until it has the same `s_min` as continuum data. This means requested `s_min` *is not satisfied*.')
+                        self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.continuum_data[i].t_cont, target_s_min = self.continuum_data[i].s_min)
+                    
+                    elif (self.line_data[i].s_min > self._params.s_min) and (self.continuum_data[i].s_min > self._params.s_min):
+                        _lgr.error(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) and {i}^th Continuum data ({self.continuum_data[i].rt_gas_desc}) `s_min` ({self.continuum_data[i].s_min}) are both larger than requested `s_min` ({self._params.s_min}). This means requested `s_min` *is not satisfied*.')
+                    
+                        if (self.line_data[i].s_min > self.continuum_data[i].s_min):
+                            _lgr.error(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) is larger than {i}^th Continuum data ({self.continuum_data[i].rt_gas_desc}) `s_min` ({self.continuum_data[i].s_min}). Therefore there *will* be a gap in the absorption lines, this *may* not be a problem *if you expect it*. This means requested `s_min` *is not satisfied*.')
+                            self.continuum_data[i].add_lines(
+                                self.line_data[i],
+                                self.partition_fn_data[i],
+                                self._params.s_min
+                            )
+                        
+                        elif (self.line_data[i].s_min < self.continuum_data[i].s_min):
+                            _lgr.error(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) is smaller than corresponding continuum data `s_min` ({self.continuum_data[i].s_min}). This implies they were not meant to be used together and *may* not behave as expected. Will drop lines below continuum `s_min` to remove any double counting. This means requested `s_min` *is not satisfied*.')
+                            self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.continuum_data[i].t_cont, target_s_min = self.continuum_data[i].s_min)
+                            self.continuum_data[i].add_lines(
+                                self.line_data[i],
+                                self.partition_fn_data[i],
+                                self._params.s_min
+                            )
+                            
+                        else: # self.line_data[i].s_min == self.continuum_data[i].s_min
+                            _lgr.error(f'{i}^th Line data and Continuum data ({self.line_data[i].rt_gas_desc}) `s_min` ({self.line_data[i].s_min}) are equal. This means requested `s_min` *is not* satisfied.')
+                            self.continuum_data[i].add_lines(
+                                self.line_data[i],
+                                self.partition_fn_data[i],
+                                self._params.s_min
+                            )
+                    
+                    
         if self.cache is not None:
             # Store result in cache
             self.cache.set(ld_pc_cache_bucket, ld_pc_cache_identity, (self.line_data, self.continuum_data))

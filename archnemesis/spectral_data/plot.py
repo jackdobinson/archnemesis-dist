@@ -148,6 +148,7 @@ def _action_plot(
 		
 	for mol_iso_pair, line_data_instance in line_data_instances.items():
 		for p_calc_i, t_calc_i in itertools.product(p_calc, t_calc):
+			_lgr.debug(f'{p_calc_i=} {t_calc_i=}')
 			line_data_instance.set_params(
 				vmin = vmin,
 				vmax = vmax,
