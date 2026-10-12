@@ -166,7 +166,7 @@ def _action_plot(
 			
 			plt.clf()
 			plt.plot(line_data_instance.combined_line_data.NU, line_strengths, linestyle='none', marker='.', markersize=1, color='tab:blue', alpha=0.6)
-			plt.title(f'Line strength for ({line_data_instance.ID}, {line_data_instance.ISO})\nt_calc={t_calc_i} p_calc={p_calc_i} t_ref={[int(x.t_ref) for x in line_data_instance.line_data]}')
+			plt.title(f'Line strength for ({line_data_instance.ID}, {line_data_instance.ISO})\nt_calc={t_calc_i} p_calc={p_calc_i} t_ref={[int(x.t_ref) for x in line_data_instance.line_data]} t_cont={[int(x.t_cont) for x in line_data_instance.continuum_data]}')
 			plt.xlabel('Wavenumber (cm^{-1})')
 			plt.ylabel('Line Strength (cm^{-1} / [molec cm^{-2}])')
 			plt.yscale('log')
