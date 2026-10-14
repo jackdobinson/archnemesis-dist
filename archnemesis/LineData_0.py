@@ -2038,8 +2038,13 @@ class LineData_0:
     
     @property
     def combined_line_data(self) -> np.array:
-        if self._combined_line_data is None and self.line_data is not None:
+        if self._combined_line_data is None:
+            _lgr.warn("Have to create combined line data")
+            if self.line_data is None:
+                raise RuntimeError('Cannot create `CombinedLineSetSpecData` when `line_data` is None')
             self._combined_line_data = CombinedLineSetSpecData.create_from(self.line_data)
+        else:
+            _lgr.warn("Combined line data already exists, return saved version")
         return self._combined_line_data
     
     @property
