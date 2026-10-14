@@ -8,7 +8,7 @@ import argparse as ap
 import re
 import itertools
 
-#import numpy as np
+import numpy as np
 
 #import matplotlib as mpl
 from matplotlib import pyplot as plt
@@ -148,7 +148,7 @@ def _action_plot(
 			CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database
 		)
 		
-		
+	# Plot line strength
 	for mol_iso_pair, line_data_instance in line_data_instances.items():
 		for p_calc_i, t_calc_i in itertools.product(p_calc, t_calc):
 			_lgr.debug(f'{p_calc_i=} {t_calc_i=}')
@@ -188,6 +188,42 @@ def _action_plot(
 			
 			show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
 	
+	
+	
+	
+	# Plot absorption coefficient
+	wave_grid = np.geomspace(vmin, vmax, 1000)
+	
+	for mol_iso_pair, line_data_instance in line_data_instances.items():
+		for p_calc_i, t_calc_i in itertools.product(p_calc, t_calc):
+			_lgr.debug(f'{p_calc_i=} {t_calc_i=}')
+			line_data_instance.set_params(
+				vmin = vmin,
+				vmax = vmax,
+				s_min = s_min,
+				t_req = t_calc_i,
+				p_req = p_calc_i,
+			)
+			_lgr.debug('line_data_instance parameters set')
+			line_data_instance.fetch_linedata()
+			_lgr.debug('line_data_instance linedata fetched')
+			
+			line_continuum_abs = line_data_instance.calculate_monochromatic_absorption(wave_grid, t_calc=t_calc_i, p_calc=p_calc_i, combined_output=False)
+
+			print(f'{line_continuum_abs.shape=}')
+			
+			plt.clf()
+			plt.plot(wave_grid, line_continuum_abs[0], linestyle='--', linewidth=1, marker='none', color='tab:orange', alpha=0.6, label='line abs')
+			plt.plot(wave_grid, line_continuum_abs[1], linestyle=':', linewidth=1, marker='none', color='tab:green', alpha=0.6, label='continuum abs')
+			plt.plot(wave_grid, np.sum(line_continuum_abs, axis=0), linestyle='-', linewidth=1, marker='none', color='tab:blue', alpha=0.9, label='total abs')
+			plt.title(f'Line strength for ({line_data_instance.ID}, {line_data_instance.ISO})\nt_calc={t_calc_i} p_calc={p_calc_i} t_ref={[int(x.t_ref) for x in line_data_instance.line_data]} t_cont={[int(x.t_cont) for x in line_data_instance.continuum_data]}')
+			plt.xlabel('Wavenumber (cm^{-1})')
+			plt.ylabel('Absorption Coefficient')
+			plt.legend()
+			plt.yscale('log')
+			
+			
+			show_plot_fn(f'absorption_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
 	
 	
 	
