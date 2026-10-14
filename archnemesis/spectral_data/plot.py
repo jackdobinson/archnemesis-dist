@@ -111,7 +111,7 @@ def _action_plot(
 	p_calc = p_calc if p_unit == 'bar' else (p_calc*0.986923)
 	
 	# Get waves into wavenumbers for all subsequent calcs
-	vmin, vmax = WaveRange(*waves, WaveUnitEnum.Wavelength_um).as_unit(WaveUnitEnum.Wavenumber_cm).values()
+	vmin, vmax = WaveRange(*waves, wave_unit).as_unit(WaveUnitEnum.Wavenumber_cm).values()
 	
 	match_mol_regex = lambda x: mol_regex.fullmatch(x.name) is not None
 	match_iso_regex = lambda x: mol_regex.fullmatch(str(x)) is not None
@@ -190,7 +190,7 @@ def _action_plot(
 			
 			plt.ylim((ls_plot_y_min, ls_plot_y_max))
 			
-			show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
+			show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png', savefig_kwargs={'dpi':300})
 	
 	
 	
@@ -227,7 +227,7 @@ def _action_plot(
 			plt.yscale('log')
 			
 			plt.ylim((ac_plot_y_min, ac_plot_y_max))
-			show_plot_fn(f'absorption_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
+			show_plot_fn(f'absorption_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png', savefig_kwargs={'dpi':300})
 	
 	
 	
