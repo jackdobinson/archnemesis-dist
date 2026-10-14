@@ -45,8 +45,10 @@ def add_subcommand_to(subparser_adder) -> ap.ArgumentParser:
 	parser.add_argument('--p_unit', type=str, choices=('atm', 'bar'), help='Unit of pressure to perform calculations with (default="bar")', default='bar')
 	parser.add_argument('--save_plots', nargs='?', type=Path, help=f'If present will save plots to a temporary directory ({TEMP_PATH_PLOT_DIR}), if given with an argument will save plots to the specified directory, if not present will not save plots.', const=TEMP_PATH_PLOT_DIR, default=None)
 	parser.add_argument('--no_show_plots', action='store_true', help='If present, will not show plots (default=False)', default=False)
-	parser.add_argument('--plot_y_min', type=float, help='Minimum value of y-axis (worked out automatically by default)', default=None)
-	parser.add_argument('--plot_y_max', type=float, help='Maximum value of y-axis (worked out automatically by default)', default=None)
+	parser.add_argument('--ls_plot_y_min', type=float, help='Minimum value of y-axis for line strength plot', default=None)
+	parser.add_argument('--ls_plot_y_max', type=float, help='Maximum value of y-axis for line strength plot', default=None)
+	parser.add_argument('--ac_plot_y_min', type=float, help='Minimum value of y-axis for absorption coefficient plot', default=None)
+	parser.add_argument('--ac_plot_y_max', type=float, help='Maximum value of y-axis for absorption coefficient plot', default=None)
 
 def _action_plot(
 	line_database : Path,
@@ -63,8 +65,10 @@ def _action_plot(
 	p_unit : str = 'bar',
 	save_plots : None | Path = None,
 	no_show_plots : bool = False,
-	plot_y_min : None | float = None,
-	plot_y_max : None | float = None,
+	ls_plot_y_min : None | float = None,
+	ls_plot_y_max : None | float = None,
+	ac_plot_y_min : None | float = None,
+	ac_plot_y_max : None | float = None,
 ):
 	wave_unit = WaveUnitEnum[wave_unit]
 
@@ -184,7 +188,7 @@ def _action_plot(
 				wn_include_mask = ((vmin <= iso_continuum_data.WN_BIN_CENTER) & (iso_continuum_data.WN_BIN_CENTER <= vmax))
 				plt.plot(iso_continuum_data.WN_BIN_CENTER[wn_include_mask], iso_continuum_data.LINE_STRENGTH_SUM[wn_include_mask], linestyle='-', marker='none', linewidth=1, color='tab:blue')
 			
-			plt.ylim((plot_y_min, plot_y_max))
+			plt.ylim((ls_plot_y_min, ls_plot_y_max))
 			
 			show_plot_fn(f'line_strength_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
 	
@@ -216,13 +220,13 @@ def _action_plot(
 			plt.plot(wave_grid, line_continuum_abs[0], linestyle='--', linewidth=1, marker='none', color='tab:orange', alpha=0.6, label='line abs')
 			plt.plot(wave_grid, line_continuum_abs[1], linestyle=':', linewidth=1, marker='none', color='tab:green', alpha=0.6, label='continuum abs')
 			plt.plot(wave_grid, np.sum(line_continuum_abs, axis=0), linestyle='-', linewidth=1, marker='none', color='tab:blue', alpha=0.9, label='total abs')
-			plt.title(f'Line strength for ({line_data_instance.ID}, {line_data_instance.ISO})\nt_calc={t_calc_i} p_calc={p_calc_i} t_ref={[int(x.t_ref) for x in line_data_instance.line_data]} t_cont={[int(x.t_cont) for x in line_data_instance.continuum_data]}')
+			plt.title(f'Absorption Coefficient for ({line_data_instance.ID}, {line_data_instance.ISO})\nt_calc={t_calc_i} p_calc={p_calc_i} t_ref={[int(x.t_ref) for x in line_data_instance.line_data]} t_cont={[int(x.t_cont) for x in line_data_instance.continuum_data]}')
 			plt.xlabel('Wavenumber (cm^{-1})')
 			plt.ylabel('Absorption Coefficient')
 			plt.legend()
 			plt.yscale('log')
 			
-			
+			plt.ylim((ac_plot_y_min, ac_plot_y_max))
 			show_plot_fn(f'absorption_MOL_{line_data_instance.ID}_ISO_{line_data_instance.ISO}_Tcalc_{t_calc_i}_Pcalc_{p_calc_i}_Tref_{"_".join([str(x.t_ref) for x in line_data_instance.line_data])}.png')
 	
 	

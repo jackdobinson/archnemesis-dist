@@ -2294,9 +2294,9 @@ class LineData_0:
                             )
                     
                     
-        if self.cache is not None:
-            # Store result in cache
-            self.cache.set(ld_pc_cache_bucket, ld_pc_cache_identity, (self.line_data, self.continuum_data))
+            if self.cache is not None:
+                # Store result in cache
+                self.cache.set(ld_pc_cache_bucket, ld_pc_cache_identity, (self.line_data, self.continuum_data))
         
         # Remember that we used these parameters to fetch the last lot of linedata
         self._params_fetched_lines_last = True
