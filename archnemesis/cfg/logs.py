@@ -135,11 +135,13 @@ class ArchnemesisLoggerAdaptor(logging.LoggerAdapter):
     
     # Custom logger levels
     def detail(self, msg, *args, **kwargs):
+        kwargs['stacklevel'] = kwargs.get('stacklevel', 1) + 1
         return self.log(DETAIL, msg, *args, **kwargs)
     
     def dev(self, msg, *args, **kwargs):
         if BUILD_NAME != 'DEVELOPMENT':
             raise RuntimeError(f'`DEV` logging level should NEVER be used outside of a development environment (current environment is "{BUILD_NAME}"). Set the environment variable "ARCHNEMESIS_BUILD_NAME" to "DEVELOPMENT" to be a development environment.')
+        kwargs['stacklevel'] = kwargs.get('stacklevel', 1) + 1
         return self.log(DEV, msg, *args, **kwargs)
 
 Logger = ArchnemesisLoggerAdaptor
