@@ -2164,20 +2164,25 @@ class LineData_0:
             ld_pc_cache_identity = self.cache_identity()
             
             ld_pc_pairs = self.cache.get(ld_pc_cache_bucket, ld_pc_cache_identity, None)
-            if (
+            
+            if ld_pc_pairs is None: # retrieval from cache failed
+                retrieved_from_cache = False
+                
+            elif(
                 refresh 
-                or ld_pc_pairs is None 
                 or not all(wn_range_is_within((self._params.wn_min, self._params.wn_max), ld_pc_pair[0].req_wn_range) for ld_pc_pair in ld_pc_pairs)
-            ): # retrieval from cache failed
+            ):  # retrieval from cache worked, but recalc needs to happen anyway
                 retrieved_from_cache = False
                 
                 # When getting data again, request the superset of all wavenumbers requested
-                if ld_pc_pairs is not None:
-                    for ld_pc_pair in ld_pc_pairs:
-                        self._params.wn_min = self._params.wn_min if self._params.wn_min <= ld_pc_pair[0].req_wn_range[0] else ld_pc_pair[0].req_wn_range[0]
-                        self._params.wn_max = self._params.wn_max if self._params.wn_max >= ld_pc_pair[0].req_wn_range[1] else ld_pc_pair[0].req_wn_range[1]
-            else:
+                for ld_pc_pair in ld_pc_pairs:
+                    self._params.wn_min = self._params.wn_min if self._params.wn_min <= ld_pc_pair[0].req_wn_range[0] else ld_pc_pair[0].req_wn_range[0]
+                    self._params.wn_max = self._params.wn_max if self._params.wn_max >= ld_pc_pair[0].req_wn_range[1] else ld_pc_pair[0].req_wn_range[1]
+            
+            else: # retrieval from cache succeeded
                 retrieved_from_cache = True
+                self.line_data = ld_pc_pairs[0]
+                self.continuum_data = ld_pc_pairs[1]
 
 
         if not retrieved_from_cache:
