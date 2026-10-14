@@ -7,13 +7,41 @@ Therefore, this is the place to add any configuration required by the tests
 (i.e. "conftest")
 """
 
-
-import pytest
-
 import os
+#import pytest
 
-@pytest.fixture(scope="session", autouse=True)
-def set_env_archnemesis_build_name():
-    os.environ['ARCHNEMESIS_BUILD_NAME'] = 'PRODUCTION'
+#print('RUN CONFTEST')
 
 
+
+SESSION_ENV={
+    'ARCHNEMESIS_BUILD_NAME' : 'PRODUCTION'
+}
+
+_ENV_PREV = dict()
+
+
+def pytest_configure(config):
+    #print('IN pytest_configure')
+    pass
+
+def pytest_unconfigure(config):
+    #print('IN pytest_unconfigure')
+    pass
+
+def pytest_sessionstart(session):
+    #print('IN pytest_sessionstart')
+    print('PYTEST :: Setting environment variables for test session:')
+    for k,v in SESSION_ENV.items():
+        _ENV_PREV[k] = os.environ.get(k,None)
+        os.environ[k] = v
+        print(f'PYTEST ::     {k}="{v}"')
+
+def pytest_sessionfinish(session, exitstatus):
+    #print('IN pytest_sessionfinish')
+    for k,v in _ENV_PREV.items():
+        if v is None:
+            # then environment variable was not set, so delete it
+            del os.environ[k]
+        else:
+            os.environ[k] = v

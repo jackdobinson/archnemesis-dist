@@ -154,7 +154,6 @@ class Atmosphere_0:
         Atmosphere_0.plot_Dust()
         Atmosphere_0.plot_map()
         """
-
         self.runname = runname
         self.NP = NP
         self.NVMR = NVMR
