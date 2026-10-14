@@ -4,12 +4,25 @@ Configures logging for the package
 import sys
 import logging
 
+from .build_environment import BUILD_NAME
+
 NOTSET = logging.NOTSET
 DEBUG = logging.DEBUG
 INFO = logging.INFO
 WARN = logging.WARN
 ERROR = logging.ERROR
 CRITICAL = logging.CRITICAL
+
+DETAIL = 15 # Extra information for explanatory purposes (DEBG=10, INFO=20)
+logging.addLevelName(DETAIL, 'DETAIL')
+
+if BUILD_NAME == 'DEVELOPMENT':
+    # Should never be used in production. Therefore defined inside this if-statement
+    # so any use outside of development will throw an error.
+    # This is intended to be a way to get quick output when developing archNEMESIS
+    # so production code should never use it.
+    DEV = 100 # Logs information used when developing,
+    logging.addLevelName(DEV, 'DEV')
 
 pkg_lgr = logging.getLogger("archnemesis")
 pkg_lgr.setLevel(logging.DEBUG)
@@ -119,6 +132,15 @@ class ArchnemesisLoggerAdaptor(logging.LoggerAdapter):
     def process(self, msg, kwargs):
         #print(f'ArchnemesisLoggerAdaptor::process() {msg=} {kwargs=}')
         return msg, kwargs
+    
+    # Custom logger levels
+    def detail(self, msg, *args, **kwargs):
+        return self.log(DETAIL, msg, *args, **kwargs)
+    
+    def dev(self, msg, *args, **kwargs):
+        if BUILD_NAME != 'DEVELOPMENT':
+            raise RuntimeError(f'`DEV` logging level should NEVER be used outside of a development environment (current environment is "{BUILD_NAME}"). Set the environment variable "ARCHNEMESIS_BUILD_NAME" to "DEVELOPMENT" to be a development environment.')
+        return self.log(DEV, msg, *args, **kwargs)
 
 Logger = ArchnemesisLoggerAdaptor
 

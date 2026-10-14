@@ -651,7 +651,7 @@ class Cache:
             self.n_cache_miss += 1
         else:
             self.n_cache_hit += 1
-            _lgr.warn(f'CACHE HIT:: {bucket=} {identity=}')
+            _lgr.dev(f'CACHE HIT:: {bucket=} {identity=}')
         
         return result
         
@@ -659,7 +659,7 @@ class Cache:
         found_bucket = self._buckets.get(bucket, None)
         if found_bucket is None:
             self._buckets[bucket] = CachePriorityDataHolder(self._n_max_per_bucket)
-        _lgr.warn(f'CACHE SET:: {bucket=} {identity=}')
+        _lgr.dev(f'CACHE SET:: {bucket=} {identity=}')
         return found_bucket.set(identity, value)
         
 _MODULE_CACHE : Cache = Cache()
@@ -1103,10 +1103,10 @@ class CombinedLineSetSpecData:
     
     @classmethod
     def create_from(cls, ld_list : list[LineSetSpecData]) -> Self:
-        _lgr.warn(f'{ld_list=}')
-        _lgr.warn(f'{[x.n_lines for x in ld_list]=}')
+        _lgr.dev(f'{ld_list=}')
+        _lgr.dev(f'{[x.n_lines for x in ld_list]=}')
         n_total_lines = sum(x.n_lines for x in ld_list)
-        _lgr.warn(f'{n_total_lines=}')
+        _lgr.dev(f'{n_total_lines=}')
             
         if not all(x.n_fields == ld_list[0].n_fields for x in ld_list):
             raise RuntimeError('Cannot create combined line data as different isotopologues have a different number of fields')
@@ -1909,9 +1909,10 @@ class LineData_0:
         self._mol_id_tpl : None | tuple[int,...] = None
         self._iso_id_tpl : None | tuple[tuple[int,...],...] = None
         self._params : LineDataParams = LineDataParams(ambient_gasses=(ambient_gasses,) if isinstance(ambient_gasses, ans.enum.AmbientGasEnum) else ambient_gasses)
-        self._params_fetched_lines_last = False
-        self._params_fetched_partition_last = False
-        self._combined_line_data = None
+        self._params_fetched_lines_last : bool = False
+        self._params_fetched_partition_last : bool = False
+        self._combined_line_data : None | CombinedLineSetSpecData = None
+        self._combined_line_data_hash_tpl : tuple[int,...] = tuple()
         
         # Public attrs from args
         self.ID = ID
@@ -2038,13 +2039,14 @@ class LineData_0:
     
     @property
     def combined_line_data(self) -> np.array:
-        if self._combined_line_data is None:
-            _lgr.warn("Have to create combined line data")
-            if self.line_data is None:
-                raise RuntimeError('Cannot create `CombinedLineSetSpecData` when `line_data` is None')
+        if self.line_data is None:
+            raise RuntimeError('Cannot create `CombinedLineSetSpecData` when `line_data` is None')
+        
+        if self._combined_line_data is None or self._combined_line_data_hash_tpl != tuple(ld._data_hash for ld in self.line_data):
+            _lgr.dev("Have to create combined line data")
             self._combined_line_data = CombinedLineSetSpecData.create_from(self.line_data)
         else:
-            _lgr.warn("Combined line data already exists, return saved version")
+            _lgr.dev("Combined line data already exists, return saved version")
         return self._combined_line_data
     
     @property
@@ -2148,10 +2150,10 @@ class LineData_0:
         
         self.fetch_partition_fn(refresh=refresh)
     
-        _lgr.debug(f'{self._params=}')
-        _lgr.debug(f'{self.mol_ids=}')
-        _lgr.debug(f'{self.iso_ids=}')
-        _lgr.debug(f'{self.cache=}')
+        _lgr.dev(f'{self._params=}')
+        _lgr.dev(f'{self.mol_ids=}')
+        _lgr.dev(f'{self.iso_ids=}')
+        _lgr.dev(f'{self.cache=}')
         
         
         retrieved_from_cache = False # Flag
@@ -2199,12 +2201,12 @@ class LineData_0:
             # as any instance of LineData_0 only everh as one molecule
             
             for i, ((mol_id, iso_id), line_data, cont_data) in enumerate(id_line_cont_triplet):
-                print(f'DEBUG: {i=} {mol_id=} {iso_id=} {line_data.s_min=} {line_data.t_str=} {cont_data.s_max=}')
+                _lgr.dev(f'{i=} {mol_id=} {iso_id=} {line_data.s_min=} {line_data.t_str=} {cont_data.s_max=}')
                 
                 self.line_data[i] = LineSetSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, line_data, cache=self.cache)
-                print(f'DEBUG: {self.line_data[i].t_str=}')
+                _lgr.dev(f'{self.line_data[i].t_str=}')
                 if self.line_data[i].s_min > 0 and self.line_data[i].t_str > 0: # Remove
-                    _lgr.info(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) has `s_min` {self.line_data[i].s_min} `t_str` {self.line_data[i].t_str}. Ensuring lines with strength less than `s_min` at `t_str` are removed.')
+                    _lgr.dev(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) has `s_min` {self.line_data[i].s_min} `t_str` {self.line_data[i].t_str}. Ensuring lines with strength less than `s_min` at `t_str` are removed.')
                     self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.line_data[i].t_str, target_s_min = self.line_data[i].s_min)
                 self.continuum_data[i] = PseudoContSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, cont_data, cache=self.cache)
         
