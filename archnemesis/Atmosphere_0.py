@@ -24,13 +24,14 @@ Created on Tue Mar 16 17:27:12 2021
 
 Atmosphere Class.
 """
+from pathlib import Path
 
-from archnemesis import Data
-#from archnemesis import *
 import numpy as np
 from scipy.special import legendre
 import matplotlib.pyplot as plt
+import h5py
 
+from archnemesis import Data
 import archnemesis.Data.constants as const
 from archnemesis.Data.planet_data import planet_info
 from archnemesis.enum import PlanetEnum, AtmosphericProfileFormatEnum, AtmosphericProfileTypeEnum
@@ -366,14 +367,13 @@ class Atmosphere_0:
         Write the Atmosphere properties into an HDF5 file
         """
 
-        import h5py
         from archnemesis.Data.planet_data import planet_info
 
         #Assessing that all the parameters have the correct type and dimension
         self.assess()
 
 
-        with h5py.File(runname+'.h5','a') as f:
+        with h5py.File(Path(runname).with_suffix('.h5'),'a') as f:
         
             if inside_telluric is False:
                 
@@ -491,9 +491,7 @@ class Atmosphere_0:
         Read the Atmosphere properties from an HDF5 file
         """
 
-        import h5py
-
-        with h5py.File(runname+'.h5','r') as f:
+        with h5py.File(Path(runname).with_suffix('.h5'),'r') as f:
         
             if inside_telluric is True:
                 name = '/Telluric/Atmosphere'
@@ -1349,66 +1347,62 @@ class Atmosphere_0:
         
     ##################################################################################
 
-    def read_ref(self):
+    def read_ref(self, runname : None | Path = None):
         """
         Fills the parameters of the Atmospheric class by reading the .ref file
         """
 
 
         #Checking if there are lines starting with #
-        with open(self.runname+'.ref', 'r') as file:
+        with open(Path(self.runname if runname is None else runname).with_suffix('.ref'), 'r') as f:
             
-            i0 = 0
-            for line in file:
+            last_pos = 0
+            for line in f:
                 # Skip lines starting with #
                 if line.startswith('#'):
-                    i0 = i0 + 1
+                    last_pos = f.tell()
                 else:
                     break
-                
+            
+            f.seek(last_pos,0)
         
-        #Opening file
-        f = open(self.runname+'.ref','r')
-        
-        #Skipping all lines starting with #
-        for i in range(i0):
-            f.readline() # header
-         
-        #Reading first and second lines
-        tmp = np.fromfile(f,sep=' ',count=1,dtype='int')
-        amform : AtmosphericProfileFormatEnum = AtmosphericProfileFormatEnum(int(tmp[0]))
-        tmp = np.fromfile(f,sep=' ',count=1,dtype='int')
 
-        #Reading third line
-        tmp = f.readline().split()
-        nplanet : PlanetEnum = PlanetEnum(int(tmp[0]))
-        xlat = float(tmp[1])
-        npro = int(tmp[2])
-        ngas = int(tmp[3])
-        if amform==AtmosphericProfileFormatEnum.MOLECULAR_WEIGHT_DEFINED:
-            molwt = float(tmp[4])
+            
+            #Reading first and second lines
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='int')
+            amform : AtmosphericProfileFormatEnum = AtmosphericProfileFormatEnum(int(tmp[0]))
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='int')
 
-        #Reading gases
-        gasID = np.zeros(ngas,dtype='int')
-        isoID = np.zeros(ngas,dtype='int')
-        for i in range(ngas):
-            tmp = np.fromfile(f,sep=' ',count=2,dtype='int')
-            gasID[i] = int(tmp[0])
-            isoID[i] = int(tmp[1])
+            #Reading third line
+            tmp = f.readline().split()
+            nplanet : PlanetEnum = PlanetEnum(int(tmp[0]))
+            xlat = float(tmp[1])
+            npro = int(tmp[2])
+            ngas = int(tmp[3])
+            if amform==AtmosphericProfileFormatEnum.MOLECULAR_WEIGHT_DEFINED:
+                molwt = float(tmp[4])
 
-        #Reading profiles
-        height = np.zeros(npro)
-        press = np.zeros(npro)
-        temp = np.zeros(npro)
-        vmr = np.zeros((npro,ngas))
-        _ = f.readline().split()
-        for i in range(npro):
-            tmp = np.fromfile(f,sep=' ',count=ngas+3,dtype='float')
-            height[i] = float(tmp[0])
-            press[i] = float(tmp[1])
-            temp[i] = float(tmp[2])
-            for j in range(ngas):
-                vmr[i,j] = float(tmp[3+j])
+            #Reading gases
+            gasID = np.zeros(ngas,dtype='int')
+            isoID = np.zeros(ngas,dtype='int')
+            for i in range(ngas):
+                tmp = np.fromfile(f,sep=' ',count=2,dtype='int')
+                gasID[i] = int(tmp[0])
+                isoID[i] = int(tmp[1])
+
+            #Reading profiles
+            height = np.zeros(npro)
+            press = np.zeros(npro)
+            temp = np.zeros(npro)
+            vmr = np.zeros((npro,ngas))
+            _ = f.readline().split()
+            for i in range(npro):
+                tmp = np.fromfile(f,sep=' ',count=ngas+3,dtype='float')
+                height[i] = float(tmp[0])
+                press[i] = float(tmp[1])
+                temp[i] = float(tmp[2])
+                for j in range(ngas):
+                    vmr[i,j] = float(tmp[3+j])
 
         #Storing the results into the atmospheric class
         self.NP = npro

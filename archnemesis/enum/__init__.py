@@ -13,6 +13,8 @@ from .instrument_lineshape_enum                    import InstrumentLineshapeEnu
 from .interpolation_method_enum                    import InterpolationMethodEnum                 # noqa: F401 :: Unused variable is imported to namespace
 from .layer_integration_scheme_enum                import LayerIntegrationSchemeEnum              # noqa: F401 :: Unused variable is imported to namespace
 from .layer_type_enum                              import LayerTypeEnum                           # noqa: F401 :: Unused variable is imported to namespace
+from .lbl_table_data_format_enum                   import LblTableDataFormatEnum                  # noqa: F401 :: Unused variable is imported to namespace
+from .lbl_table_file_format_enum                   import LblTableFileFormatEnum                  # noqa: F401 :: Unused variable is imported to namespace
 from .lower_boundary_condition_enum                import LowerBoundaryConditionEnum              # noqa: F401 :: Unused variable is imported to namespace
 from .para_H2_ratio_enum                           import ParaH2RatioEnum                         # noqa: F401 :: Unused variable is imported to namespace
 from .path_calc_enum                               import PathCalcEnum                            # noqa: F401 :: Unused variable is imported to namespace

@@ -1,4 +1,5 @@
-
+atm_pascal           : float    = 101325.0                                       # Pa            Atmospheres in Pascal
+bar_pascal           : float    = 100000.0                                       # Pa            Bar in Pascal
 
 k_B                  : float    = 1.380649E-23                                   # J/K           Boltzmann constant
 k_boltzmann          : float    = 1.380649E-23                                   # J/K           Boltzmann constant

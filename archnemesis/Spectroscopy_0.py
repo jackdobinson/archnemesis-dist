@@ -18,9 +18,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
-import os.path
-from typing import NamedTuple
+from pathlib import Path
+
+from typing import NamedTuple, Any, Iterable, Self
 
 import numpy as np
 import scipy
@@ -42,6 +42,7 @@ from archnemesis.Data.path_data import (
     archnemesis_path,
     archnemesis_resolve_path,
 )
+from archnemesis.spectral_data.filetypes.lbltable.file import LblTableFile
 
 
 import copy
@@ -206,9 +207,10 @@ class Spectroscopy_0:
         self.DELG = None      #(NG)
         self.FWHM = None
         
-        self.K = None #(NWAVE,NG,NP,NT,NGAS)
+        self.K = None # (NWAVE,NG,NP,NT,NGAS) for ktables or  (NWAVE,NP,NT,NGAS) for line-by-line
         
         # private attributes
+        self._frozen_attrs = set("_frozen_attrs") # Empty set, all attributes start out as mutable, if in `_frozen_attrs` cannot be reassigned. NOTE: Can be changed via methods.
         self._ilbl = None
         self._ispace = None
         self._iproc = None
@@ -313,8 +315,51 @@ class Spectroscopy_0:
         self._ispace = WaveUnitEnum(value)
     
     
+    def __setattr__(self, attr : str, value : Any):
+        if self.is_frozen_attr(attr):
+            raise AttributeError(f'{self.__class__.__name__} cannot set attribute `{attr}` to a different value as it is frozen.')
+        else:
+            super().__setattr__(attr, value)
     
-
+    def is_equal_attr(self, attr : str, value : Any) -> bool:
+        x = getattr(self, attr)
+        if isinstance(x, np.ndarray):
+            return np.all(x == value)
+        else:
+            return x == value
+    
+    def is_frozen_attr(self, attr : str) -> bool:
+        return hasattr(self,'_frozen_attrs') and attr in self._frozen_attrs
+    
+    def all_frozen_attrs(self, attrs : Iterable[str]) -> bool:
+        return all(self.is_frozen_attr(attr) for attr in attrs)
+    
+    def get_frozen_attrs(self) -> Iterable[str]:
+        return (attr for attr in self._frozen_attrs if attr != '_frozen_attrs')
+    
+    def freeze_attr(self, attr : str) -> Self:
+        self._frozen_attrs.add(attr)
+        return self
+    
+    def freeze_attrs(self, *attrs : Iterable[str]) -> Self:
+        for attr in attrs:
+            self.freeze_attr(attr)
+        return self
+    
+    def thaw_attr(self, attr : str) -> Self:
+        self._frozen_attrs.discard(attr)
+        return self
+    
+    def thaw_attrs(self, *attrs : Iterable[str]) -> Self:
+        for attr in attrs:
+            self.thaw_attr(attr)
+        return self
+    
+    def thaw_all_attrs(self) -> Self:
+        for attr in [x for x in self._frozen_attrs if x != '_frozen_attrs']:
+            self.thaw_attr(attr)
+        return self
+    
     ######################################################################################################
 
     def assess(self):
@@ -500,15 +545,13 @@ class Spectroscopy_0:
         return self
 
     def _set_once(self, attr : str, value):
-        x = getattr(self, attr)
-        if x is None:
+        if self.is_frozen_attr(attr):
+            if not self.is_equal_attr(attr, value):
+                raise ValueError(f'Spectroscopy_0 instance cannot set attrbute `{attr}` to a different value than what it was initially set to. Initial value: {getattr(self,attr)}, attempted value: {value}')
+        else:
             setattr(self, attr, value)
-        elif isinstance(x, np.ndarray):
-            if np.any(x != value):
-                raise ValueError(f'Spectroscopy_0 instance cannot set attrbute `{attr}` to a different value than what it was initially set to. Initial value: {x}, new value: {value}')
-        elif (x != value):
-            raise ValueError(f'Spectroscopy_0 instance cannot set attrbute `{attr}` to a different value than what it was initially set to. Initial value: {x}, new value: {value}')
-
+            self.freeze_attr(attr)
+        
     def _append_to(self, attr : str, value, dtype):
         x = getattr(self, attr)
         if x is None:
@@ -1409,9 +1452,7 @@ class Spectroscopy_0:
                     gasIDlta = np.zeros(self.NGAS,dtype='int')
                     isoIDlta = np.zeros(self.NGAS,dtype='int')
                     for i in range(self.NGAS):
-                        ilbl,wave,npress,ntemp,gasID,isoID,presslevels,templevels = read_header_lta_hdf5(self.LOCATION[i])
-                        if ilbl!=SpectralCalculationModeEnum.LINE_BY_LINE_TABLES:
-                            raise ValueError('error :: ILBL in look-up tables must be the same as in Spectroscopy class')
+                        wave,npress,ntemp,gasID,isoID,presslevels,templevels = read_header_lta_hdf5(self.LOCATION[i])
                         nwavelta[i] = len(wave)
                         npresslta[i] = npress
                         ntemplta[i] = ntemp
@@ -1516,7 +1557,10 @@ class Spectroscopy_0:
                 kstore = np.zeros([self.NWAVE,self.NP,abs(self.NT),self.NGAS])
                 for igas in range(self.NGAS):
                     _lgr.info(f'Reading table {self.LOCATION[igas]=} {wavemin=} {wavemax=}')
-                    npress,ntemp,gasID,isoID,presslevels,templevels,nwave,wave,k = read_lbltable(self.LOCATION[igas],self.WAVE.min(),self.WAVE.max())
+                    with LblTableFile(Path(self.LOCATION[igas]).with_suffix('.lta'), 'r') as f:
+                        gasID, isoID, wavenumbers, pressures, temperatures, k = f.read()
+                        
+                    #npress,ntemp,gasID,isoID,presslevels,templevels,nwave,wave,k = read_lbltable(self.LOCATION[igas],self.WAVE.min(),self.WAVE.max())
                     kstore[:,:,:,igas] = k[:,:,:]
                 self.edit_K(kstore)
 
@@ -1536,8 +1580,6 @@ class Spectroscopy_0:
         filename :: Name of the look-up table file (without .h5)
         """
         
-        import h5py
-        
         #Identifying the location of the gas in the Spectroscopy class
         igas = np.where( (self.ID==ID) & (self.ISO==ISO) )[0]
         if len(igas)==0:
@@ -1549,46 +1591,8 @@ class Spectroscopy_0:
         
         if self.ILBL==SpectralCalculationModeEnum.LINE_BY_LINE_TABLES:
             
-            if os.path.exists(filename+'.h5')==True:
-                os.remove(filename+'.h5')
-            
-            with h5py.File(filename+'.h5','w') as f:
-            
-                #Writing the header information
-                dset = h5py_helper.store_data(f, 'ILBL', data=self.ILBL)
-                dset.attrs['title'] = "Spectroscopy calculation type"
-                if self.ILBL==SpectralCalculationModeEnum.K_TABLES:
-                    dset.attrs['type'] = 'Correlated-k pre-tabulated look-up tables'
-                elif self.ILBL==SpectralCalculationModeEnum.LINE_BY_LINE_TABLES:
-                    dset.attrs['type'] = 'Line-by-line pre-tabulated look-up tables'
-                else:
-                    raise ValueError('error :: ILBL must be 0 or 2')
-                    
-                dset = h5py_helper.store_data(f, 'ID', data=ID)
-                dset.attrs['title'] = "ID of the gaseous species"
-
-                dset = h5py_helper.store_data(f, 'ISO', data=ISO)
-                dset.attrs['title'] = "Isotope ID of the gaseous species"
-                
-                dset = h5py_helper.store_data(f, 'WAVE', data=self.WAVE)
-                dset.attrs['title'] = "Spectral points at which the cross sections are defined"
-                
-                dset = h5py_helper.store_data(f, 'NP', data=self.NP)
-                dset.attrs['title'] = "Number of pressure levels at which the look-up table is tabulated"
-                
-                dset = h5py_helper.store_data(f, 'NT', data=self.NT)
-                dset.attrs['title'] = "Number of temperature levels at which the look-up table is tabulated"
-                
-                dset = h5py_helper.store_data(f, 'PRESS', data=self.PRESS)
-                dset.attrs['title'] = "Pressure levels at which the look-up table is tabulated / atm"
-                
-                dset = h5py_helper.store_data(f, 'TEMP', data=self.TEMP)
-                dset.attrs['title'] = "Temperature levels at which the look-up table is tabulated / K"
-                
-                #Writing the coefficients
-                dset = h5py_helper.store_data(f, 'K', data=self.K[:,:,:,igas])
-                dset.attrs['title'] = "Tabulated cross sections / cm2 multiplied by a factor of 1.0 x 10^20"
-            
+            with LblTableFile(Path(filename).with_suffix('.h5'), 'w') as f:
+                f.write(ID, ISO, self.WAVE, self.PRESS, self.TEMP, self.K[:,:,:,igas])
         else:
             
             raise ValueError('error in write_table_hdf5 :: selected ILBL has not been implemented yet (only ILBL=2 is currently working)')
@@ -2453,34 +2457,21 @@ def read_ltahead(filename):
         Name of the .lta file
     """
 
-    #Opening file
-    if not filename.endswith('.lta'):
-        filename += '.lta'
+    with LblTableFile(Path(filename).with_suffix('.lta'), 'r') as f:
+        gasID, isoID, wavenumbers, pressures, temperatures, _ = f.read_header()
     
-    with open(archnemesis_resolve_path(filename), 'rb') as f:
-        
-        _ = int(np.fromfile(f,dtype='int32',count=1)[0]) # irec0
-        nwave = np.fromfile(f,dtype='int32',count=1)[0]
-        vmin = np.fromfile(f,dtype='float32',count=1)[0]
-        delv = np.fromfile(f,dtype='float32',count=1)[0]
-        npress = int(np.fromfile(f,dtype='int32',count=1)[0])
-        ntemp = int(np.fromfile(f,dtype='int32',count=1)[0])
-        gasID = int(np.fromfile(f,dtype='int32',count=1)[0])
-        isoID = int(np.fromfile(f,dtype='int32',count=1)[0])
-        
-        # Convert explicitly rounding to 7 decimals (float32 precision)
-        vmin = np.round(np.float64(vmin), decimals=7)
-        delv = np.round(np.float64(delv), decimals=7)
+    return (
+        wavenumbers.size, 
+        wavenumbers[0], 
+        wavenumbers[1]-wavenumbers[0], 
+        pressures.size, 
+        temperatures.size, 
+        gasID, 
+        isoID, 
+        pressures, 
+        temperatures
+    )
 
-        presslevels = np.fromfile(f,dtype='float32',count=npress)
-        if ntemp > 0:
-            templevels = np.fromfile(f,dtype='float32',count=ntemp)
-        else:
-            templevels = np.zeros((npress,2))
-            for i in range(npress):
-                templevels[i] = np.fromfile(f,dtype='float32',count=-ntemp)
-
-    return nwave,vmin,delv,npress,ntemp,gasID,isoID,presslevels,templevels
 
 
 ###############################################################################################
@@ -2579,7 +2570,6 @@ def read_header_lta_hdf5(filename):
 
         OUTPUTS :
 
-            ilbl :: Look-up table type (0 - correlated-k ; 2 - line-by-line)
             wave :: Wavelength (um) / Wavenumber (cm-1) array
             npress :: Number of pressure levels
             ntemp :: Number of temperature levels
@@ -2590,32 +2580,17 @@ def read_header_lta_hdf5(filename):
             
         CALLING SEQUENCE:
 
-            ilbl,wave,npress,ntemp,gasID,isoID,presslevels,templevels = read_header_lta_hdf5(filename)
+            wave,npress,ntemp,gasID,isoID,presslevels,templevels = read_header_lta_hdf5(filename)
 
         MODIFICATION HISTORY : Juan Alday (29/04/2023)
     """
     
-    import h5py
     
-    #Opening file
-    filename = filename if filename.endswith('.h5') else (filename+'.h5')
-
-    with h5py.File(filename,'r') as f:
-
-        ilbl = h5py_helper.retrieve_data(f, 'ILBL', np.int32)
-        if ilbl==SpectralCalculationModeEnum.LINE_BY_LINE_TABLES:
-            wave = h5py_helper.retrieve_data(f, 'WAVE', np.array)
-            npress = h5py_helper.retrieve_data(f, 'NP', np.int32)
-            ntemp = h5py_helper.retrieve_data(f, 'NT', np.int32)
-            gasID = h5py_helper.retrieve_data(f, 'ID', np.int32)
-            isoID = h5py_helper.retrieve_data(f, 'ISO', np.int32)
-            presslevels = h5py_helper.retrieve_data(f, 'PRESS', np.array)
-            templevels = h5py_helper.retrieve_data(f, 'TEMP', np.array)
-        else:
-            raise ValueError('error in read_header_lta_hdf5 :: the defined ilbl in the look-up table must be 2')
-        
-
-    return ilbl,wave,npress,ntemp,gasID,isoID,presslevels,templevels
+    with LblTableFile(Path(filename).with_suffix('.h5'), 'r') as f:
+        gasID, isoID, wavenumbers, pressures, temperatures, _ = f.read_header()
+    
+    return wavenumbers, pressures.size, temperatures.size, gasID, isoID, pressures, temperatures
+    
 
 
 ###############################################################################################
@@ -2653,76 +2628,12 @@ def read_lbltable(filename,wavemin,wavemax):
         MODIFICATION HISTORY : Juan Alday (25/09/2019)
 
     """
-    #Opening file
-    if not filename.endswith('.lta'):
-        filename += '.lta'
+    with LblTableFile(Path(filename).with_suffix('.lta'), 'r') as f:
+        gasID, isoID, wavenumbers, pressures, temperatures, opacities = f.read()
     
-    _lgr.debug(f'{filename=}')
-    with open(archnemesis_resolve_path(filename), 'rb') as f:
-
-        #nbytes_int32 = 4
-        nbytes_float32 = 4
-
-        #Reading header
-        irec0 = np.fromfile(f,dtype='int32',count=1)[0]
-        _lgr.debug(f'{irec0=}')
-        nwavelta = np.fromfile(f,dtype='int32',count=1)[0]
-        _lgr.debug(f'{nwavelta=}')
-        vmin = np.fromfile(f,dtype='float32',count=1)[0]
-        _lgr.debug(f'{vmin=}')
-        delv = np.fromfile(f,dtype='float32',count=1)[0]
-        _lgr.debug(f'{delv=}')
-        npress = np.fromfile(f,dtype='int32',count=1)[0]
-        _lgr.debug(f'{npress=}')
-        ntemp = np.fromfile(f,dtype='int32',count=1)[0]
-        _lgr.debug(f'{ntemp=}')
-        gasID = np.fromfile(f,dtype='int32',count=1)[0]
-        _lgr.debug(f'{gasID=}')
-        isoID = np.fromfile(f,dtype='int32',count=1)[0]
-        _lgr.debug(f'{isoID=}')
-
-        # Convert explicitly rounding to 7 decimals (float32 precision)
-        vmin = np.round(np.float64(vmin), decimals=7)
-        delv = np.round(np.float64(delv), decimals=7)
-
-        presslevels = np.fromfile(f,dtype='float32',count=npress)
-        
-        if ntemp > 0:
-            templevels = np.fromfile(f,dtype='float32',count=ntemp)
-        else:
-            templevels = np.zeros((npress,2))
-            for i in range(npress):
-                templevels[i] = np.fromfile(f,dtype='float32',count=-ntemp)
-
-        #Calculating the wavenumbers to be read
-        vmax = vmin + delv * (nwavelta-1)
-        wavelta = np.linspace(vmin,vmax,nwavelta)
-
-        wn_idxs = np.nonzero( (wavemin<=wavelta) & (wavelta<=wavemax) )[0]
-        _lgr.debug(f'{wn_idxs=}')
-        
-        nwave = len(wn_idxs)
-        wave = np.zeros(nwave)
-        wave[:] = wavelta[wn_idxs]
-
-        #Reading the absorption coefficients
-        #######################################
-        k = np.zeros([nwave,npress,abs(ntemp)], dtype=np.float64)
-
-        #Jumping until we get to the minimum wavenumber
-        njump = npress*abs(ntemp)*(wn_idxs[0])
-        ioff = njump*nbytes_float32 + (irec0-1)*nbytes_float32
-        f.seek(ioff,0)
-
-        #Reading the coefficients we require
-        k_out = np.fromfile(f,dtype='float32',count=abs(ntemp)*npress*nwave)
-        il = 0
-        for ik in range(nwave):
-            for i in range(npress):
-                k[ik,i,:] = (k_out[il:il+abs(ntemp)] / BINARY_K_ABS_PACK_INTO_FLOAT_FACTOR)
-                il = il + abs(ntemp)
+    wave_mask = (wavenumbers >= wavemin) & (wavenumbers <= wavemax)
     
-    return npress,ntemp,gasID,isoID,presslevels,templevels,nwave,wave,k
+    return pressures.size,temperatures.size,gasID,isoID,pressures,temperatures,np.count_nonzero(wave_mask),wavenumbers[wave_mask],opacities[wave_mask]
 
 
 ###############################################################################################
@@ -2847,102 +2758,6 @@ def read_ktable(filename,wavemin,wavemax):
 
     return gasID,isoID,nwave,wave,fwhm,ng,g_ord,del_g,npress,presslevels,ntemp,templevels,k_g
 
-######################################################################################################
-
-def write_lbltable(filename,npress,ntemp,gasID,isoID,presslevels,templevels,nwave,vmin,delv,k,DOUBLE=False):
-
-    """
-        FUNCTION NAME : write_lbltable()
-
-        DESCRIPTION : Read a .lta file (binary file) with the information about the absorption cross-section
-                      of a given gas at different pressure and temperature levels
-
-        INPUTS :
-
-            filename :: Name of the file (supposed to have a .kta extension)
-
-        OPTIONAL INPUTS:
-
-            DOUBLE :: If True, the parameters are written with double precision (double) rather than single (float)
-
-        OUTPUTS :
-
-            npress :: Number of pressure levels
-            ntemp :: Number of temperature levels
-            gasID :: NEMESIS gas ID (see manual)
-            isoID :: NEMESIS isotopologue ID (0 for all isotopes)
-            presslevels(npress) :: Pressure levels (atm)
-            templevels(ntemp) :: Temperature levels (K)
-            nwave :: Number of spectral points in lbl-table
-            vmin :: Minimum wavelength/wavenumber (um/cm-1)
-            delv :: Wavelength/wavenumber step (um/cm-1)
-            k(nwave,npress,ntemp) :: Absorption cross-section (cm2)
-
-        CALLING SEQUENCE:
-
-            write_lbltable(filename,npress,ntemp,gasID,isoID,presslevels,templevels,nwave,vmin,delv,k)
-
-        MODIFICATION HISTORY : Juan Alday (06/08/2021)
-
-    """
-
-    import struct
-
-    #Opening file
-    if not filename.endswith('.lta'):
-        filename += '.lta'
-    
-    if np.any(presslevels < 0):
-        raise ValueError("error in write_lbltable :: Pressure levels must be non-negative")
-
-    with open(archnemesis_resolve_path(filename), 'wb') as f:
-
-        irec0 = 9 + npress + ntemp    #Don't know why this 9 is like this, but it works for a Linux/Ubuntu machine
-        bin=struct.pack('i',irec0) #IREC0
-        f.write(bin)
-
-        bin=struct.pack('i',nwave) #NWAVE
-        f.write(bin)
-
-        if DOUBLE==True:
-            df = 'd'
-        else:
-            df = 'f'
-
-        bin=struct.pack(df,vmin) #VMIN
-        f.write(bin)
-
-        bin=struct.pack(df,delv) #DELV
-        f.write(bin)
-
-        bin=struct.pack('i',npress) #NPRESS
-        f.write(bin)
-
-        bin=struct.pack('i',ntemp) #NTEMP
-        f.write(bin)
-
-        bin=struct.pack('i',gasID) #GASID
-        f.write(bin)
-
-        bin=struct.pack('i',isoID) #ISOID
-        f.write(bin)
-
-        myfmt=df*len(presslevels)
-        bin=struct.pack(myfmt,*presslevels) #PRESSLEVELS
-        f.write(bin)
-
-        myfmt=df*len(templevels)
-        bin=struct.pack(myfmt,*templevels) #TEMPLEVELS
-        f.write(bin)
-
-        for i in range(nwave):
-            for j in range(npress):
-                tmp = k[i,j,:] * BINARY_K_ABS_PACK_INTO_FLOAT_FACTOR
-                myfmt=df*len(tmp)
-                bin=struct.pack(myfmt,*tmp) #K
-                f.write(bin)
-
-    
 ###############################################################################################
 def write_ktable(filename,gasID,isoID,g_ord,del_g,presslevels,templevels,nwave,vmin,delv,fwhm,k_g,wave=None):
     """
@@ -3117,6 +2932,7 @@ def interpolate_k_values(npoints, NGAS, NWAVEC, precomputed_indices, precomputed
 
 ######################################################################################################
 
+
 def calc_lbltable(outname,                       #Name of the output .lta file
                   gasID,isoID,                   #Gas information
                   npress,p0,pn,                  #Pressure grid
@@ -3191,15 +3007,18 @@ def calc_lbltable(outname,                       #Name of the output .lta file
 
     from joblib import Parallel, delayed
 
+    outpath = Path(outname).with_suffix('.h5' if write_hdf5 else '.lta')
 
     #Initialising spectroscopy class
     Spectroscopy  = ans.Spectroscopy_0(ILBL=1)
-    Spectroscopy.NGAS = 0
+    Spectroscopy.NGAS = 0 # Will be incremented later
     Spectroscopy.ISPACE = ispace
 
     #Calculating spectral points
     wavemax = wavemin + delwave * (nwave - 1)
     waves = np.linspace( wavemin , wavemax , nwave )
+
+    
 
     #Defining line data parameters
     line_data_params = ans.MolLineDataParams(
@@ -3211,7 +3030,7 @@ def calc_lbltable(outname,                       #Name of the output .lta file
         s_floor=0.0,
         amb_gas=[ans.enum.AmbientGasEnum.AIR],
     )
-
+    
     #Editing class
     Spectroscopy.add_line_by_line_runtime(
             mol_id=gasID,
@@ -3265,7 +3084,7 @@ def calc_lbltable(outname,                       #Name of the output .lta file
     if n_cores == 1:
         
         for ichunk in range(n_chunks):
-            k[chunks[ichunk],:,:,:] = calc_lbltable_chunk(chunks[ichunk],copy.deepcopy(Spectroscopy),self_frac)
+            k[chunks[ichunk],:,:,:] = calc_lbltable_chunk(chunks[ichunk],copy.deepcopy(Spectroscopy).thaw_all_attrs(),self_frac)
     
     elif n_cores > 1:
 
@@ -3273,7 +3092,7 @@ def calc_lbltable(outname,                       #Name of the output .lta file
         results = Parallel(n_jobs=n_cores, prefer="threads")(
             delayed(calc_lbltable_chunk)(
                 chunks[ichunk],
-                copy.deepcopy(Spectroscopy),
+                copy.deepcopy(Spectroscopy).thaw_all_attrs(),
                 self_frac
             )
             for ichunk in range(n_chunks)
@@ -3291,19 +3110,18 @@ def calc_lbltable(outname,                       #Name of the output .lta file
     #Writing the look-up table
     ############################################################################
 
-    if write_hdf5:
-        Spectroscopy.ILBL = SpectralCalculationModeEnum.LINE_BY_LINE_TABLES
-        Spectroscopy.write_table_hdf5(gasID,isoID,outname)
-    else:
-        write_lbltable(outname,npress,ntemp,gasID,isoID,Spectroscopy.PRESS,Spectroscopy.TEMP,nwave,wavemin,delwave,k,DOUBLE=False)
-
+    with LblTableFile(outpath, 'w') as f:
+        f.write(gasID, isoID, np.linspace(wavemin, wavemin+(delwave*(nwave-1)), nwave), Spectroscopy.PRESS, Spectroscopy.TEMP, np.sum(k,axis=-1))
 
 ######################################################################################################
 
 def calc_lbltable_chunk(iwaves,Spectroscopy,self_frac): 
 
+    _lgr.dev(f'{id(Spectroscopy._frozen_attrs)=}')
     Spectroscopy.NWAVE = len(iwaves)
     Spectroscopy.WAVE = Spectroscopy.WAVE[iwaves]
+    
+    Spectroscopy.freeze_attrs('NWAVE','WAVE')
 
     if Spectroscopy.ISPACE == 0:
         unit = 'cm-1'
@@ -3316,15 +3134,17 @@ def calc_lbltable_chunk(iwaves,Spectroscopy,self_frac):
     for i in range(Spectroscopy.NP):
         _lgr.info(f'({i+1}/{Spectroscopy.NP}) Pressure level {Spectroscopy.PRESS[i]:.2e} atm')
         pressx = np.ones(Spectroscopy.NT) * Spectroscopy.PRESS[i]
-        k[:,i,:,0] = Spectroscopy.calc_klbl_online(
+        k[:,i,:,:] = Spectroscopy.calc_klbl_online(
             Spectroscopy.NT,
             pressx,
             Spectroscopy.TEMP,
-            amb_frac=1.-self_frac)[:,:,0]
+            amb_frac=1.-self_frac
+        )[:,:,:]
 
     return k
 
 ############################################################################################################################################
+
 
 def calc_ktable(outname,                       #Name of the output .Kta file
                 gasID,isoID,                   #Gas information
@@ -3511,7 +3331,7 @@ def calc_ktable(outname,                       #Name of the output .Kta file
     if n_cores == 1:
         
         for ichunk in range(n_chunks):
-            k_coefficients[chunks[ichunk],:,:,:] = calc_ktable_chunk(chunks[ichunk],Spectroscopy,Spectroscopy_LBL,self_frac,Measurement)
+            k_coefficients[chunks[ichunk],:,:,:] = calc_ktable_chunk(chunks[ichunk],Spectroscopy,Spectroscopy_LBL.thaw_all_attrs(),self_frac,Measurement)
     
     elif n_cores > 1:
 
@@ -3520,7 +3340,7 @@ def calc_ktable(outname,                       #Name of the output .Kta file
             delayed(calc_ktable_chunk)(
                 chunks[ichunk],
                 Spectroscopy,
-                copy.deepcopy(Spectroscopy_LBL),
+                copy.deepcopy(Spectroscopy_LBL).thaw_all_attrs(),
                 self_frac,
                 Measurement,
             )
@@ -3604,7 +3424,7 @@ def calc_ktable_chunk(iwaves,Spectroscopy,Spectroscopy_LBL,self_frac,Measurement
             gamma_l = linedata.calculate_lorentz_width(tempx,pressx, amb_frac=1.-self_frac, combined_output=True)
             hwhm_voigt = 0.5346 * gamma_l + np.sqrt( 0.2166 * gamma_l**2. + alpha_d **2. )
 
-            delwn_calc = np.min(hwhm_voigt) / 5.
+            delwn_calc = 0.1* np.min(hwhm_voigt) / 5.
             if ispace == WaveUnitEnum.Wavelength_um:
                 delv_calc = delwn_calc * (vchunkmean**2.) / 1.0e4
             else:
@@ -3618,9 +3438,12 @@ def calc_ktable_chunk(iwaves,Spectroscopy,Spectroscopy_LBL,self_frac,Measurement
             #Calculating the absorption coefficients at the line-by-line level for the given pressure and temperature
             Spectroscopy_LBL.NWAVE = ncalc
             Spectroscopy_LBL.WAVE = wavecalc
-
+            
+            Spectroscopy_LBL.freeze_attrs('NWAVE','WAVE')
             kabs = Spectroscopy_LBL.calc_klbl_online(1,[pressx],[tempx],amb_frac=1.-self_frac)[:,0,0]
-
+            Spectroscopy_LBL.thaw_attrs('NWAVE','WAVE')
+            
+            
             iwavex = 0
             for iwave in iwaves:
 

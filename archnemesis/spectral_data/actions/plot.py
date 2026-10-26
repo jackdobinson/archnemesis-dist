@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Iterable
 
 import argparse as ap
-import re
 import itertools
 
 import numpy as np
@@ -16,12 +15,12 @@ from matplotlib import pyplot as plt
 from archnemesis.helpers.plot_helper import ShowPlotFnFactory
 from archnemesis import LineData_0
 from archnemesis.enum import (
-	GasEnum,
 	AmbientGasEnum,
 	WaveUnitEnum,
 )
 
 from archnemesis.spectral_data.database.datatypes.wave_range import WaveRange
+from ..mol_selector import MolSelector
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -54,8 +53,7 @@ def _action_plot(
 	line_database : Path,
 	partition_function_database : None | Path,
 	pseudo_continuum_database : None | Path,
-	mol_regex : re.Pattern = re.compile('.*'),
-	iso_regex : re.Pattern = re.compile('.*'),
+	mol_selector : MolSelector = MolSelector.create_match_all(),
 	ambient_gas : str | tuple[str,...] = 'AIR',
 	waves : None | tuple[float,float] = None,
 	wave_unit : str = WaveUnitEnum.Wavelength_um.name,
@@ -89,8 +87,7 @@ def _action_plot(
 	_lgr.info(f'{line_database=}')
 	_lgr.info(f'{partition_function_database=}')
 	_lgr.info(f'{pseudo_continuum_database=}')
-	_lgr.info(f'{mol_regex=}')
-	_lgr.info(f'{iso_regex=}')
+	_lgr.info(f'{mol_selector=}')
 	_lgr.info(f'{ambient_gas=}')
 	_lgr.info(f'{waves=}')
 	_lgr.info(f'{wave_unit=}')
@@ -113,32 +110,18 @@ def _action_plot(
 	# Get waves into wavenumbers for all subsequent calcs
 	vmin, vmax = WaveRange(*waves, wave_unit).as_unit(WaveUnitEnum.Wavenumber_cm).values()
 	
-	match_mol_regex = lambda x: mol_regex.fullmatch(x.name) is not None
-	match_iso_regex = lambda x: mol_regex.fullmatch(str(x)) is not None
+	mol_iso_pairs = mol_selector.get_matching_mol_iso_pairs_from_enums()
 	
-	gas_enums = tuple(filter(match_mol_regex, (x for x in GasEnum)))
-	iso_ids = (0,) if iso_regex.pattern == '.*' else tuple(filter(match_iso_regex, range(1,100)))
-	ambient_gas_tpl = (AmbientGasEnum[ambient_gas],) if isinstance(ambient_gas, str) else tuple(AmbientGasEnum[x] for x in ambient_gas)
 
-	if len(gas_enums) == 0:
-		_lgr.warn(f"Cannot plot spectral data. No gasses were selected. `mol_regex` is '{mol_regex.pattern}'")
+	if len(mol_iso_pairs) == 0:
+		_lgr.warn(f"Cannot plot spectral data. No gasses were selected. {mol_selector=}")
 		return
+
+	ambient_gas_tpl = (AmbientGasEnum[ambient_gas],) if isinstance(ambient_gas, str) else tuple(AmbientGasEnum[x] for x in ambient_gas)
 	
-	if len(iso_ids) == 0:
-		_lgr.warn(f"Cannot plot spectral data. No iso_ids were selected. `iso_regex` is '{iso_regex.pattern}'")
-		return
-	
-	_lgr.info(f'{gas_enums=}')
-	_lgr.info(f'{iso_ids=}')
+	_lgr.info(f'{mol_iso_pairs=}')
 	_lgr.info(f'{ambient_gas_tpl=}')
 
-
-	mol_iso_pairs = []
-	for mol_enum in gas_enums:
-		for iso_id in iso_ids:
-			mol_iso_pairs.append((mol_enum, iso_id))
-			_lgr.debug(f'mol_iso_pairs[{len(mol_iso_pairs)-1}] = ({mol_enum}, {iso_id})')
-	
 	
 	line_data_instances = dict()
 	for mol_iso_pair in mol_iso_pairs:

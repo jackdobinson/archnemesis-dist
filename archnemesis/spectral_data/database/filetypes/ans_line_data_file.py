@@ -23,8 +23,8 @@ from archnemesis.spectral_data.database.datatypes.line_set_data import LineSetDa
 # Logging
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-#_lgr.setLevel(logging.INFO)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 
 
@@ -360,7 +360,7 @@ class AnsLineDataFile(AnsDatabaseFile):
 			# therefore, must find closest applicable temperature and use that
 			# if `t_str_arr` is empty, the line set was not expected to be used with a pseudo-continuum
 			# os should be lowest priority (large delta)
-			t_str_arr_x = t_str_arr[:]
+			t_str_arr_x = np.array(t_str_arr) # copy
 			t_str_arr_x[t_str_arr==-1] = 1E12
 			mask_accept_closest(
 				accept_mask,

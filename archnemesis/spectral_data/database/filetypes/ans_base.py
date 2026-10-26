@@ -130,6 +130,8 @@ class AnsDatabaseFile:
 			yield self._file_hdl
 			return
 	
+	def iter_contents_info(self) -> Iterator[dict]:
+		raise NotImplementedError(f'Method `iter_contents_info` should be implemented by a subclass of {self.__class__.__name__}')
 	
 	def repack(self):
 		"""

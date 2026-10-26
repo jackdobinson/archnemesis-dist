@@ -173,3 +173,6 @@ archnemesis/Data/reference_databases/*.h5.bak
 archnemesis/Data/reference_databases/*.h5
 *.h5.download
 *.h5.no_download
+lbl__CH4_iso_0_unit_wavelength_um.lta
+docs/examples/linedata/example_co.kta
+docs/examples/linedata/example_co.lta

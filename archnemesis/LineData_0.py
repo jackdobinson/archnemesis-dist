@@ -38,7 +38,6 @@ import archnemesis.enum
 #import archnemesis.helpers.maths_helper as maths_helper
 #from archnemesis.helpers.io_helper import SimpleProgressTracker
 import archnemesis.spectral_data.database
-#from archnemesis.spectral_data.database.filetypes.lbltable import LblDataTProfilesAtPressure#, LblDataTPGrid
 from archnemesis.spectral_data.database.datatypes.wave_point import WavePoint
 #from archnemesis.spectral_data.database.datatypes.wave_range import WaveRange
 from archnemesis.spectral_data.database.datatypes.gas_isotopes import GasIsotopes
@@ -651,7 +650,7 @@ class Cache:
             self.n_cache_miss += 1
         else:
             self.n_cache_hit += 1
-            _lgr.dev(f'CACHE HIT:: {bucket=} {identity=}')
+            #_lgr.dev(f'CACHE HIT:: {bucket=} {identity=}')
         
         return result
         
@@ -659,7 +658,7 @@ class Cache:
         found_bucket = self._buckets.get(bucket, None)
         if found_bucket is None:
             self._buckets[bucket] = CachePriorityDataHolder(self._n_max_per_bucket)
-        _lgr.dev(f'CACHE SET:: {bucket=} {identity=}')
+        #_lgr.dev(f'CACHE SET:: {bucket=} {identity=}')
         return found_bucket.set(identity, value)
         
 _MODULE_CACHE : Cache = Cache()
@@ -1330,6 +1329,7 @@ class PseudoContSpecData:
         """
         if line_set_data.has_data and not line_set_data.is_null_data:
             # Only add lines from data that has lines to add, and is not null data
+            self._data.flags.writeable = True
             
             if self.is_null_data: 
                 # We should ensure the data is zeroed before we add to it, but keep bin centers and widths
@@ -1342,8 +1342,6 @@ class PseudoContSpecData:
             
             if self.t_cont != line_set_data.t_str:
                 _lgr.warn(f'Adding lines from line set data to pseudo-continuum, but t_cont={self.t_cont} is not identical to {line_set_data.t_str}. This *may* mean that not all lines are accounted for')
-            
-            self._data.flags.writeable = True
             
             self._data[3:] *= self._data[2:3] # multiply "line strength weighted means" by line strength sum
             
@@ -2150,10 +2148,10 @@ class LineData_0:
         
         self.fetch_partition_fn(refresh=refresh)
     
-        _lgr.dev(f'{self._params=}')
-        _lgr.dev(f'{self.mol_ids=}')
-        _lgr.dev(f'{self.iso_ids=}')
-        _lgr.dev(f'{self.cache=}')
+        _lgr.debug(f'{self._params=}')
+        _lgr.debug(f'{self.mol_ids=}')
+        _lgr.debug(f'{self.iso_ids=}')
+        _lgr.debug(f'{self.cache=}')
         
         
         retrieved_from_cache = False # Flag
@@ -2206,12 +2204,12 @@ class LineData_0:
             # as any instance of LineData_0 only everh as one molecule
             
             for i, ((mol_id, iso_id), line_data, cont_data) in enumerate(id_line_cont_triplet):
-                _lgr.dev(f'{i=} {mol_id=} {iso_id=} {line_data.s_min=} {line_data.t_str=} {cont_data.s_max=}')
+                #_lgr.dev(f'{i=} {mol_id=} {iso_id=} {line_data.s_min=} {line_data.t_str=} {cont_data.s_max=}')
                 
                 self.line_data[i] = LineSetSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, line_data, cache=self.cache)
-                _lgr.dev(f'{self.line_data[i].t_str=}')
+                #_lgr.dev(f'{self.line_data[i].t_str=}')
                 if self.line_data[i].s_min > 0 and self.line_data[i].t_str > 0: # Remove
-                    _lgr.dev(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) has `s_min` {self.line_data[i].s_min} `t_str` {self.line_data[i].t_str}. Ensuring lines with strength less than `s_min` at `t_str` are removed.')
+                    #_lgr.dev(f'{i}^th Line data ({self.line_data[i].rt_gas_desc}) has `s_min` {self.line_data[i].s_min} `t_str` {self.line_data[i].t_str}. Ensuring lines with strength less than `s_min` at `t_str` are removed.')
                     self.line_data[i].remove_weak_lines_at_t_str(self.partition_fn_data[i], target_t_str = self.line_data[i].t_str, target_s_min = self.line_data[i].s_min)
                 self.continuum_data[i] = PseudoContSpecData.create_from(mol_id, iso_id, self._params.ambient_gasses, cont_data, cache=self.cache)
         

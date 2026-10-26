@@ -3,14 +3,14 @@ from pathlib import Path
 
 import argparse as ap
 
-import re
-
 import numpy as np
 
 from archnemesis.ui.table import Table
 from archnemesis.spectral_data.database.filetypes.ans_line_data_file import AnsLineDataFile
 from archnemesis.spectral_data.database.filetypes.ans_partition_fn_data_file import AnsPartitionFunctionDataFile
 from archnemesis.spectral_data.database.filetypes.ans_pseudo_continuum_file import AnsPseudoContinuumFile
+
+from ..mol_selector import MolSelector
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -31,16 +31,14 @@ def _action_list(
 	line_database : Path,
 	partition_function_database : None | Path,
 	pseudo_continuum_database : None | Path,
-	mol_regex : re.Pattern = re.compile('.*'),
-	iso_regex : re.Pattern = re.compile('.*'),
+	mol_selector : MolSelector = MolSelector.create_match_all(),
 	no_separate_molecules : bool = False,
 	include_units : bool = False,
 ):
 	_lgr.info(f'{line_database=}')
 	_lgr.info(f'{partition_function_database=}')
 	_lgr.info(f'{pseudo_continuum_database=}')
-	_lgr.info(f'{mol_regex=}')
-	_lgr.info(f'{iso_regex=}')
+	_lgr.info(f'{mol_selector=}')
 	_lgr.info(f'{no_separate_molecules=}')
 	_lgr.info(f'{include_units=}')
 	
@@ -48,34 +46,18 @@ def _action_list(
 	ans_ld_file = AnsLineDataFile(line_database)
 	ans_pf_file = AnsPartitionFunctionDataFile(partition_function_database if partition_function_database is not None else line_database)
 	ans_pc_file = AnsPseudoContinuumFile(pseudo_continuum_database if pseudo_continuum_database is not None else line_database)
-	
-	ld_info_tpl = tuple(ans_ld_file.iter_contents_info())
-	pf_info_tpl = tuple(ans_pf_file.iter_contents_info())
-	pc_info_tpl = tuple(ans_pc_file.iter_contents_info())
-	
-	if len(ld_info_tpl) == 0 and len(pc_info_tpl) == 0 and len(pf_info_tpl) == 0:
-		_lgr.warn(f"Cannot list spectral data. No data was present in files: '{ans_ld_file.path}' '{ans_pf_file.path}' '{ans_pc_file.path}'")
+
+	mol_iso_pairs, (ld_info_tpl, pf_info_tpl, pc_info_tpl) = mol_selector.get_matching_mol_iso_pairs_from_ans_database_files(
+		ans_ld_file, 
+		ans_pf_file, 
+		ans_pc_file,
+		return_info_tuples=True
+	)
+
+
+	if len(mol_iso_pairs) == 0:
+		_lgr.warn(f"Cannot list spectral data. No data was selected for listing. {mol_selector=}")
 		return
-
-	match_mol_iso_regex = lambda x: (mol_regex.fullmatch(x['mol_name']) is not None) and (iso_regex.fullmatch(x['iso_id']) is not None)
-
-	ld_info_tpl = tuple(filter(match_mol_iso_regex, ld_info_tpl))
-	pf_info_tpl = tuple(filter(match_mol_iso_regex, pf_info_tpl))
-	pc_info_tpl = tuple(filter(match_mol_iso_regex, pc_info_tpl))
-
-	if len(ld_info_tpl) == 0 and len(pc_info_tpl) == 0 and len(pf_info_tpl) == 0:
-		_lgr.warn(f"Cannot list spectral data. No data was selected for listing. `mol_regex` is '{mol_regex.pattern}'")
-		return
-	
-	mol_iso_pairs = []
-	for z in (ld_info_tpl, pf_info_tpl, pc_info_tpl):
-		for x in z:
-			a = (x['mol_name'], x['iso_id'])
-			if x in mol_iso_pairs:
-				continue
-			else:
-				mol_iso_pairs.append(a)
-	
 	
 	cols = ('mol_name', 'iso_id', 'LD', 'PF', 'PC', 'p_ref', 't_ref', 's_min', 't_cont')
 	if include_units:
@@ -248,4 +230,4 @@ def _action_list(
 		table_instance.section_end_fn = MolNameSectionBreaker()
 	table_instance.data_sort_fn = lambda x: x[0]
 	table_instance.display()
-	
+
