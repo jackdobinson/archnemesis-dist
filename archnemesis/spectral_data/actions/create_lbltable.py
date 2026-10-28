@@ -205,7 +205,8 @@ def _action_create_lbltable(
 									amb_frac = ambient_gas_fractions,
 									wn_calc_window = wn_calc_window,
 									wn_approx_window = wn_approx_window,
-									combined_output=True
+									combined_output=True,
+									use_cache=False,
 								)
 							)
 	
@@ -291,7 +292,8 @@ def _action_create_lbltable(
 						amb_frac = ambient_gas_fractions,
 						wn_calc_window = wn_calc_window,
 						wn_approx_window = wn_approx_window,
-						combined_output=True
+						combined_output=True,
+						use_cache=False,
 					)
 			
 			assert not np.any(np.isnan(k)), f"Absorption coefficient must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k))}"
