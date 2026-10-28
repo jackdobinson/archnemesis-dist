@@ -130,9 +130,10 @@ def _action_create_lbltable(
 	
 	
 	if n_cores != 1:
-		calculation_argument_list = []
 		k_result_index_list = []
 		k_result_list = []
+		
+		
 		
 		def perform_monochromatic_absorption_calculation(job_idx, line_data_instance, monochromatic_absorption_kwargs):
 			dt_start = dt.datetime.now()
@@ -152,56 +153,56 @@ def _action_create_lbltable(
 				)
 			return job_idx, dt.datetime.now() - dt_start, k_partial
 		
-		for mol_iso_idx, mol_iso_pair in enumerate(mol_iso_pairs):
-			_lgr.info(f'Getting calculation arguments for {mol_iso_pair} [{mol_iso_idx}/{len(mol_iso_pairs)}]')
-
-			k_result_list.append(
-				np.full((wn_array.size, press_array.size, (temp_array.shape[1] if temp_array.ndim == 2 else temp_array.size)), fill_value=np.nan)
-			)
+		def generate_calculation_args():
 			
-			for i, p_calc in enumerate(press_array):
-				temp_array_part = temp_array[i] if temp_array.ndim == 2 else temp_array
-				for j, t_calc in enumerate(temp_array_part):
-					
-					k_result_index_list.append(
-						(mol_iso_idx, i, j)
-					)
-					
-					# Each parallel calculation needs its own LineData_0 instance as we cannot be sure of the execution order
-					line_data_instance = LineData_0(
-						ID = mol_iso_pair[0],
-						ISO = mol_iso_pair[1],
-						ambient_gasses = ambient_gas_tpl,
-						LINE_DATABASE = line_database,
-						PARTITION_FUNCTION_DATABASE = partition_function_database if partition_function_database is not None else line_database,
-						CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database
-					)
-					
-					# may as well set this here instead of later
-					line_data_instance.set_params( 
-						vmin = np.min(wn_array) - 2*wn_approx_window,
-						vmax = np.max(wn_array) + 2*wn_approx_window,
-						s_min = s_min,
-						t_req = t_calc,
-						p_req = p_calc,
-					)
-					
-					calculation_argument_list.append(
-						(
-							line_data_instance,
-							dict(
-								wave_grid=wn_array, 
-								t_calc=t_calc, 
-								p_calc=p_calc, 
-								amb_frac = ambient_gas_fractions,
-								wn_calc_window = wn_calc_window,
-								wn_approx_window = wn_approx_window,
-								combined_output=True
-							)
+			for mol_iso_idx, mol_iso_pair in enumerate(mol_iso_pairs):
+				_lgr.info(f'Getting calculation arguments for {mol_iso_pair} [{mol_iso_idx}/{len(mol_iso_pairs)}]')
+
+				k_result_list.append(
+					np.full((wn_array.size, press_array.size, (temp_array.shape[1] if temp_array.ndim == 2 else temp_array.size)), fill_value=np.nan)
+				)
+				
+				for i, p_calc in enumerate(press_array):
+					temp_array_part = temp_array[i] if temp_array.ndim == 2 else temp_array
+					for j, t_calc in enumerate(temp_array_part):
+						
+						k_result_index_list.append(
+							(mol_iso_idx, i, j)
 						)
-					)
+						
+						# Each parallel calculation needs its own LineData_0 instance as we cannot be sure of the execution order
+						line_data_instance = LineData_0(
+							ID = mol_iso_pair[0],
+							ISO = mol_iso_pair[1],
+							ambient_gasses = ambient_gas_tpl,
+							LINE_DATABASE = line_database,
+							PARTITION_FUNCTION_DATABASE = partition_function_database if partition_function_database is not None else line_database,
+							CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database
+						)
+						
+						# may as well set this here instead of later
+						line_data_instance.set_params( 
+							vmin = np.min(wn_array) - 2*wn_approx_window,
+							vmax = np.max(wn_array) + 2*wn_approx_window,
+							s_min = s_min,
+							t_req = t_calc,
+							p_req = p_calc,
+						)
+						
+						yield (
+								line_data_instance,
+								dict(
+									wave_grid=wn_array, 
+									t_calc=t_calc, 
+									p_calc=p_calc, 
+									amb_frac = ambient_gas_fractions,
+									wn_calc_window = wn_calc_window,
+									wn_approx_window = wn_approx_window,
+									combined_output=True
+								)
+							)
 	
-		n_total_jobs = len(calculation_argument_list)
+		n_total_jobs = len(mol_iso_pairs) * press_array * temp_array.shape[-1]
 		_lgr.info(f'Will execute {n_total_jobs} jobs using {n_cores} cores.')
 	
 		dt_start = dt.datetime.now()
@@ -210,12 +211,14 @@ def _action_create_lbltable(
 				job_idx,
 				*calc_args,
 			)
-			for job_idx, calc_args in enumerate(calculation_argument_list)
+			for job_idx, calc_args in enumerate(generate_calculation_args)
 		)
 
 		for zz, (job_idx, elapsed_time, k_partial) in enumerate(workers):
 			dt_end=dt.datetime.now()
 			print(f'create_lbltable :: [{dt_end}] Finished job {job_idx} [{zz+1}/{n_total_jobs}] :: job elapsed time {elapsed_time} :: total elapsed time {dt_end - dt_start}')
+			
+			# set values from result
 			mol_iso_idx, i, j = k_result_index_list[job_idx]
 			k_result_list[mol_iso_idx][:,i,j] = k_partial
 		
