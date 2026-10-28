@@ -341,7 +341,7 @@ class LblLegacyWriter(LblLegacyBase):
 		if opacities.size == n_opacities:
 			self._write_opacities(opacities)
 		elif opacities.size < n_opacities:
-			self.write_opacities_chunk(opacities)
+			self.write_opacities_chunk(opacities, (0,0,0))
 		else:
 			raise RuntimeError(f'Expected {n_opacities=} but have {opacities.size=}. Therefore cannot write line-by-line opacities')
 	
@@ -349,7 +349,7 @@ class LblLegacyWriter(LblLegacyBase):
 		opac_shape = (self._state.nwave, self._state.npress, abs(self._state.ntemp))
 		n_opac = self.get_opacities_size_items()
 		
-		if start_flat_idx == 0 and opacities_chunk == n_opac:
+		if start_flat_idx == 0 and opacities_chunk.size == n_opac:
 			self._write_opacities(opacities_chunk.reshape(*opac_shape))
 			return
 		
@@ -357,19 +357,10 @@ class LblLegacyWriter(LblLegacyBase):
 		self._state.fptr.seek(pos, 0)
 		self._state.fptr.write((BINARY_K_ABS_PACK_INTO_FLOAT_FACTOR*opacities_chunk).astype(self.get_store_float_type()).tobytes())
 	
-	def write_opacities_chunk(self, opacities_chunk : np.ndarray, start_idxs : None | tuple[int,int,int] = None):
-		"""
-		Write a chunk of opacities, assume it is contiguous
-		
-		start_idxs : None | tuple[int,int,int] - If None, will continue writing at current file position, otherwise will seek to starting indices and write from there.
-			iwave : int - starting position in wave
-			ipress : int - starting position in pressure
-			itemp : int - starting position in temp
-		"""
-		if start_idxs is not None:
-			iwave, ipress, itemp = start_idxs
-			pos = self.get_opacities_offset_bytes() + iwave*(self._state.npress*abs(self._state.ntemp)) + ipress*abs(self._state.ntemp) + itemp
-			self._state.fptr.seek(pos, 0)
-		
-		self._state.fptr.write((BINARY_K_ABS_PACK_INTO_FLOAT_FACTOR*opacities_chunk).astype(self.get_store_float_type()).tobytes())
 	
+	def write_opacities_part(self, opacities_part : np.ndarray, idxs : tuple[int,int,int]):
+		opac_shape = (self._state.nwave, self._state.npress, abs(self._state.ntemp))
+		self.write_opacities_chunk_flat(
+			np.ravel(opacities_part), 
+			np.ravel_multi_index(idxs,dims=opac_shape)
+		)

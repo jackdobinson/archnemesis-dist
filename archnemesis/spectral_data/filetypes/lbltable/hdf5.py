@@ -165,7 +165,14 @@ class LblHDF5Writer(LblHDF5Base):
 			if dset_name == 'K':
 				self._opac_attrs_written = True
 
-	def write_opacities_chunk_flat(self, opacities_chunk : np.ndarray, start_flat_idx):
+	def write_opacities_part(self, opacities_part : np.ndarray, idxs : tuple[int,int,int]):
+		opac_shape = (self._state.nwave, self._state.npress, abs(self._state.ntemp))
+		self.write_opacities_chunk_flat(
+			np.ravel(opacities_part), 
+			np.ravel_multi_index(idxs,dims=opac_shape)
+		)
+
+	def write_opacities_chunk_flat(self, opacities_chunk : np.ndarray, start_flat_idx : int):
 		opac_shape = (self._state.nwave, self._state.npress, abs(self._state.ntemp))
 		n_opac = self.get_opacities_size_items()
 		assert start_flat_idx > 0, "Cannot start at non positive index"

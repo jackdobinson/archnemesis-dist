@@ -133,6 +133,12 @@ def _action_create_lbltable(
 		k_result_index_list = []
 		k_result_list = []
 		
+		lbl_file_handles = [LblTableFile(Path(output_prefix+f'__{mol_iso_pair[0].name}_iso_{mol_iso_pair[1]}_unit_wavelength_um.lta'), "w") for mol_iso_pair in mol_iso_pairs]
+		
+		_lgr.info('Writing all data except opacity to lbl-table files...')
+		for mol_iso_idx, lbl_file_handle in enumerate(lbl_file_handles):
+			opac_shape = (wn_array.size, press_array.size, temp_array.shape[-1])
+			lbl_file_handle.write(mol_iso_pairs[mol_iso_idx][0], mol_iso_pairs[mol_iso_idx][1], wn_array, press_array, temp_array, np.full(opac_shape, fill_value=np.nan))
 		
 		
 		def perform_monochromatic_absorption_calculation(job_idx, line_data_instance, monochromatic_absorption_kwargs):
@@ -218,17 +224,25 @@ def _action_create_lbltable(
 			dt_end=dt.datetime.now()
 			print(f'create_lbltable :: [{dt_end}] Finished job {job_idx} [{zz+1}/{n_total_jobs}] :: job elapsed time {elapsed_time} :: total elapsed time {dt_end - dt_start}')
 			
+			
 			# set values from result
 			mol_iso_idx, i, j = k_result_index_list[job_idx]
-			k_result_list[mol_iso_idx][:,i,j] = k_partial
+			
+			assert not np.any(np.isnan(k_partial)), f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k_partial))} at press_idx {i} temp_idx {j}"
+			
+			lbl_file_handle[mol_iso_idx].write_opacities_part(k_partial, (0,i,j))
+			
+			#k_result_list[mol_iso_idx][:,i,j] = k_partial
+			
+			
 		
 		# Reset logging level
 		logging.pkg_lgr.setLevel(logging.DEBUG)
 		
-		for mol_iso_idx, k in enumerate(k_result_list):
-			assert not np.any(np.isnan(k)), f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k))}"
-			with LblTableFile(Path(output_prefix+f'__{mol_iso_pairs[mol_iso_idx][0].name}_iso_{mol_iso_pairs[mol_iso_idx][1]}_unit_wavelength_um.lta'), "w") as f:
-				f.write(mol_iso_pairs[mol_iso_idx][0], mol_iso_pairs[mol_iso_idx][1], wn_array, press_array, temp_array, k)
+		#for mol_iso_idx, k in enumerate(k_result_list):
+		#	assert not np.any(np.isnan(k)), f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k))}"
+		#	with LblTableFile(Path(output_prefix+f'__{mol_iso_pairs[mol_iso_idx][0].name}_iso_{mol_iso_pairs[mol_iso_idx][1]}_unit_wavelength_um.lta'), "w") as f:
+		#		f.write(mol_iso_pairs[mol_iso_idx][0], mol_iso_pairs[mol_iso_idx][1], wn_array, press_array, temp_array, k)
 		
 	
 	else:
