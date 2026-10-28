@@ -211,7 +211,7 @@ def _action_create_lbltable(
 				job_idx,
 				*calc_args,
 			)
-			for job_idx, calc_args in enumerate(generate_calculation_args)
+			for job_idx, calc_args in enumerate(generate_calculation_args())
 		)
 
 		for zz, (job_idx, elapsed_time, k_partial) in enumerate(workers):
