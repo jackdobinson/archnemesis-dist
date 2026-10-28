@@ -2139,6 +2139,15 @@ class Spectroscopy_0:
                     #use_cache = line_data_params.use_cache,
                     use_cache = False,
                 )
+                """
+                import matplotlib.pyplot as plt
+                
+                plt.figure()
+                plt.title(f'Spectroscopy_0::calc_klbl_online\n{t_l=} {p_l=}')
+                plt.plot(wave, k[:,ipoint,igas])
+                plt.yscale('log')
+                plt.show()
+                """
 
         return k
 
@@ -3222,6 +3231,9 @@ def calc_ktable(outname,                       #Name of the output .Kta file
         Number of cores to use in the calculations (if >1, parallel processes are used. maximum value is n_chunks)
 
     """
+    
+    # See: "A Description of the Correlated k Distribution Method for Modeling Nongray Gaseous Absorption, Thermal Emission, and Multiple Scattering in Vertically Inhomogeneous Atmospheres" Lacis and Oinas (20 May 1991) Journal of Geophysical Research
+    # For a decent walkthrough of the process
 
     from joblib import Parallel, delayed
     import copy
@@ -3331,10 +3343,10 @@ def calc_ktable(outname,                       #Name of the output .Kta file
     if n_cores == 1:
         
         for ichunk in range(n_chunks):
-            k_coefficients[chunks[ichunk],:,:,:] = calc_ktable_chunk(chunks[ichunk],Spectroscopy,Spectroscopy_LBL.thaw_all_attrs(),self_frac,Measurement)
+            k_coefficients[chunks[ichunk],:,:,:], total_fail_count = calc_ktable_chunk(chunks[ichunk],Spectroscopy,Spectroscopy_LBL.thaw_all_attrs(),self_frac,Measurement)
     
     elif n_cores > 1:
-
+        total_fail_count = 0
         # Calculate each wavelength chunk in parallel
         results = Parallel(n_jobs=n_cores, prefer="threads")(
             delayed(calc_ktable_chunk)(
@@ -3343,16 +3355,23 @@ def calc_ktable(outname,                       #Name of the output .Kta file
                 copy.deepcopy(Spectroscopy_LBL).thaw_all_attrs(),
                 self_frac,
                 Measurement,
+                job_id = ichunk,
             )
             for ichunk in range(n_chunks)
         )
 
         # Assemble the final array
-        for ichunk, result in enumerate(results):
+        for ichunk, (result, i_fail_count) in enumerate(results):
             k_coefficients[chunks[ichunk], :, :, :] = result
+            total_fail_count += i_fail_count
 
     else:
         raise ValueError("n_cores must be a positive integer")
+
+    if total_fail_count < 0.01*k_coefficients.size:
+        _lgr.info(f'Correlated-k calculation failed error check metric on {total_fail_count}/{k_coefficients.size} occations [{100*total_fail_count/k_coefficients.size:.2f} %]')
+    else:
+        _lgr.error(f'Correlated-k calculation failed error check metric on {total_fail_count}/{k_coefficients.size} occations [{100*total_fail_count/k_coefficients.size:.2f} %]. You may need to increase the number of G ordinates used in the correlated-k calculation.')
 
     Spectroscopy.K = k_coefficients[:,:,:,:,np.newaxis]
 
@@ -3366,7 +3385,10 @@ def calc_ktable(outname,                       #Name of the output .Kta file
 
 #######################################################################################################################################################################################################
 
-def calc_ktable_chunk(iwaves,Spectroscopy,Spectroscopy_LBL,self_frac,Measurement):
+def calc_ktable_chunk(iwaves,Spectroscopy,Spectroscopy_LBL,self_frac,Measurement, job_id=-1) -> tuple[np.ndarray, int]:
+
+    fail_metric_percent = 1.0
+    n_fail_count = 0
 
     iwavemin = iwaves[0]
     iwavemax = iwaves[-1]
@@ -3384,7 +3406,7 @@ def calc_ktable_chunk(iwaves,Spectroscopy,Spectroscopy_LBL,self_frac,Measurement
     vchunkmean = np.mean(Spectroscopy.WAVE[iwaves])
 
     #Downloading the line data for the required spectral range
-    _lgr.info(f'Selecting lines in the spectral range {vchunkmin:.2f} - {vchunkmax:.2f} for the calculations')
+    _lgr.info(f'{job_id=} :: Selecting lines in the spectral range {vchunkmin:.2f} - {vchunkmax:.2f} for the calculations')
 
     linedata = Spectroscopy_LBL.LINE_DATA[0]
     lineparams = Spectroscopy_LBL.LINE_DATA_PARAMS[0]
@@ -3424,7 +3446,7 @@ def calc_ktable_chunk(iwaves,Spectroscopy,Spectroscopy_LBL,self_frac,Measurement
             gamma_l = linedata.calculate_lorentz_width(tempx,pressx, amb_frac=1.-self_frac, combined_output=True)
             hwhm_voigt = 0.5346 * gamma_l + np.sqrt( 0.2166 * gamma_l**2. + alpha_d **2. )
 
-            delwn_calc = 0.1* np.min(hwhm_voigt) / 5.
+            delwn_calc = np.min(hwhm_voigt) / 5.
             if ispace == WaveUnitEnum.Wavelength_um:
                 delv_calc = delwn_calc * (vchunkmean**2.) / 1.0e4
             else:
@@ -3433,7 +3455,7 @@ def calc_ktable_chunk(iwaves,Spectroscopy,Spectroscopy_LBL,self_frac,Measurement
             ncalc = int((vchunkmax-vchunkmin)/delv_calc)
             wavecalc = np.linspace(vchunkmin,vchunkmax,ncalc)  
 
-            _lgr.info(f'Calculating k-coefficients at p = {pressx} atm and t = {tempx} K. Number of spectral points in lbl calculations = {ncalc} with a resolution of {delv_calc}')
+            _lgr.info(f'{job_id=} :: Calculating k-coefficients at p = {pressx} atm and t = {tempx} K. Number of spectral points in lbl calculations = {ncalc} with a resolution of {delv_calc}')
 
             #Calculating the absorption coefficients at the line-by-line level for the given pressure and temperature
             Spectroscopy_LBL.NWAVE = ncalc
@@ -3474,8 +3496,19 @@ def calc_ktable_chunk(iwaves,Spectroscopy,Spectroscopy_LBL,self_frac,Measurement
                 delvarray = np.zeros_like(k_sorted) + (wavecalc[1]-wavecalc[0])
                 g_sorted = np.cumsum(ils_sorted * delvarray) / np.sum(ils_sorted * delvarray)
 
+                g_edges = np.empty((g_sorted.size+1,))
+                g_edges[0] = 0
+                g_edges[-1] = 1
+                g_edges[1:-1] = 0.5*(g_sorted[:-1]+g_sorted[1:])
+                
+                #print(f'TESTING: {g_sorted.shape=} {k_sorted.shape=} {g_edges.shape=}')
+                k_sum = np.sum(np.diff(g_edges)*k_sorted)
+
                 #Interpolate to get the k-coefficients at the g-ordinates
                 k_coefficients[iwavex,:,ip,it] = np.interp(Spectroscopy.G_ORD, g_sorted, k_sorted)
+                
+                if np.abs(k_sum - (k_coefficients[iwavex,:,ip,it] @ Spectroscopy.DELG)) > (0.01*fail_metric_percent)*(k_sum):
+                    n_fail_count += 1
                 iwavex += 1
-
-    return k_coefficients
+            
+    return k_coefficients, n_fail_count

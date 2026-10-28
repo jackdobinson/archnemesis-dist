@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import argparse as ap
+import datetime as dt
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -134,7 +135,8 @@ def _action_create_lbltable(
 		k_result_list = []
 		
 		def perform_monochromatic_absorption_calculation(job_idx, line_data_instance, monochromatic_absorption_kwargs):
-			print(f'create_lbltable :: Starting job {job_idx}')
+			dt_start = dt.datetime.now()
+			print(f'create_lbltable :: Starting job {job_idx} at {dt_start}')
 			
 			# Turn off some logging to avoid loads of output
 			import warnings
@@ -148,7 +150,7 @@ def _action_create_lbltable(
 				k_partial = line_data_instance.calculate_monochromatic_absorption(
 					**monochromatic_absorption_kwargs
 				)
-			return job_idx, k_partial
+			return job_idx, dt.datetime.now() - dt_start, k_partial
 		
 		for mol_iso_idx, mol_iso_pair in enumerate(mol_iso_pairs):
 			_lgr.info(f'Getting calculation arguments for {mol_iso_pair} [{mol_iso_idx}/{len(mol_iso_pairs)}]')
@@ -202,6 +204,7 @@ def _action_create_lbltable(
 		n_total_jobs = len(calculation_argument_list)
 		_lgr.info(f'Will execute {n_total_jobs} jobs using {n_cores} cores.')
 	
+		dt_start = dt.datetime.now()
 		workers = Parallel(n_jobs=n_cores, prefer="threads", return_as='generator_unordered')(
 			delayed(perform_monochromatic_absorption_calculation)(
 				job_idx,
@@ -210,8 +213,8 @@ def _action_create_lbltable(
 			for job_idx, calc_args in enumerate(calculation_argument_list)
 		)
 
-		for zz, (job_idx, k_partial) in enumerate(workers):
-			print(f'create_lbltable :: Finished job {job_idx} [{zz+1}/{n_total_jobs}]')
+		for zz, (job_idx, elapsed_time, k_partial) in enumerate(workers):
+			print(f'create_lbltable :: Finished job {job_idx} took {elapsed_time} [{zz+1}/{n_total_jobs}] total elapsed time {dt.datetime.now() - dt_start}')
 			mol_iso_idx, i, j = k_result_index_list[job_idx]
 			k_result_list[mol_iso_idx][:,i,j] = k_partial
 		
