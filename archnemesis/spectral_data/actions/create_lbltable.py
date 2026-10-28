@@ -183,7 +183,8 @@ def _action_create_lbltable(
 							ambient_gasses = ambient_gas_tpl,
 							LINE_DATABASE = line_database,
 							PARTITION_FUNCTION_DATABASE = partition_function_database if partition_function_database is not None else line_database,
-							CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database
+							CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database,
+							cache=None,
 						)
 						
 						# may as well set this here instead of later
@@ -260,7 +261,8 @@ def _action_create_lbltable(
 				ambient_gasses = ambient_gas_tpl,
 				LINE_DATABASE = line_database,
 				PARTITION_FUNCTION_DATABASE = partition_function_database if partition_function_database is not None else line_database,
-				CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database
+				CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database,
+				cache=None,
 			)
 			
 			
