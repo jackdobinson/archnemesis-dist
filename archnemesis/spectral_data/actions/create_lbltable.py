@@ -202,7 +202,7 @@ def _action_create_lbltable(
 								)
 							)
 	
-		n_total_jobs = len(mol_iso_pairs) * press_array * temp_array.shape[-1]
+		n_total_jobs = len(mol_iso_pairs) * press_array.size * temp_array.shape[-1]
 		_lgr.info(f'Will execute {n_total_jobs} jobs using {n_cores} cores.')
 	
 		dt_start = dt.datetime.now()
