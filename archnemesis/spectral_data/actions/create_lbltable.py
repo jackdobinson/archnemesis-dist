@@ -230,7 +230,7 @@ def _action_create_lbltable(
 			
 			assert not np.any(np.isnan(k_partial)), f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k_partial))} at press_idx {i} temp_idx {j}"
 			
-			lbl_file_handles[mol_iso_idx].write_opacities_part(k_partial, (0,i,j))
+			lbl_file_handles[mol_iso_idx].write_opacities_part(k_partial, i, j)
 			
 			#k_result_list[mol_iso_idx][:,i,j] = k_partial
 			
@@ -243,6 +243,7 @@ def _action_create_lbltable(
 		# Close files
 		for lbl_file_handle in lbl_file_handles:
 			lbl_file_handle.close()
+			_lgr.info(f'Writte line-by-line file at "{lbl_file_handle.path}"')
 		
 		#for mol_iso_idx, k in enumerate(k_result_list):
 		#	assert not np.any(np.isnan(k)), f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k))}"

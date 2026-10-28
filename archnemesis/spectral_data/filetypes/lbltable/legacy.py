@@ -346,6 +346,7 @@ class LblLegacyWriter(LblLegacyBase):
 			raise RuntimeError(f'Expected {n_opacities=} but have {opacities.size=}. Therefore cannot write line-by-line opacities')
 	
 	def write_opacities_chunk_flat(self, opacities_chunk : np.ndarray, start_flat_idx : int):
+		print(f'LblLegacyWriter::write_opacities_chunk_flat(...) {start_flat_idx=}')
 		opac_shape = (self._state.nwave, self._state.npress, abs(self._state.ntemp))
 		n_opac = self.get_opacities_size_items()
 		
@@ -358,9 +359,12 @@ class LblLegacyWriter(LblLegacyBase):
 		self._state.fptr.write((BINARY_K_ABS_PACK_INTO_FLOAT_FACTOR*opacities_chunk).astype(self.get_store_float_type()).tobytes())
 	
 	
-	def write_opacities_part(self, opacities_part : np.ndarray, idxs : tuple[int,int,int]):
+	def write_opacities_part(self, opacities_part : np.ndarray, press_idx : int, temp_idx : int):
 		opac_shape = (self._state.nwave, self._state.npress, abs(self._state.ntemp))
-		self.write_opacities_chunk_flat(
-			np.ravel(opacities_part), 
-			np.ravel_multi_index(idxs,dims=opac_shape)
-		)
+		
+		for wave_idx, x in enumerate(opacities_part):
+			flat_idx = np.ravel_multi_index((wave_idx,press_idx,temp_idx),dims=opac_shape, order='C')
+			pos = self.get_opacities_offset_bytes() + flat_idx*self.get_store_float_type().itemsize
+			self._state.fptr.seek(pos, 0)
+			self._state.fptr.write((BINARY_K_ABS_PACK_INTO_FLOAT_FACTOR*x).astype(self.get_store_float_type()).tobytes())
+		

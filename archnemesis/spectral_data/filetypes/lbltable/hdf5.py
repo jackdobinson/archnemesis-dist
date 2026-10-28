@@ -165,12 +165,21 @@ class LblHDF5Writer(LblHDF5Base):
 			if dset_name == 'K':
 				self._opac_attrs_written = True
 
-	def write_opacities_part(self, opacities_part : np.ndarray, idxs : tuple[int,int,int]):
+	def write_opacities_part(self, opacities_part : np.ndarray, press_idx : int, temp_idx : int):
 		opac_shape = (self._state.nwave, self._state.npress, abs(self._state.ntemp))
-		self.write_opacities_chunk_flat(
-			np.ravel(opacities_part), 
-			np.ravel_multi_index(idxs,dims=opac_shape)
-		)
+		
+		# must write partial array
+		if 'K' not in self._state.fptr:
+			dset = self._state.fptr.create_dataset('K', shape=opac_shape, dtype=np.float64)
+		else:
+			dset = self._state.fptr['K']
+		
+		dset[:,press_idx,temp_idx] = opacities_part
+		
+		if not self._opac_attrs_written:
+			for attr_name, attr_val in self.dset_attrs.get('K', dict()).items():
+				dset.attrs[attr_name] = attr_val
+			self._opac_attrs_written = True
 
 	def write_opacities_chunk_flat(self, opacities_chunk : np.ndarray, start_flat_idx : int):
 		opac_shape = (self._state.nwave, self._state.npress, abs(self._state.ntemp))

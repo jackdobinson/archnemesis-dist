@@ -108,11 +108,11 @@ class LblTableFile:
 		self._writer.write(mol_id, iso_id, wavenumbers, pressures, temperatures, opacities)
 		_lgr.info(f'Written line-by-line table to "{self.path}"')
 	
-	def write_opacities_part(self, opacities_part : np.ndarray, idxs : tuple[int,int,int]):
+	def write_opacities_part(self, opacities_part : np.ndarray, press_idx : int, temp_idx : int):
 		"""
 		idxs : tuple[int,int,int] = wave_idx, press_idx, temp_idx
 		"""
-		self._writer.write_opacities_part(opacities_part, idxs)
+		self._writer.write_opacities_part(opacities_part, press_idx, temp_idx)
 	
 	def read_header(
 			self,
