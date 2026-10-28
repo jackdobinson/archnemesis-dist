@@ -29,8 +29,12 @@ class ShowPlotFnFactory:
 			name : str, 
 			figure : None | mpl.figure.Figure = None, 
 			savefig_kwargs = dict(), 
-			show_kwargs = dict()
-	):
+			show_kwargs = dict(),
+			interactive : bool = False,
+	) -> bool:
+		"""
+		Returns: True if figure is shown in interactive mode, else False
+		"""
 		if self._save_plots_dir is not None:
 			self._save_plots_dir.mkdir(parents=True, exist_ok=True)
 			plot_fpath = self._save_plots_dir / name
@@ -39,16 +43,19 @@ class ShowPlotFnFactory:
 			else:
 				figure.savefig(plot_fpath, **savefig_kwargs)
 			_lgr.info(f'Saved plot to "{plot_fpath}"')
+		
 		if self._show_plots:
 			if figure is None:
 				plt.show(**show_kwargs)
-			elif PYTHON_IN_INTERACTIVE_MODE:
+			elif interactive or PYTHON_IN_INTERACTIVE_MODE:
 				figure.show(**show_kwargs)
 			else:
 				prev_figure = plt.gcf()
 				plt.figure(figure)
 				plt.show(**show_kwargs)
 				plt.figure(prev_figure)
-		return
+			return True
+		
+		return False
 				
 		

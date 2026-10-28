@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from archnemesis.enum import WaveUnitEnum
 from archnemesis.helpers.wave_helper import waves_as_unit
+from archnemesis.helpers.plot_helper import ShowPlotFnFactory
 
 from .data import LblTableData
 from .file import LblTableFile
@@ -20,7 +21,9 @@ _lgr.setLevel(logging.DEBUG)
 def plot(
 		lbl_table_data : LblTableData, 
 		wave_unit : WaveUnitEnum = WaveUnitEnum.Wavenumber_cm,
-		path=None
+		path=None,
+		save_plots : None | Path = None,
+		no_show_plots : bool = False,
 ):
 	
 	fig = plt.figure(figsize=(12,8))
@@ -36,6 +39,10 @@ def plot(
 	_lgr.info(f'{lbl_table_data.pressures=}')
 	_lgr.info(f'{lbl_table_data.temperatures=}')
 	
+	_lgr.info(f'{save_plots=}')
+	_lgr.info(f'{no_show_plots=}')
+	# Get directory to save plots to
+	show_plot_fn = ShowPlotFnFactory(save_plots, no_show_plots)
 	
 	if np.any(np.diff(lbl_table_data.pressures) <0):
 		# pressures are not sorted in ascending order
@@ -224,10 +231,23 @@ def plot(
 		
 		fig.colorbar(opac_plot, cax=ax_cbar, orientation='vertical', label='Opacity (cm^2)')
 		
-		fig.show()
-		fig.waitforbuttonpress()
-		if fig_state['closed']:
-			break
+		w_idx = sorted_waves.size // 2
+		p_idx = sorted_pressures.size // 2
+		mouse_pos_ymargin.set_ydata((sorted_pressures[p_idx],sorted_pressures[p_idx]))
+		mouse_pos_xmargin.set_xdata((sorted_waves[w_idx],sorted_waves[w_idx]))
+		
+		ymargin_line.set_data(opacity_grid[:,w_idx], sorted_pressures)
+		xmargin_line.set_data(sorted_waves, opacity_grid[p_idx,:])
+		
+		fig.draw_artist(ax_ymargin)
+		fig.draw_artist(ax_xmargin)
+		fig.canvas.blit(ax_ymargin.bbox)
+		fig.canvas.blit(ax_xmargin.bbox)
+		
+		if show_plot_fn(path.with_suffix('.png').name if path is not None else 'lbl.png', fig, interactive=True):
+			fig.waitforbuttonpress()
+			if fig_state['closed']:
+				break
 			
 	fig.canvas.mpl_disconnect(mouse_move_hdl)
 	fig.canvas.mpl_disconnect(close_hdl)
@@ -239,7 +259,7 @@ def plot(
 
 
 if __name__=='__main__':
-	import sys
+	import sys, os
 	import argparse as ap
 	
 	
@@ -250,13 +270,16 @@ if __name__=='__main__':
 	
 	if True:
 	#if False:
+		TEMP_PATH_PLOT_DIR = Path(os.getenv('TMP', '/tmp')) / "archnemesis/spectral_data/plot"
 	
 		parser = ap.ArgumentParser()
 				
 		parser.add_argument('lbl_table_paths', type=Path, nargs='+',help='Paths of line-by-line tables to display')
 		
-		parser.add_argument('--read.wave_unit', action=action_enum_choice(WaveUnitEnum), help=f'The unit that the `wn` array is read as (default={WaveUnitEnum.Wavenumber_cm})', default=WaveUnitEnum.Wavenumber_cm)
-		parser.add_argument('--display.wave_unit', action=action_enum_choice(WaveUnitEnum), help=f'The unit that the `wn` array is displayed in (default={WaveUnitEnum.Wavenumber_cm})', default=WaveUnitEnum.Wavenumber_cm)
+		parser.add_argument('--read.wave_unit', action=action_enum_choice(WaveUnitEnum), help=f'The unit that the `wn` array is read as (default={WaveUnitEnum.Wavenumber_cm.name})', default=WaveUnitEnum.Wavenumber_cm)
+		parser.add_argument('--display.wave_unit', action=action_enum_choice(WaveUnitEnum), help=f'The unit that the `wn` array is displayed in (default={WaveUnitEnum.Wavenumber_cm.name})', default=WaveUnitEnum.Wavenumber_cm)
+		parser.add_argument('--save_plots', nargs='?', type=Path, help=f'If present will save plots to a temporary directory ({TEMP_PATH_PLOT_DIR}), if given with an argument will save plots to the specified directory, if not present will not save plots.', const=TEMP_PATH_PLOT_DIR, default=None)
+		parser.add_argument('--no_show_plots', action='store_true', help='If present, will not show plots (default=False)', default=False)
 	
 		args = vars(parser.parse_args(sys.argv[1:]))
 	
@@ -265,12 +288,17 @@ if __name__=='__main__':
 	
 		_lgr.info(f'{read_args=}')
 		_lgr.info(f'{display_args=}')
+		
+		[args.pop('read.'+k) for k in read_args]
+		[args.pop('display.'+k) for k in display_args]
 	
 		for lbl_table_path in args.pop('lbl_table_paths'):
 			_lgr.info(f'{lbl_table_path=}')
 			with LblTableFile(lbl_table_path, 'r') as f:
 				plot(
 					f.read(**read_args),
+					path = lbl_table_path,
 					**display_args,
+					**args,
 				)
 	

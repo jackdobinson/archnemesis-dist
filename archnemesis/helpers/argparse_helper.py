@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 
 def action_enum_choice(enum_class):
-	print(f'{enum_class=}')
+	#print(f'{enum_class=}')
 	class EnumChoiceAction(ap.Action):
 		def __init__(self, option_strings, dest, **kwargs):
 			# kwargs are the arguments passed to `ap.ArgumentParser.add_action(...)` except `action` itself.
@@ -15,14 +15,14 @@ def action_enum_choice(enum_class):
 			assert kwargs.get('choices',None) is None, "EnumChoiceAction sets `choices`, so it must not be set previously."
 			assert kwargs.get('type',None) is None, "EnumChoiceAction sets `type`, so it must not be set previously."
 			
-			kwargs['choices'] = tuple(x for x in self.enum_class)
-			kwargs['type'] = lambda x: self.enum_class[x]
+			kwargs['choices'] = tuple(x.name for x in self.enum_class)
+			#kwargs['type'] = lambda x: self.enum_class[x]
 			
 			super().__init__(option_strings, dest, **kwargs)
 		
 		def __call__(self, parser, namespace, values, option_string=None):
-			print(f'{(parser, namespace, values, option_string)=}')
-			setattr(namespace, self.dest, values)
+			#print(f'{(parser, namespace, values, option_string)=}')
+			setattr(namespace, self.dest, enum_class[values] if isinstance(values, str) else [enum_class[x] for x in values])
 	
 	return EnumChoiceAction
 
