@@ -136,7 +136,7 @@ def _action_create_lbltable(
 		
 		def perform_monochromatic_absorption_calculation(job_idx, line_data_instance, monochromatic_absorption_kwargs):
 			dt_start = dt.datetime.now()
-			print(f'create_lbltable :: Starting job {job_idx} at {dt_start}')
+			print(f'create_lbltable :: [{dt_start}] Starting job {job_idx}')
 			
 			# Turn off some logging to avoid loads of output
 			import warnings
@@ -214,7 +214,8 @@ def _action_create_lbltable(
 		)
 
 		for zz, (job_idx, elapsed_time, k_partial) in enumerate(workers):
-			print(f'create_lbltable :: Finished job {job_idx} took {elapsed_time} [{zz+1}/{n_total_jobs}] total elapsed time {dt.datetime.now() - dt_start}')
+			dt_end=dt.datetime.now()
+			print(f'create_lbltable :: [{dt_end}] Finished job {job_idx} [{zz+1}/{n_total_jobs}] :: job elapsed time {elapsed_time} :: total elapsed time {dt_end - dt_start}')
 			mol_iso_idx, i, j = k_result_index_list[job_idx]
 			k_result_list[mol_iso_idx][:,i,j] = k_partial
 		
