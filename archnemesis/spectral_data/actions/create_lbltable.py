@@ -9,11 +9,12 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from archnemesis.enum import (
-	#WaveUnitEnum,
+	WaveUnitEnum,
 	AmbientGasEnum,
 )
 
-from archnemesis.helpers.argparse_helper import ArgArray1D#, action_enum_choice
+from archnemesis.helpers.argparse_helper import ArgArray1D, action_enum_choice
+from archnemesis.helpers.wave_helper import waves_as_unit
 
 from archnemesis.Data.constants import atm_pascal
 from archnemesis.LineData_0 import LineData_0
@@ -40,7 +41,7 @@ def add_subcommand_to(subparser_adder) -> ap.ArgumentParser:
 	
 	parser.add_argument('-a', '--ambient_gas', nargs='+', choices=tuple(x.name for x in AmbientGasEnum), help='Ambient gasses to use when computing opacity (default="AIR")', default='AIR')
 	parser.add_argument('-f', '--ambient_gas_fractions', type=float, help='Ambient gasses fractions to use when computing opacity (default=0.5)', default=None)
-	ArgArray1D.add_to_parser(parser, 'wn', required=True, description='Wavenumbers (cm^{-1}) at which to compute opacity', default=np.empty((0,)))
+	ArgArray1D.add_to_parser(parser, 'wave', required=True, description='Waves at which to compute opacity. Unit set by `--wave_unit` (default is wavenumbers in cm^{-1})', default=np.empty((0,)))
 	ArgArray1D.add_to_parser(parser, 'press', required=False, description='Pressures (atm) at which to compute opacity', enable_log=True, default=np.empty((0,)))
 	ArgArray1D.add_to_parser(parser, 'temp', required=False, description='Temperatures (Kelvin) at which to compute opacity', default=np.empty((0,)))
 	
@@ -51,13 +52,19 @@ def add_subcommand_to(subparser_adder) -> ap.ArgumentParser:
 		help='Set the pressure and temperature arrays from a specified a atmospheric profile (`.prf` or `.h5`) file. NOTE: Conflicts with setting pressure and temperature via another means.', 
 		default=None
 	)
-	#parser.add_argument('--wn_unit', action=action_enum_choice(WaveUnitEnum), help=f'The unit that the `wn` array is specified in (default={WaveUnitEnum.Wavenumber_cm})', default=WaveUnitEnum.Wavenumber_cm)
+	parser.add_argument('--wave_unit', action=action_enum_choice(WaveUnitEnum), help=f'The unit that the `wave` array is specified in (default={WaveUnitEnum.Wavenumber_cm.name})', default=WaveUnitEnum.Wavenumber_cm)
 	parser.add_argument('--wn_approx_window', type=float, help='Wavenumber (cm^{-1}) window within which to perform approximate calculations (default=75.0)', default=75.0)
 	parser.add_argument('--wn_calc_window', type=float, help='Wavenumber (cm^{-1}) calculation window (default=25.0)', default=25.0)
 	parser.add_argument('--s_min', type=float, help='Strength floor of non-continuum lines (default=0.0)', default=0.0)
 	parser.add_argument('--output_prefix', help='Prefix of output file (default="lbl")', default="lbl")
 	parser.add_argument('-n', '--n_cores', type=int, help='Number of cores to use when calculating line-by-line table. Special numbers: 0 = all available; -ve = number of cores on system minus specified number; +ve = number of cores to use. Always capped at number of logical cores on system. (default=-2)', default=-2)
 	#parser.add_argument('-u', '--include_units', action='store_true', help='If present, will include units in the output table', default=False)
+
+
+def _create_lbltable_name(output_prefix : str, mol_name : str, iso_id : int, wave_unit : str):
+	return output_prefix+f'__{mol_name}_iso_{iso_id}_unit_{wave_unit}.lta'
+
+
 
 def _action_create_lbltable(
 	line_database : Path,
@@ -66,10 +73,11 @@ def _action_create_lbltable(
 	mol_selector : MolSelector = MolSelector.create_match_all(),
 	ambient_gas : str | tuple[str,...] = 'AIR',
 	ambient_gas_fractions : None | list[float] = None,
-	wn_array : np.ndarray = np.empty((0,)),
+	wave_array : np.ndarray = np.empty((0,)),
 	press_array : np.ndarray = np.empty((0,)),
 	temp_array : np.ndarray = np.empty((0,)),
 	use_atm_profile : None | Path = None,
+	wave_unit : WaveUnitEnum = WaveUnitEnum.Wavenumber_cm,
 	wn_approx_window : float = 75.0,
 	wn_calc_window : float = 25.0,
 	s_min : float = 0.0,
@@ -81,8 +89,11 @@ def _action_create_lbltable(
 	_lgr.info(f'{pseudo_continuum_database=}')
 	_lgr.info(f'{mol_selector=}')
 	_lgr.info(f'{ambient_gas=}')
-	_lgr.info(f'{wn_array=}')
+	_lgr.info(f'{wave_array=}')
 	_lgr.info(f'{use_atm_profile=}')
+	
+	wn_array = waves_as_unit(wave_array, wave_unit, WaveUnitEnum.Wavenumber_cm)
+	
 	
 	_lgr.info(f'{wn_approx_window=}')
 	_lgr.info(f'{wn_calc_window=}')
@@ -133,7 +144,8 @@ def _action_create_lbltable(
 		k_result_index_list = []
 		k_result_list = []
 		
-		lbl_file_handles = [LblTableFile(Path(output_prefix+f'__{mol_iso_pair[0].name}_iso_{mol_iso_pair[1]}_unit_wavelength_um.lta'), "w") for mol_iso_pair in mol_iso_pairs]
+		lbl_file_handles = [
+			LblTableFile(Path(_create_lbltable_name(output_prefix, mol_iso_pair[0].name, mol_iso_pair[1], wave_unit.name.lower())), "w") for mol_iso_pair in mol_iso_pairs]
 		
 		_lgr.info('Writing all data except opacity to lbl-table files...')
 		for mol_iso_idx, lbl_file_handle in enumerate(lbl_file_handles):
@@ -297,5 +309,5 @@ def _action_create_lbltable(
 					)
 			
 			assert not np.any(np.isnan(k)), f"Absorption coefficient must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k))}"
-			with LblTableFile(Path(output_prefix+f'__{mol_iso_pair[0].name}_iso_{mol_iso_pair[1]}_unit_wavelength_um.lta'), "w") as f:
+			with LblTableFile(Path(_create_lbltable_name(output_prefix, mol_iso_pair[0].name, mol_iso_pair[1], wave_unit.name.lower())), "w") as f:
 				f.write(mol_iso_pair[0], mol_iso_pair[1], wn_array, press_array, temp_array, k)
