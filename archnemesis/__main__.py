@@ -8,7 +8,7 @@ from pathlib import Path
 
 import argparse as ap
 
-from archnemesis.Retrieval import Retrieval
+from archnemesis.Retrieval import Retrieval, redirect_file_access
 from archnemesis.enum import ArchNemesisFileTypeEnum
 
 import archnemesis.cfg.logs as logging
@@ -32,7 +32,7 @@ def create_parser():
 	parser.add_argument('--convert', type=lambda x: ArchNemesisFileTypeEnum[x.upper()], choices=tuple(x.name for x in ArchNemesisFileTypeEnum if x.name != 'UNDEFINED'), help='Will convert inputs to specified format', default=ArchNemesisFileTypeEnum.UNDEFINED)
 	parser.add_argument('--no_plot', dest='do_plot', action='store_false', help='if present, will not create any plots', default=True)
 	parser.add_argument('--no_write', dest='do_write', action='store_false', help='if present, will not write the results to disk', default=True)
-	#parser.add_argument('--redirect_path', type=redirect_file_access.Redirector.from_string, action='append', help='Creates a redirect from as string formatted as "{old_path}->{new_path}" any paths relative to {old_path} are redirected to be relative to {new_path}', default=[])
+	parser.add_argument('--redirect_path', type=redirect_file_access.Redirector.from_string, action='append', help='Creates a redirect from as string formatted as "{old_path}->{new_path}" any paths relative to {old_path} are redirected to be relative to {new_path}', default=[])
 	#parser.add_argument('--plot_path_fmt', type=PathFormat.from_argument, help=PathFormat.get_description(extra_keywords=('retrieval_dir', 'plot_name',)) + ' (default = "{retrieval_dir}/{plot_name}.png")', default=PathFormat('{retrieval_dir}/{plot_name}.png'))
 
 	retrieval_engine_subparsers = parser.add_subparsers(
@@ -119,7 +119,10 @@ if __name__ == '__main__':
 	if n_paths == 1:
 		path = Path(paths[0])
 		
-		retrieval = Retrieval.from_path(path)
+		retrieval = Retrieval.from_path(
+			path,
+			path_redirects = tuple(args.pop('redirect_path', []))
+		)
 		
 		# perform any conversions first
 		retrieval.filetype = args.pop('convert', retrieval.filetype)
