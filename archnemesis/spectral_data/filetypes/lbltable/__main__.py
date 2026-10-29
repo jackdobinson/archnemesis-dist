@@ -223,7 +223,7 @@ def plot(
 		if np.count_nonzero(opac_grid_nonzero_mask) > 0:
 			opac_lims = (np.min(opacity_grid[opac_grid_nonzero_mask]), np.max(opacity_grid[opac_grid_nonzero_mask]))
 		else:
-			opac_lims = (1,1)
+			opac_lims = (1,10)
 		
 		ax_ymargin.set_xlim(opac_lims)
 		ax_xmargin.set_ylim(opac_lims)
