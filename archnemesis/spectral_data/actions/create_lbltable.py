@@ -17,7 +17,7 @@ from archnemesis.helpers.argparse_helper import ArgArray1D, action_enum_choice
 #from archnemesis.helpers.wave_helper import waves_as_unit
 
 from archnemesis.Data.constants import atm_pascal
-from archnemesis.LineData_0 import LineData_0
+from archnemesis.LineData_0 import LineData_0, _MODULE_CACHE
 
 from ..mol_selector import MolSelector
 from ..filetypes.lbltable.file import LblTableFile
@@ -58,7 +58,7 @@ def add_subcommand_to(subparser_adder) -> ap.ArgumentParser:
 	parser.add_argument('--s_min', type=float, help='Strength floor of non-continuum lines (default=0.0)', default=0.0)
 	parser.add_argument('--output_prefix', help='Prefix of output file (default="lbl")', default="lbl")
 	parser.add_argument('-n', '--n_cores', type=int, help='Number of cores to use when calculating line-by-line table. Special numbers: 0 = all available; -ve = number of cores on system minus specified number; +ve = number of cores to use. Always capped at number of logical cores on system. (default=-2)', default=-2)
-	#parser.add_argument('-u', '--include_units', action='store_true', help='If present, will include units in the output table', default=False)
+	parser.add_argument('--no_cache', action='store_true', help='If present, not cache anything (may be useful to save memory)', default=False)
 
 
 def _create_lbltable_name(output_prefix : str, mol_name : str, iso_id : int, wave_unit : str):
@@ -83,6 +83,7 @@ def _action_create_lbltable(
 	s_min : float = 0.0,
 	output_prefix : str = "lbl",
 	n_cores : int = -2,
+	no_cache : bool = False
 ):
 	_lgr.info(f'{line_database=}')
 	_lgr.info(f'{partition_function_database=}')
@@ -194,7 +195,7 @@ def _action_create_lbltable(
 							LINE_DATABASE = line_database,
 							PARTITION_FUNCTION_DATABASE = partition_function_database if partition_function_database is not None else line_database,
 							CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database,
-							cache=None,
+							cache=None if no_cache else _MODULE_CACHE,
 						)
 						
 						# may as well set this here instead of later
@@ -275,7 +276,7 @@ def _action_create_lbltable(
 				LINE_DATABASE = line_database,
 				PARTITION_FUNCTION_DATABASE = partition_function_database if partition_function_database is not None else line_database,
 				CONTINUUM_DATABASE = pseudo_continuum_database if pseudo_continuum_database is not None else line_database,
-				cache=None,
+				cache=None if no_cache else _MODULE_CACHE,
 			)
 			
 			
