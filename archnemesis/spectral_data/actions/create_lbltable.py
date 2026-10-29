@@ -14,7 +14,7 @@ from archnemesis.enum import (
 )
 
 from archnemesis.helpers.argparse_helper import ArgArray1D, action_enum_choice
-from archnemesis.helpers.wave_helper import waves_as_unit
+#from archnemesis.helpers.wave_helper import waves_as_unit
 
 from archnemesis.Data.constants import atm_pascal
 from archnemesis.LineData_0 import LineData_0
@@ -92,8 +92,6 @@ def _action_create_lbltable(
 	_lgr.info(f'{wave_array=}')
 	_lgr.info(f'{use_atm_profile=}')
 	
-	wn_array = waves_as_unit(wave_array, wave_unit, WaveUnitEnum.Wavenumber_cm)
-	
 	
 	_lgr.info(f'{wn_approx_window=}')
 	_lgr.info(f'{wn_calc_window=}')
@@ -149,8 +147,8 @@ def _action_create_lbltable(
 		
 		_lgr.info('Writing all data except opacity to lbl-table files...')
 		for mol_iso_idx, lbl_file_handle in enumerate(lbl_file_handles):
-			opac_shape = (wn_array.size, press_array.size, temp_array.shape[-1])
-			lbl_file_handle.write(mol_iso_pairs[mol_iso_idx][0], mol_iso_pairs[mol_iso_idx][1], wn_array, press_array, temp_array, np.full(opac_shape, fill_value=np.nan))
+			opac_shape = (wave_array.size, press_array.size, temp_array.shape[-1])
+			lbl_file_handle.write(mol_iso_pairs[mol_iso_idx][0], mol_iso_pairs[mol_iso_idx][1], wave_array, press_array, temp_array, np.full(opac_shape, fill_value=np.nan))
 		
 		
 		def perform_monochromatic_absorption_calculation(job_idx, line_data_instance, monochromatic_absorption_kwargs):
@@ -177,7 +175,7 @@ def _action_create_lbltable(
 				_lgr.info(f'Getting calculation arguments for {mol_iso_pair} [{mol_iso_idx}/{len(mol_iso_pairs)}]')
 
 				k_result_list.append(
-					np.full((wn_array.size, press_array.size, (temp_array.shape[1] if temp_array.ndim == 2 else temp_array.size)), fill_value=np.nan)
+					np.full((wave_array.size, press_array.size, (temp_array.shape[1] if temp_array.ndim == 2 else temp_array.size)), fill_value=np.nan)
 				)
 				
 				for i, p_calc in enumerate(press_array):
@@ -201,20 +199,22 @@ def _action_create_lbltable(
 						
 						# may as well set this here instead of later
 						line_data_instance.set_params( 
-							vmin = np.min(wn_array) - 2*wn_approx_window,
-							vmax = np.max(wn_array) + 2*wn_approx_window,
+							vmin = np.min(wave_array) - 2*wn_approx_window,
+							vmax = np.max(wave_array) + 2*wn_approx_window,
 							s_min = s_min,
 							t_req = t_calc,
 							p_req = p_calc,
+							wave_unit = wave_unit,
 						)
 						
 						yield (
 								line_data_instance,
 								dict(
-									wave_grid=wn_array, 
+									wave_grid=wave_array, 
 									t_calc=t_calc, 
 									p_calc=p_calc, 
 									amb_frac = ambient_gas_fractions,
+									wave_unit = wave_unit,
 									wn_calc_window = wn_calc_window,
 									wn_approx_window = wn_approx_window,
 									combined_output=True,
@@ -262,7 +262,7 @@ def _action_create_lbltable(
 		#for mol_iso_idx, k in enumerate(k_result_list):
 		#	assert not np.any(np.isnan(k)), f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k))}"
 		#	with LblTableFile(Path(output_prefix+f'__{mol_iso_pairs[mol_iso_idx][0].name}_iso_{mol_iso_pairs[mol_iso_idx][1]}_unit_wavelength_um.lta'), "w") as f:
-		#		f.write(mol_iso_pairs[mol_iso_idx][0], mol_iso_pairs[mol_iso_idx][1], wn_array, press_array, temp_array, k)
+		#		f.write(mol_iso_pairs[mol_iso_idx][0], mol_iso_pairs[mol_iso_idx][1], wave_array, press_array, temp_array, k)
 		
 	
 	else:
@@ -279,29 +279,31 @@ def _action_create_lbltable(
 			)
 			
 			
-			k = np.full((wn_array.size, press_array.size, temp_array.shape[1] if temp_array.ndim == 2 else temp_array.size), fill_value=np.nan)
+			k = np.full((wave_array.size, press_array.size, temp_array.shape[1] if temp_array.ndim == 2 else temp_array.size), fill_value=np.nan)
 			
 			for i, p_calc in enumerate(press_array):
 				temp_array_part = temp_array[i] if temp_array.ndim == 2 else temp_array
 				for j, t_calc in enumerate(temp_array_part):
 					_lgr.info(f'Getting line data for {p_calc=} [{i}/{press_array.size}] {t_calc=} [{j}/{temp_array_part.size}]')
 					line_data_instance.set_params(
-						vmin = np.min(wn_array) - 2*wn_approx_window,
-						vmax = np.max(wn_array) + 2*wn_approx_window,
+						vmin = np.min(wave_array) - 2*wn_approx_window,
+						vmax = np.max(wave_array) + 2*wn_approx_window,
 						s_min = s_min,
 						t_req = t_calc,
 						p_req = p_calc,
+						wave_unit = wave_unit,
 					)
 					
 					line_data_instance.fetch_linedata()
 					
-					_lgr.info(f'Calculating absorption coefficients for {wn_array.size} wavenumbers at {p_calc=} [{i}/{press_array.size}] {t_calc=} [{j}/{temp_array_part.size}]')
+					_lgr.info(f'Calculating absorption coefficients for {wave_array.size} wavenumbers at {p_calc=} [{i}/{press_array.size}] {t_calc=} [{j}/{temp_array_part.size}]')
 					
 					k[:,i,j] = line_data_instance.calculate_monochromatic_absorption(
-						wn_array, 
+						wave_array, 
 						t_calc=t_calc, 
 						p_calc=p_calc, 
 						amb_frac = ambient_gas_fractions,
+						wave_unit = wave_unit,
 						wn_calc_window = wn_calc_window,
 						wn_approx_window = wn_approx_window,
 						combined_output=True,
@@ -310,4 +312,4 @@ def _action_create_lbltable(
 			
 			assert not np.any(np.isnan(k)), f"Absorption coefficient must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k))}"
 			with LblTableFile(Path(_create_lbltable_name(output_prefix, mol_iso_pair[0].name, mol_iso_pair[1], wave_unit.name.lower())), "w") as f:
-				f.write(mol_iso_pair[0], mol_iso_pair[1], wn_array, press_array, temp_array, k)
+				f.write(mol_iso_pair[0], mol_iso_pair[1], wave_array, press_array, temp_array, k)
