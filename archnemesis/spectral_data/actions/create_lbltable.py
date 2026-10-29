@@ -14,7 +14,7 @@ from archnemesis.enum import (
 )
 
 from archnemesis.helpers.argparse_helper import ArgArray1D, action_enum_choice
-#from archnemesis.helpers.wave_helper import waves_as_unit
+from archnemesis.helpers.wave_helper import waves_as_unit
 
 from archnemesis.Data.constants import atm_pascal
 from archnemesis.LineData_0 import LineData_0, _MODULE_CACHE
@@ -200,12 +200,12 @@ def _action_create_lbltable(
 						
 						# may as well set this here instead of later
 						line_data_instance.set_params( 
-							vmin = np.min(wave_array) - 2*wn_approx_window,
-							vmax = np.max(wave_array) + 2*wn_approx_window,
+							vmin = waves_as_unit(np.min(wave_array), wave_unit, WaveUnitEnum.Wavenumber_cm) - 2*wn_approx_window,
+							vmax = waves_as_unit(np.max(wave_array), wave_unit, WaveUnitEnum.Wavenumber_cm) + 2*wn_approx_window,
 							s_min = s_min,
 							t_req = t_calc,
 							p_req = p_calc,
-							wave_unit = wave_unit,
+							wave_unit = WaveUnitEnum.Wavenumber_cm,
 						)
 						
 						yield (
@@ -290,12 +290,12 @@ def _action_create_lbltable(
 				for j, t_calc in enumerate(temp_array_part):
 					_lgr.info(f'Getting line data for {p_calc=} [{i}/{press_array.size}] {t_calc=} [{j}/{temp_array_part.size}]')
 					line_data_instance.set_params(
-						vmin = np.min(wave_array) - 2*wn_approx_window,
-						vmax = np.max(wave_array) + 2*wn_approx_window,
+						vmin = waves_as_unit(np.min(wave_array), wave_unit, WaveUnitEnum.Wavenumber_cm) - 2*wn_approx_window,
+						vmax = waves_as_unit(np.max(wave_array), wave_unit, WaveUnitEnum.Wavenumber_cm) + 2*wn_approx_window,
 						s_min = s_min,
 						t_req = t_calc,
 						p_req = p_calc,
-						wave_unit = wave_unit,
+						wave_unit = WaveUnitEnum.Wavenumber_cm,
 					)
 					
 					line_data_instance.fetch_linedata()
