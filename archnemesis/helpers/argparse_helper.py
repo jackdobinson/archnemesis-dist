@@ -41,6 +41,12 @@ class ArgArray1D:
 			assert len(values) == 3, "Must have 3 values to specify a 1d range"
 			setattr(namespace, self.dest, np.arange(float(values[0]), float(values[1]), float(values[2])))
 	
+	class ProgressionAction(ap.Action):
+		def __call__(self, parser, namespace, values, option_string=None):
+			#print(f'{(parser, namespace, values, option_string)=}')
+			assert len(values) == 3, "Must have 3 values to specify a 1d progression"
+			setattr(namespace, self.dest, np.linspace(float(values[0]), float(values[0])+float(values[1])*float(values[2]), float(values[2])))
+	
 	class PointsAction(ap.Action):
 		def __call__(self, parser, namespace, values, option_string=None):
 			#print(f'{(parser, namespace, values, option_string)=}')
@@ -87,6 +93,16 @@ class ArgArray1D:
 				action = cls.RangeAction,
 				metavar=('<min>','<max>','<delta>'), 
 				help='Specified as a range of points `delta` apart between `min` and `max` (not inclusive).', 
+				default=default
+			)
+			
+			mutex_grp.add_argument(
+				f"--{name}_progression", 
+				nargs=3, 
+				dest = dest,
+				action = cls.RangeAction,
+				metavar=('<min>','<delta>','<n>'), 
+				help='Specified as a progression of `n` points `delta` apart starting at `min`.', 
 				default=default
 			)
 			
