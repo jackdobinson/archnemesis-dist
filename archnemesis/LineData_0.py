@@ -246,7 +246,6 @@ def add_line_set_monochromatic_spectrum(
     """
     Calculates the combined spectrum from many absorption lines
     """
-    wn_direction : int = 1 if wn_grid[1] > wn_grid[0] else -1
     wn_delta : float = 0.0
     wn_calc_window_min :float = -1*wn_calc_window
     wn_calc_window_max : float = wn_calc_window
@@ -262,7 +261,7 @@ def add_line_set_monochromatic_spectrum(
         line_approx_const = lineshape_fn(wn_calc_window_max, alpha_d[i], gamma_l[i])
         
         for j in range(wn_grid.shape[0]):
-            wn_delta = wn_direction*(wn_grid[j] - (nu[i] + line_shift[i]))
+            wn_delta = wn_grid[j] - (nu[i] + line_shift[i])
             
             if wn_delta >= wn_approx_window_max:
                     break
@@ -2499,10 +2498,8 @@ class LineData_0:
         
         # Create default arrays
         if out is None:
-            result = np.zeros_like(wave_grid, dtype=float)
-            out = result[...]
-        else:
-            result = out[...]
+            out = np.zeros_like(wave_grid, dtype=float)
+        result = out.view()
         
         if store is None:
             store = np.zeros((4, self.max_lines_or_bins), dtype=float)
