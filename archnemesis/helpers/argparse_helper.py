@@ -1,4 +1,4 @@
-
+import sys
 import argparse as ap
 from typing import Any
 
@@ -121,6 +121,15 @@ class ArgArray1D:
 			)
 
 		return dest, containing_group, mutex_grp
-		
+
+def get_arg_usage_str(parser):
+	
+	# Hack because before 3.14 parser._get_formatter()._get_actions_usage_parts(...) returned a list, not a tuple[list,int]
+	if sys.version_info[0] >= 3 and sys.version_info[1] >= 14:
+		return ' '.join(parser._get_formatter()._get_actions_usage_parts(parser._actions, parser._mutually_exclusive_groups)[0])
+	else:
+		return ' '.join(parser._get_formatter()._get_actions_usage_parts(parser._actions, parser._mutually_exclusive_groups))
+
+
 
 

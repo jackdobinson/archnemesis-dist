@@ -10,6 +10,7 @@ import argparse as ap
 
 from archnemesis.Retrieval import Retrieval, redirect_file_access
 from archnemesis.enum import ArchNemesisFileTypeEnum
+from archnemesis.helpers.argparse_helper import get_arg_usage_str
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -48,13 +49,14 @@ def create_parser():
 	optimal_estimation_parser.add_argument('--iter', dest='n_iter', type=int, help='Number of iterations to perform if running optimal estimation (default is to use number specified in the input files)', default=None)
 	optimal_estimation_parser.add_argument('--write_itr', action='store_true', help='Should we write a *.itr file that stores information about each iteration?', default=False)
 
-	retrieval_engine_subparsers._choices_actions[-1].help = ' '.join(optimal_estimation_parser._get_formatter()._get_actions_usage_parts(optimal_estimation_parser._actions, optimal_estimation_parser._mutually_exclusive_groups))
+	
+	retrieval_engine_subparsers._choices_actions[-1].help = get_arg_usage_str(optimal_estimation_parser)
 	#optimal_estimation_parser.help = optimal_estimation_parser.usage
 
 	nested_sampling_parser = retrieval_engine_subparsers.add_parser('NestedSampling', help='PLACEHOLDER')
 	nested_sampling_parser.add_argument('-n', '--n_cores', type=int, help='Number of cores to run parallelised processes on (default is to use the number specified in the input files)', default=None)
 
-	retrieval_engine_subparsers._choices_actions[-1].help = ' '.join(nested_sampling_parser._get_formatter()._get_actions_usage_parts(nested_sampling_parser._actions, nested_sampling_parser._mutually_exclusive_groups))
+	retrieval_engine_subparsers._choices_actions[-1].help = get_arg_usage_str(nested_sampling_parser)
 
 	return parser
 
