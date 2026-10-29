@@ -45,7 +45,7 @@ class ArgArray1D:
 		def __call__(self, parser, namespace, values, option_string=None):
 			#print(f'{(parser, namespace, values, option_string)=}')
 			assert len(values) == 3, "Must have 3 values to specify a 1d progression"
-			setattr(namespace, self.dest, np.linspace(float(values[0]), float(values[0])+float(values[1])*float(values[2]), float(values[2])))
+			setattr(namespace, self.dest, np.linspace(float(values[0]), float(values[0])+float(values[1])*float(values[2]), int(values[2])))
 	
 	class PointsAction(ap.Action):
 		def __call__(self, parser, namespace, values, option_string=None):
@@ -100,7 +100,7 @@ class ArgArray1D:
 				f"--{name}_progression", 
 				nargs=3, 
 				dest = dest,
-				action = cls.RangeAction,
+				action = cls.ProgressionAction,
 				metavar=('<min>','<delta>','<n>'), 
 				help='Specified as a progression of `n` points `delta` apart starting at `min`.', 
 				default=default
