@@ -36,8 +36,10 @@ def plot(
 	_lgr.info(f'{lbl_table_data.temperatures.shape=}')
 	_lgr.info(f'{lbl_table_data.opacities.shape=}')
 	
+	_lgr.info(f'{lbl_table_data.wavenumbers=}')
 	_lgr.info(f'{lbl_table_data.pressures=}')
 	_lgr.info(f'{lbl_table_data.temperatures=}')
+	_lgr.info(f'{lbl_table_data.opacities=}')
 	
 	_lgr.info(f'{save_plots=}')
 	_lgr.info(f'{no_show_plots=}')
@@ -205,7 +207,9 @@ def plot(
 			opac_selector = (sorted_wave_idxs, slice(None))
 		else:
 			opac_selector = (sorted_wave_idxs[:,None], sorted_pressures_idxs[None,:])
-			
+		
+		_lgr.debug(f'{opac_selector=}')
+		
 		opacity_grid[...] = (lbl_table_data.opacities[
 			*opac_selector,
 			temp_idx
