@@ -303,7 +303,7 @@ def _action_create_lbltable(
 					_lgr.info(f'Calculating absorption coefficients for {wave_array.size} wavenumbers at {p_calc=} [{i}/{press_array.size}] {t_calc=} [{j}/{temp_array_part.size}]')
 					
 					if np.all(k_partial == 0):
-						_lgr.warn(f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] are all zeros at press_idx {i} temp_idx {j}")
+						_lgr.error(f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] are all zeros at press_idx {i} temp_idx {j}")
 			
 					
 					k[:,i,j] = line_data_instance.calculate_monochromatic_absorption(
