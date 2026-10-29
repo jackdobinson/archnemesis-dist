@@ -245,6 +245,9 @@ def _action_create_lbltable(
 			
 			assert not np.any(np.isnan(k_partial)), f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] must not be NAN at any point but have NANs at indices {np.argwhere(np.isnan(k_partial))} at press_idx {i} temp_idx {j}"
 			
+			if np.all(k_partial == 0):
+				_lgr.warn(f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] are all zeros at press_idx {i} temp_idx {j}")
+			
 			lbl_file_handles[mol_iso_idx].write_opacities_part(k_partial, i, j)
 			
 			#k_result_list[mol_iso_idx][:,i,j] = k_partial
@@ -298,6 +301,10 @@ def _action_create_lbltable(
 					line_data_instance.fetch_linedata()
 					
 					_lgr.info(f'Calculating absorption coefficients for {wave_array.size} wavenumbers at {p_calc=} [{i}/{press_array.size}] {t_calc=} [{j}/{temp_array_part.size}]')
+					
+					if np.all(k_partial == 0):
+						_lgr.warn(f"Absorption coefficients for {mol_iso_pairs[mol_iso_idx][0].name}[{mol_iso_pairs[mol_iso_idx][1]}] are all zeros at press_idx {i} temp_idx {j}")
+			
 					
 					k[:,i,j] = line_data_instance.calculate_monochromatic_absorption(
 						wave_array, 
