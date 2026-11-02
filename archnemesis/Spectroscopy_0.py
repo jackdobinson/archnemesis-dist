@@ -2469,14 +2469,14 @@ def read_ltahead(filename):
     """
 
     with LblTableFile(Path(filename).with_suffix('.lta'), 'r') as f:
-        gasID, isoID, waves, pressures, temperatures, _ = f.read_header()
+        gasID, isoID, waves, pressures, temperatures, k = f.read_header()
     
     return (
         waves.size, 
         np.min(waves[0]), 
         np.abs(np.diff(waves)[0]),
         pressures.size, 
-        temperatures.size, 
+        temperatures.shape[-1] * (-1 if temperatures.ndim == 2 else 1), 
         gasID, 
         isoID, 
         pressures, 
