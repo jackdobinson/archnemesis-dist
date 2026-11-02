@@ -1711,15 +1711,15 @@ class Atmosphere_0:
         isoID = np.atleast_1d(isoID)
         
         if self.NLOCATIONS==1:
-            p = self.P
-            t = self.T
+            #p = self.P
+            #t = self.T
             h = self.H
-            vmr = self.VMR
+            #vmr = self.VMR
         elif self.NLOCATIONS>1:
-            p = self.P[:,ILOCATION]
-            t = self.T[:,ILOCATION]
+            #p = self.P[:,ILOCATION]
+            #t = self.T[:,ILOCATION]
             h = self.H[:,ILOCATION]
-            vmr = self.VMR[:,:,ILOCATION]
+            #vmr = self.VMR[:,:,ILOCATION]
         if len(gasID)>1:
             for i in range(len(gasID)):
                 label = gas_info[str(gasID[i])]['name']
@@ -1756,8 +1756,6 @@ class Atmosphere_0:
         Makes a summary plot of the current atmospheric profiles
         """
         
-        from archnemesis.Data.gas_data import gas_info#, const
-
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3, sharey=True,figsize=(10,4))
 
         if self.NLOCATIONS==1:
