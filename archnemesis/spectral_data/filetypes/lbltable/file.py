@@ -126,7 +126,7 @@ class LblTableFile:
 			wave_max : float = np.inf,
 	) -> LblTableData:
 		lbl_table_data = self._reader.read(wave_unit=wave_unit)
-		mask = lbl_table_data.wavenumbers >= wave_min & lbl_table_data <= wave_max
+		mask = (lbl_table_data.wavenumbers >= wave_min) & (lbl_table_data <= wave_max)
 		return LblTableData(
 			lbl_table_data.mol_id,
 			lbl_table_data.iso_id,
