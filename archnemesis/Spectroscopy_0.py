@@ -1560,7 +1560,7 @@ class Spectroscopy_0:
                 for igas in range(self.NGAS):
                     _lgr.info(f'Reading table {self.LOCATION[igas]=} {wavemin=} {wavemax=}')
                     with LblTableFile(Path(self.LOCATION[igas]).with_suffix('.lta'), 'r') as f:
-                        gasID, isoID, wavenumbers, pressures, temperatures, k = f.read()
+                        gasID, isoID, wavenumbers, pressures, temperatures, k = f.read(wave_min=self.WAVE.min(), wave_max=self.WAVE.max())
                         
                     #npress,ntemp,gasID,isoID,presslevels,templevels,nwave,wave,k = read_lbltable(self.LOCATION[igas],self.WAVE.min(),self.WAVE.max())
                     kstore[:,:,:,igas] = k[:,:,:]
