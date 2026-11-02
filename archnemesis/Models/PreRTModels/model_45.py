@@ -7,7 +7,7 @@ from ._base import PreRTModelBase
 from ..ModelParameter import ModelParameter
 
 
-from archnemesis.enum import AtmosphericProfileTypeEnum
+from archnemesis.enum import AtmosphericProfileTypeEnum, GasEnum
 
 from ..log import _lgr  # noqa # Ignore if _lgr is not used
 
@@ -34,54 +34,46 @@ if TYPE_CHECKING:
 
 class Model45(PreRTModelBase):
     """
-        Variable deep tropospheric and stratospheric abundances, along with tropospheric humidity.
+        Irwin gas model: Variable deep tropospheric and stratospheric abundances,
+        along with tropospheric humidity.
+
+        Supports CH4 (gas 6), NH3 (gas 11), and H2S (gas 36).
+        The H2S saturation law describes solid ice below 187.6 K.
+        The three state-vector entries are ln(deep VMR), ln(humidity),
+        and ln(stratospheric VMR), in that order.
     """
     
     id : int = 45
 
+    # ln(saturation pressure / bar) = A + B / T.
+    # CH4 and NH3 use the coefficients from the Fortran Irwin routines.
+    _svp_coefficients = {
+        GasEnum.CH4: (10.6815, -1163.83),
+        GasEnum.NH3: (17.3471, -3930.55),
+        GasEnum.H2S: (12.953, -2706.2),
+    }
+
     def __init__(
             self, 
             state_vector_start : int, 
-            #   Index of the state vector where parameters from this model start
-            
             n_state_vector_entries : int,
-            #   Number of parameters for this model stored in the state vector
-            
             atm_profile_type : AtmosphericProfileTypeEnum,
-            #   ENUM that tells us what kind of atmospheric profile this model instance represents
         ):
-        """
-            Initialise an instance of the model.
-        """
         super().__init__(state_vector_start, n_state_vector_entries, atm_profile_type)
         
-        # Define sub-slices of the state vector that correspond to
-        # parameters of the model.
-        # NOTE: It is best to define these in the same order and with the
-        # same names as they are saved to the state vector, and use the same
-        # names and ordering when they are passed to the `self.calculate(...)` 
-        # class method.
         self.parameters = (
-            ModelParameter('deep_vmr', slice(0,1), 'deep (topospheric) gas volume mixing ratio', 'RATIO'),
+            ModelParameter('deep_vmr', slice(0,1), 'deep (tropospheric) gas volume mixing ratio', 'RATIO'),
             ModelParameter('humidity', slice(1,2), 'relative humidity of gas', 'RATIO'),
             ModelParameter('strato_vmr', slice(2,3), 'high (stratospheric) gas volume mixing ratio', 'RATIO'),
         )
-        
         return
-
 
     @classmethod
     def calculate(
             cls, 
             atm : "Atmosphere_0",
-            #   Instance of Atmosphere_0 class we are operating upon
-            
             atm_profile_type : AtmosphericProfileTypeEnum,
-            #   ENUM of atmospheric profile type we are altering.
-            
             atm_profile_idx : int | None,
-            #   Index of the atmospheric profile we are altering (or None if the profile type does not have multiples)
-            
             tropo, 
             humid, 
             strato, 
@@ -89,45 +81,25 @@ class Model45(PreRTModelBase):
         ) -> tuple["Atmosphere_0", np.ndarray]:
 
         """
-            FUNCTION NAME : model45()
+            FUNCTION NAME : Model45.calculate
 
             DESCRIPTION :
-
-                Irwin CH4 model. Variable deep tropospheric and stratospheric abundances,
-                along with tropospheric humidity.
+                Irwin gas model. Variable deep tropospheric and stratospheric abundances,
+                along with tropospheric humidity. As in Fortran Model45, condensation is
+                triggered at full saturation, then humidity scales the saturated
+                abundance. The stratospheric and deep abundance caps follow.
 
             INPUTS :
-
-                atm :: Python class defining the atmosphere
-
-                atm_profile_type :: AtmosphericProfileTypeEnum
-                    ENUM of atmospheric profile type we are altering.
-                
-                atm_profile_idx : int | None
-                    Index of the atmospheric profile we are altering (or None if the profile type does not have multiples)
-
-                tropo :: Deep methane VMR
-
-                humid :: Relative methane humidity in the troposphere
-
-                strato :: Stratospheric methane VMR
-
-            OPTIONAL INPUTS:
-
-                MakePlot :: If True, a summary plot is generated
+                tropo :: Deep gas VMR
+                humid :: Relative gas humidity in the troposphere
+                strato :: Stratospheric gas VMR
 
             OUTPUTS :
-
-                atm :: Updated atmospheric class
-                xmap(npro) :: Matrix of relating funtional derivatives to 
-                                                 elements in state vector
-
-            CALLING SEQUENCE:
-
-                atm,xmap = model45(atm, atm_profile_type, atm_profile_idx, tropo, humid, strato)
-
-            MODIFICATION HISTORY : Joe Penn (09/10/2024)
-
+                atm :: Updated atmosphere
+                xnewgrad(3, NP) :: Derivatives of VMR with respect to
+                    ln(tropo), ln(humid), and ln(strato), respectively.
+                    These are derivatives within the selected branch; a
+                    derivative across a branch discontinuity is not defined.
         """
 
         _lgr.debug(f'{atm_profile_type=} {atm_profile_idx=} {tropo=} {humid=} {strato=}')
@@ -137,40 +109,59 @@ class Model45(PreRTModelBase):
             _lgr.error(_msg)
             raise ValueError(_msg)
             
-        SCH40 = 10.6815
-        SCH41 = -1163.83
-        # psvp is in bar
+        if atm_profile_idx is None:
+            raise ValueError('Model45 requires a gas profile index')
+        gas_id = atm.ID[atm_profile_idx]
+        if gas_id not in cls._svp_coefficients:
+            raise ValueError(f'Model45 is not set up for gas ID {gas_id}; expected 6, 11, or 36')
+        svp_a, svp_b = cls._svp_coefficients[gas_id]
+
         NP = atm.NP
 
         xnew = np.zeros(NP)
-        xnewgrad = np.zeros(NP)
-        pch4 = np.zeros(NP)
+        xnewgrad = np.zeros((3, NP))
+        partial_pressure = np.zeros(NP)
         pbar = np.zeros(NP)
         psvp = np.zeros(NP)
 
         for i in range(NP):
-            pbar[i] = atm.P[i] /100000#* 1.013
-            tmp = SCH40 + SCH41 / atm.T[i]
+            pbar[i] = atm.P[i] / 100000.0  # Convert Pascal to Bar
+
+            # Calculate saturation pressure in bar for the selected gas.
+            tmp = svp_a + svp_b / atm.T[i]
             psvp[i] = 1e-30 if tmp < -69.0 else np.exp(tmp)
 
-            pch4[i] = tropo * pbar[i]
-            if pch4[i] / psvp[i] > 1.0:
-                pch4[i] = psvp[i] * humid
+            # 1. Start with Deep VMR
+            partial_pressure[i] = tropo * pbar[i]
+            active_parameter = 0
 
-            if pbar[i] < 0.1 and pch4[i] / pbar[i] > strato:
-                pch4[i] = pbar[i] * strato
+            # 2. Check Condensation (Humidity limit)
+            if partial_pressure[i] / psvp[i] > 1.0:
+                partial_pressure[i] = psvp[i] * humid
+                active_parameter = 1
 
-            if pbar[i] > 0.5 and pch4[i] / pbar[i] > tropo:
-                pch4[i] = pbar[i] * tropo
-                xnewgrad[i] = 1.0
+            # 3. Stratospheric Cap (Photochemistry/Depletion)
+            # Cap VMR if pressure is low (< 0.1 bar)
+            if pbar[i] < 0.1 and partial_pressure[i] / pbar[i] > strato:
+                partial_pressure[i] = pbar[i] * strato
+                active_parameter = 2
 
-            xnew[i] = pch4[i] / pbar[i]
+            # 4. Enforce Deep VMR (Deep Atmosphere > 0.5 bar)
+            # Supersaturated humidity can exceed the deep abundance; apply
+            # Model45's final cap and replace the active derivative as well.
+            if pbar[i] > 0.5 and partial_pressure[i] / pbar[i] > tropo:
+                partial_pressure[i] = pbar[i] * tropo
+                active_parameter = 0
+
+            xnew[i] = partial_pressure[i] / pbar[i]
+            # Within each branch VMR is proportional to the active parameter,
+            # so d(VMR)/d(ln(parameter)) equals VMR itself.
+            xnewgrad[active_parameter, i] = xnew[i]
 
         _lgr.debug(f'{xnew=}')
         atm.VMR[:, atm_profile_idx] = xnew
 
         return atm, xnewgrad
-
 
     @classmethod
     def from_apr_to_state_vector(
@@ -191,20 +182,19 @@ class Model45(PreRTModelBase):
             runname : str,
             sxminfac : float,
         ) -> Self:
+        if varident[0] not in cls._svp_coefficients:
+            raise ValueError(f'Model45 is not set up for gas ID {varident[0]}; expected 6, 11, or 36')
         ix_0 = ix
-        #******** Irwin CH4 model. Represented by tropospheric and stratospheric methane 
-        #******** abundances, along with methane humidity. 
-        tmp = np.fromstring(f.readline().rsplit('!',1)[0], sep=' ',count=2,dtype='float') # Use "!" as comment character in *.apr files
+        # Irwin gas model: deep VMR, humidity, stratospheric VMR.
+        tmp = np.fromstring(f.readline().rsplit('!',1)[0], sep=' ',count=2,dtype='float')
         tropo = tmp[0]
         etropo = tmp[1]
-        tmp = np.fromstring(f.readline().rsplit('!',1)[0], sep=' ',count=2,dtype='float') # Use "!" as comment character in *.apr files
+        tmp = np.fromstring(f.readline().rsplit('!',1)[0], sep=' ',count=2,dtype='float')
         humid = tmp[0]
         ehumid = tmp[1]
-        tmp = np.fromstring(f.readline().rsplit('!',1)[0], sep=' ',count=2,dtype='float') # Use "!" as comment character in *.apr files
+        tmp = np.fromstring(f.readline().rsplit('!',1)[0], sep=' ',count=2,dtype='float')
         strato = tmp[0]
         estrato = tmp[1]
-
-
 
         x0[ix] = np.log(tropo)
         lx[ix] = 1
@@ -228,7 +218,7 @@ class Model45(PreRTModelBase):
         ix = ix + 1
 
         model_classification = variables.classify_model_type_from_varident(varident, ngas, ndust)
-        assert issubclass(cls, model_classification[0]), "Model base class must agree with the classification from Variables_0::classify_model_type_from_varident"
+        assert issubclass(cls, model_classification[0]), "Model base class mismatch"
 
         return cls(ix_0, ix-ix_0, model_classification[1])
     
@@ -244,16 +234,14 @@ class Model45(PreRTModelBase):
             ndust : int,
             nlocations : int,
         ) -> Self:
+        if varident[0] not in cls._svp_coefficients:
+            raise ValueError(f'Model45 is not set up for gas ID {varident[0]}; expected 6, 11, or 36')
         ix_0 = ix
-        #******** Irwin CH4 model. Represented by tropospheric and stratospheric methane 
-        #******** abundances, along with methane humidity. 
+        # Irwin gas model bookmark.
         ix = ix + 3
-
         model_classification = variables.classify_model_type_from_varident(varident, ngas, ndust)
-        assert issubclass(cls, model_classification[0]), "Model base class must agree with the classification from Variables_0::classify_model_type_from_varident"
-
+        assert issubclass(cls, model_classification[0]), "Model base class mismatch"
         return cls(ix_0, ix-ix_0, model_classification[1])
-
 
     def calculate_from_subprofretg(
             self,
@@ -263,14 +251,6 @@ class Model45(PreRTModelBase):
             ivar : int,
             xmap : np.ndarray,
         ) -> None:
-        #Model 45. Irwin CH4 model. Variable deep tropospheric and stratospheric abundances,
-            #along with tropospheric humidity.
-        #***************************************************************
-        #tropo = np.exp(forward_model.Variables.XN[ix])   # Deep tropospheric abundance
-        #humid = np.exp(forward_model.Variables.XN[ix+1])  # Humidity
-        #strato = np.exp(forward_model.Variables.XN[ix+2])  # Stratospheric abundance
-        
-        #forward_model.AtmosphereX,xmap1 = self.calculate(forward_model.AtmosphereX, ipar, tropo, humid, strato)
         
         atm = forward_model.AtmosphereX
         atm_profile_type, atm_profile_idx = atm.ipar_to_atm_profile_type(ipar)
@@ -283,9 +263,5 @@ class Model45(PreRTModelBase):
         )
         
         forward_model.AtmosphereX = atm
-        xmap[ix, ipar, :] = xmap1
-
-        #ix = ix + forward_model.Variables.NXVAR[ivar]
+        xmap[self.state_vector_slice, ipar, 0:atm.NP] = xmap1
         return
-
-

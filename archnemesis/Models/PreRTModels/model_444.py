@@ -36,217 +36,231 @@ class Model444(PreRTModelBase):
         Allows for retrieval of the particle size distribution and imaginary refractive index.
     """
     
-    id : int = 444
-
+    id: int = 444
 
     def __init__(
-            self, 
-            state_vector_start : int, 
-            #   Index of the state vector where parameters from this model start
-            
-            n_state_vector_entries : int,
-            #   Number of parameters for this model stored in the state vector
-            
-            haze_params : dict[str,Any],
-            #   Optical constants for the aerosol species (haze) this model represents
-            
-            aerosol_species_index : int,
-            #   Index of the aerosol species that this model pertains to
-            
-            scattering_type_id : int,
-            #   The scattering type this model uses
-        ):
+        self,
+        state_vector_start: int,
+        n_state_vector_entries: int,
+        haze_params: dict[str, Any],
+        aerosol_species_index: int,
+        scattering_type_id: int,
+    ):
         """
-            Initialise an instance of the model.
+        Initialise an instance of the model.
         """
         super().__init__(state_vector_start, n_state_vector_entries)
-        
-        # Define sub-slices of the state vector that correspond to
-        # parameters of the model
+
+        # State-vector layout: [ ln(a), ln(b), ln(k_im[0]), ln(k_im[1]), ... ]
         self.parameters = (
-            ModelParameter('particle_size_distribution_params', slice(0,2), 'Values that define the particle size distribution'),
-            ModelParameter('imaginary_ref_idx', slice(2,None), 'Imaginary refractive index of the particle size distribution'),
+            ModelParameter(
+                "particle_size_distribution_params",
+                slice(0, 2),
+                "Values that define the particle size distribution (stored ln-space).",
+            ),
+            ModelParameter(
+                "imaginary_ref_idx",
+                slice(2, None),
+                "Imaginary refractive index samples across the haze file grid (stored ln-space).",
+            ),
         )
-        
-        # Store model-specific constants on the model instance for easy access later
+
         self.haze_params = haze_params
         self.aerosol_species_idx = aerosol_species_index
         self.scattering_type_id = scattering_type_id
 
+    @staticmethod
+    def _get_darkening_for_species(Scatter: "Scatter_0", idust: int) -> float:
+        """
+        Robustly read the darkening factor for species idust; default to 1.0.
+        Does not modify REFIND_IM; only returns the factor.
+        """
+        try:
+            val = getattr(Scatter, "DARKENING_PARAMETER", None)
+            if val is None:
+                return 1.0
+            # Accept list/np.ndarray; guard for short arrays
+            if np.ndim(val) == 0:
+                return float(val)
+            if idust < len(val):
+                return float(val[idust])
+            return 1.0
+        except Exception:
+            return 1.0
 
     @classmethod
     def calculate(
-            cls, 
-            Scatter : "Scatter_0",
-            #   Scatter_0 instance of the retrieval setup we are calculating this model for
-            
-            idust : int,
-            #   Aerosol species index we are calculating this model for
-            
-            iscat : int,
-            #   scattering type we are using for this mode. NOTE: this is always set to 1 for now
-            
-            xprof : np.ndarray[["nparam"],float],
-            #   The slice of the state vector that parameters of this model are held in.
-            
-            haze_params : dict[str,Any] ,
-            #   A dictionary of constants for the aerosol being represented by this model.
-            
-        ) -> "Scatter_0":
+        cls,
+        Scatter: "Scatter_0",
+        idust: int,
+        iscat: int,
+        xprof: np.ndarray[["nparam"], float],
+        haze_params: dict[str, Any],
+    ) -> "Scatter_0":
         """
-            FUNCTION NAME : model444()
+        FUNCTION NAME : model444()
 
-            DESCRIPTION :
+        DESCRIPTION :
+            NEMESIS model 444. Retrieves particle size distribution parameters and
+            an imaginary refractive index spectrum. Applies a darkening multiplier
+            from Scatter.DARKENING_PARAMETER[idust] (default 1.0).
 
-                Function defining the model parameterisation 444 in NEMESIS.
+        INPUTS :
+            Scatter    :: Scattering container
+            idust      :: Index of the aerosol distribution (0 .. NDUST-1)
+            iscat      :: Flag indicating the particle size distribution
+            xprof      :: [ ln(a), ln(b), ln(k_im[0..]) ]
+            haze_params:: Haze constants read from 444 file (WAVE, NREAL, WAVE_REF, WAVE_NORM)
 
-                Allows for retrieval of the particle size distribution and imaginary refractive index.
+        OUTPUTS :
+            Scatter :: Updated Scatter class
+        """
+        _lgr.debug(f"{idust=} {iscat=} {xprof=} {type(xprof)=}")
+        for key in ("WAVE", "NREAL", "WAVE_REF", "WAVE_NORM"):
+            _lgr.debug(f"haze_params[{key}] : {type(haze_params[key])} = {haze_params[key]}")
 
-            INPUTS :
-
-                Scatter :: Python class defining the scattering parameters
-                idust :: Index of the aerosol distribution to be modified (from 0 to NDUST-1)
-                iscat :: Flag indicating the particle size distribution
-                xprof :: Contains the size distribution parameters and imaginary refractive index
-                haze_params :: Read from 444 file. Contains relevant constants.
-
-            OPTIONAL INPUTS:
-
-
-            OUTPUTS :
-
-                Scatter :: Updated Scatter class
-
-            CALLING SEQUENCE:
-
-                Scatter = model444(Scatter,idust,iscat,xprof,haze_params)
-
-            MODIFICATION HISTORY : Joe Penn (11/9/2024)
-
-        """   
-        _lgr.debug(f'{idust=} {iscat=} {xprof=} {type(xprof)=}')
-        for item in ('WAVE', 'NREAL', 'WAVE_REF', 'WAVE_NORM'):
-            _lgr.debug(f'haze_params[{item}] : {type(haze_params[item])} = {haze_params[item]}')
-
-        a = np.exp(xprof[0])
-        b = np.exp(xprof[1])
+        # Particle size distribution parameters (stored in ln-space)
+        a = float(np.exp(xprof[0]))
+        b = float(np.exp(xprof[1]))
         if iscat == 1:
-            pars = (a,b,(1-3*b)/b)
+            pars = (a, b, (1 - 3 * b) / b)
         elif iscat == 2:
-            pars = (a,b,0)
+            pars = (a, b, 0.0)
         elif iscat == 4:
-            pars = (a,0,0)
+            pars = (a, 0.0, 0.0)
         else:
-            _lgr.warning(f'ISCAT = {iscat} not implemented for model 444 yet! Defaulting to iscat = 1.')
-            pars = (a,b,(1-3*b)/b)
+            _lgr.warning(f"ISCAT = {iscat} not implemented for model 444 yet! Defaulting to iscat = 1.")
+            pars = (a, b, (1 - 3 * b) / b)
 
-        Scatter.WAVER = haze_params['WAVE']
-        Scatter.REFIND_IM = np.exp(xprof[2:])
-        reference_nreal = haze_params['NREAL']
-        reference_wave = haze_params['WAVE_REF']
-        normalising_wave = haze_params['WAVE_NORM']
-        if len(Scatter.REFIND_IM) == 1:
-            Scatter.REFIND_IM = Scatter.REFIND_IM * np.ones_like(Scatter.WAVER)
+        # Set wavelength grid and base (unscaled) imaginary refractive index
+        Scatter.WAVER = haze_params["WAVE"]
+        k_im_base = np.exp(xprof[2:])  # may be length-1 scalar or spectrum samples
 
-        Scatter.REFIND_REAL = kk_new_sub(np.array(Scatter.WAVER), np.array(Scatter.REFIND_IM), reference_wave, reference_nreal)
+        # Obtain darkening multiplier for this species (defaults to 1.0 if absent)
+        darkening = cls._get_darkening_for_species(Scatter, idust)
 
+        # Apply darkening to the imaginary refractive index definition
+        if np.size(k_im_base) == 1:
+            # Broadcast to the haze wavelength grid after scaling
+            k_im = float(darkening) * float(k_im_base) * np.ones_like(Scatter.WAVER, dtype=float)
+        else:
+            k_im = float(darkening) * np.array(k_im_base, dtype=float)
 
+        Scatter.REFIND_IM = k_im
+
+        # Real refractive index via KK transform anchored at (WAVE_REF, NREAL)
+        reference_nreal = float(haze_params["NREAL"])
+        reference_wave = float(haze_params["WAVE_REF"])
+        normalising_wave = float(haze_params["WAVE_NORM"])
+
+        Scatter.REFIND_REAL = kk_new_sub(
+            np.array(Scatter.WAVER, dtype=float),
+            np.array(Scatter.REFIND_IM, dtype=float),
+            reference_wave,
+            reference_nreal,
+        )
+
+        # Build phase function / optical properties for this species
         Scatter.makephase(idust, iscat, pars)
 
-        xextnorm = np.interp(normalising_wave,Scatter.WAVE,Scatter.KEXT[:,idust])
-        Scatter.KEXT[:,idust] = Scatter.KEXT[:,idust]/xextnorm
-        Scatter.KSCA[:,idust] = Scatter.KSCA[:,idust]/xextnorm
-        return Scatter
+        # Normalise extinction and scattering at the specified normalising wavelength
+        xextnorm = np.interp(normalising_wave, Scatter.WAVE, Scatter.KEXT[:, idust])
+        Scatter.KEXT[:, idust] = Scatter.KEXT[:, idust] / xextnorm
+        Scatter.KSCA[:, idust] = Scatter.KSCA[:, idust] / xextnorm
 
+        _lgr.debug(
+            f"Model444: applied darkening={darkening:.6g}; normalised at {normalising_wave}"
+        )
+        return Scatter
 
     @classmethod
     def from_apr_to_state_vector(
-            cls,
-            variables : "Variables_0",
-            f : IO,
-            varident : np.ndarray[[3],int],
-            varparam : np.ndarray[["mparam"],float],
-            ix : int,
-            lx : np.ndarray[["mx"],int],
-            x0 : np.ndarray[["mx"],float],
-            sx : np.ndarray[["mx","mx"],float],
-            inum : np.ndarray[["mx"],int],
-            npro : int,
-            ngas : int,
-            ndust : int,
-            nlocations : int,
-            runname : str,
-            sxminfac : float,
-        ) -> Self:
+        cls,
+        variables: "Variables_0",
+        f: IO,
+        varident: np.ndarray[[3], int],
+        varparam: np.ndarray[["mparam"], float],
+        ix: int,
+        lx: np.ndarray[["mx"], int],
+        x0: np.ndarray[["mx"], float],
+        sx: np.ndarray[["mx", "mx"], float],
+        inum: np.ndarray[["mx"], int],
+        npro: int,
+        ngas: int,
+        ndust: int,
+        nlocations: int,
+        runname: str,
+        sxminfac: float,
+    ) -> "Model444":
+        """
+        Read the 444 haze file and pack state vector with ln-PSD params and ln(k_im) samples.
+        Preserves legacy covariance-building behaviour including optional correlation length.
+        """
         ix_0 = ix
-        #******** model for retrieving an aerosol particle size distribution and imaginary refractive index spectrum
-        
-        _lgr.debug(f'{ix=}')
-        s = f.readline().split()    
-        haze_f = open(s[0],'r')
+
+        # Read haze file path
+        s = f.readline().split()
+        haze_f = open(s[0], "r")
+
         haze_waves = []
-        for j in range(2):
+
+        # First two lines: ln(a), ln(b), with uncertainties
+        for _ in range(2):
             line = haze_f.readline().split()
             xai, xa_erri = line[:2]
-
             x0[ix] = np.log(float(xai))
             lx[ix] = 1
-            sx[ix,ix] = (float(xa_erri)/float(xai))**2.
+            sx[ix, ix] = (float(xa_erri) / float(xai)) ** 2.0
+            ix += 1
 
-            ix = ix + 1
-        _lgr.debug(f'{ix=}')
+        # Meta and grid
+        nwave, clen = haze_f.readline().split("!")[0].split()
+        vref, nreal_ref = haze_f.readline().split("!")[0].split()
+        v_od_norm = haze_f.readline().split("!")[0]
 
-        nwave, clen = haze_f.readline().split('!')[0].split()
-        vref, nreal_ref = haze_f.readline().split('!')[0].split()
-        v_od_norm = haze_f.readline().split('!')[0]
-        _lgr.debug(f'{nwave=} {clen=} {vref=} {nreal_ref=} {v_od_norm=}')
-
-        for j in range(int(nwave)):
+        # k_im samples (ln) with uncertainties
+        for _ in range(int(nwave)):
             line = haze_f.readline().split()
             v, xai, xa_erri = line[:3]
-
             x0[ix] = np.log(float(xai))
             lx[ix] = 1
-            sx[ix,ix] = (float(xa_erri)/float(xai))**2.
-
-            ix = ix + 1
+            sx[ix, ix] = (float(xa_erri) / float(xai)) ** 2.0
+            ix += 1
             haze_waves.append(float(v))
-
             if float(clen) < 0:
                 break
-        _lgr.debug(f'{ix=}')
 
-        aerosol_species_idx = varident[1]-1
+        aerosol_species_idx = int(varident[1]) - 1
 
         haze_params = dict()
-        haze_params['NX'] = 2+len(haze_waves)
-        haze_params['WAVE'] = haze_waves
-        haze_params['NREAL'] = float(nreal_ref)
-        haze_params['WAVE_REF'] = float(vref)
-        haze_params['WAVE_NORM'] = float(v_od_norm)
+        haze_params["NX"] = 2 + len(haze_waves)
+        haze_params["WAVE"] = haze_waves
+        haze_params["NREAL"] = float(nreal_ref)
+        haze_params["WAVE_REF"] = float(vref)
+        haze_params["WAVE_NORM"] = float(v_od_norm)
 
-        varparam[0] = 2+len(haze_waves)
+        varparam[0] = 2 + len(haze_waves)
         varparam[1] = float(clen)
         varparam[2] = float(vref)
         varparam[3] = float(nreal_ref)
         varparam[4] = float(v_od_norm)
 
+        # Optional spectral correlation for ln(k_im)
         if float(clen) > 0:
+            # Start of the ln(k_im) block within this model's parameters
+            start = ix - int(nwave)
             for j in range(int(nwave)):
                 for k in range(int(nwave)):
-
-                    delv = haze_waves[k]-haze_waves[j]
-                    arg = abs(delv/float(clen))
+                    delv = haze_waves[k] - haze_waves[j]
+                    arg = abs(delv / float(clen))
                     xfac = np.exp(-arg)
                     if xfac >= sxminfac:
-                        sx[ix+j,ix+k] = np.sqrt(sx[ix+j,ix+j]*sx[ix+k,ix+k])*xfac
-                        sx[ix+k,ix+j] = sx[ix+j,ix+k]
-        _lgr.debug(f'{ix=}')
-        
-        scattering_type_id = 1 # Should add a way to alter this value from the input files.
+                        sx[start + j, start + k] = np.sqrt(sx[start + j, start + j] * sx[start + k, start + k]) * xfac
+                        sx[start + k, start + j] = sx[start + j, start + k]
 
-        return cls(ix_0, ix-ix_0, haze_params, aerosol_species_idx, scattering_type_id)
+        scattering_type_id = 1  # Future: allow this to be set from input
 
+        return cls(ix_0, ix - ix_0, haze_params, aerosol_species_idx, scattering_type_id)
 
     @classmethod
     def from_bookmark(
@@ -291,25 +305,21 @@ class Model444(PreRTModelBase):
 
 
     def calculate_from_subprofretg(
-            self,
-            forward_model : "ForwardModel_0",
-            ix : int,
-            ipar : int,
-            ivar : int,
-            xmap : np.ndarray,
-        ) -> None:
-        
-        # NOTE:
-        # ix is not required as we have stored that information on the model instance
-        # ipar is ignored for this model
-        # ivar is ignored for this model
-        # xmap is ignored for this model
+        self,
+        forward_model: "ForwardModel_0",
+        ix: int,
+        ipar: int,
+        ivar: int,
+        xmap: np.ndarray,
+    ) -> None:
+        """
+        Apply this model's effect to Scatter, consuming any darkening already placed
+        by Model501 (or defaulting to 1.0 if absent).
+        """
         forward_model.ScatterX = self.calculate(
             forward_model.ScatterX,
             self.aerosol_species_idx,
             self.scattering_type_id,
             self.get_state_vector_slice(forward_model.Variables.XN),
-            self.haze_params
+            self.haze_params,
         )
-
-

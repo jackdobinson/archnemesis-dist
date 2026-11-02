@@ -72,6 +72,17 @@ def id_to_name(gasid,isoid):
         return gas_info[str(gasid)]["isotope"][str(isoid)]["name"]
 
 
+def id_to_label(gasid,isoid):
+    """
+    Return the number of the molecule or isotope
+    """
+    
+    gasname = id_to_name(gasid,isoid)
+    labelname = molecule_to_latex(gasname)
+
+    return "$"+labelname+"$"
+
+
 def replace_str_outside_brackets(text, x, replacement = ''):
     # find 'x' in text only if outside brackets
     n = len(x)
@@ -334,6 +345,8 @@ gas_id = {
     'ClNO2': 144,
     'RuO4': 145,
     'H2C3H2': 146,
+    'C': 147,
+    'HCO+': 148,
 }
 
 atom_mass = {
@@ -1589,10 +1602,16 @@ gas_info = {
         "isotope": {
             "1": {
                 "name": "H",
-                "abun": 1.0,
-                "mass": 1.00794,
+                "abun": 0.999885,
+                "mass": 1.00782503223,
                 "id": 1,
-            }
+            },
+            "2": {
+                "name": "D",
+                "abun": 0.000115,
+                "mass": 2.01410177812,
+                "id": 1,
+            },
         },
         "mmw": 1.00794
     },
@@ -3448,6 +3467,60 @@ gas_info = {
             },
         },
         "mmw": 40.066845
+    },
+    "147": {
+        "name": "C",
+        "isotope": {
+            "1": {
+                "name": "(12C)",
+                "abun": 0.9893,
+                "mass": 12.0,
+                "id": 2,
+            },
+            "2": {
+                "name": "(13C)",
+                "abun": 0.0107,
+                "mass": 13.0034,
+                "id": 3,
+            },
+        },
+        "mmw": 12.0
+    },
+    "148": {
+        "name": "HCO+",
+        "isotope": {
+            "1": {
+                "name": "H(12C)(16O)+",
+                "abun": 0.986783,
+                "mass": 29.002191,
+                "id": 126,
+            },
+            "2": {
+                "name": "H(13C)(16O)+",
+                "abun": 0.0106728,
+                "mass": 30.005546,
+                "id": 136,
+            },
+            "3": {
+                "name": "H(12C)(18O)+",
+                "abun": 0.00202783,
+                "mass": 31.006436,
+                "id": 128,
+            },
+            "4": {
+                "name": "H(12C)(17O)+",
+                "abun": 0.000375891,
+                "mass": 30.006408,
+                "id": 127,
+            },
+            "5": {
+                "name": "D(12C)(16O)+",
+                "abun": 0.000113493,
+                "mass": 30.008468,
+                "id": 226,
+            },
+        },
+        "mmw": 29.0
     },
 }
 
