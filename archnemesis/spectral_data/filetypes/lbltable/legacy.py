@@ -154,7 +154,7 @@ class LblLegacyReader(LblLegacyBase):
 			*(np.fromfile(self._state.fptr, dtype=dtype, count=1)[0] for field, dtype in fdtypes[1:irec0])
 		)
 		
-		print(f'{header_data=}')
+		#print(f'{header_data=}')
 		
 		self._state.n_hdr_fields = (irec0-1)
 		self._state.nwave = header_data.nwave

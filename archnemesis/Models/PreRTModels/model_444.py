@@ -142,9 +142,9 @@ class Model444(PreRTModelBase):
         # Apply darkening to the imaginary refractive index definition
         if np.size(k_im_base) == 1:
             # Broadcast to the haze wavelength grid after scaling
-            k_im = float(darkening) * float(k_im_base) * np.ones_like(Scatter.WAVER, dtype=float)
+            k_im = darkening * k_im_base.astype(float) * np.ones_like(Scatter.WAVER, dtype=float)
         else:
-            k_im = float(darkening) * np.array(k_im_base, dtype=float)
+            k_im = darkening * np.array(k_im_base, dtype=float)
 
         Scatter.REFIND_IM = k_im
 
