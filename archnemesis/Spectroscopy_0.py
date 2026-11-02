@@ -1403,6 +1403,7 @@ class Spectroscopy_0:
                 if extx==0:
                     
                     self.ONLINE = False  #With .lta tables we read them and store them on memory
+                    _lgr.info('Reading line-by-line table and storing in memory...')
                     
                     #Now reading the head of the binary files included in the .lls file
                     nwavelta = np.zeros(self.NGAS,dtype='int')
@@ -1444,6 +1445,7 @@ class Spectroscopy_0:
                 elif extx==1:
                     
                     self.ONLINE = True   #With .h5 tables we read them online when making the calculations
+                    _lgr.info('Reading line-by-line table when making the calculations...')
                     
                     #Now reading the head of the HDF5 files
                     nwavelta = np.zeros(self.NGAS,dtype='int')
@@ -2467,12 +2469,12 @@ def read_ltahead(filename):
     """
 
     with LblTableFile(Path(filename).with_suffix('.lta'), 'r') as f:
-        gasID, isoID, wavenumbers, pressures, temperatures, _ = f.read_header()
+        gasID, isoID, waves, pressures, temperatures, _ = f.read_header()
     
     return (
-        wavenumbers.size, 
-        wavenumbers[0], 
-        wavenumbers[1]-wavenumbers[0], 
+        waves.size, 
+        np.min(waves[0]), 
+        np.abs(np.diff(waves)[0]),
         pressures.size, 
         temperatures.size, 
         gasID, 
