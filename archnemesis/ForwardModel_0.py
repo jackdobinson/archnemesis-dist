@@ -2369,6 +2369,7 @@ class ForwardModel_0:
             n_calcs = numerical_grad_idxs.size + (0 if state_vector_calc_complete else 1)
             n_cores = NCores if NCores is not None else 1
             job_pool_size = min(n_calcs, n_cores)
+            _lgr.info(f'{n_calcs=} {n_cores=} {job_pool_size=}')
             
             job_arg_list = []
             nemesis_method_selection_args = (nemesisSO, nemesisL, nemesisdisc, nemesisPT, nemesisC) # NOTE: Require the same ordering as `self.execute_fm(...)`
@@ -2383,6 +2384,7 @@ class ForwardModel_0:
                 )
             
             n_tasks = len(job_arg_list)
+            _lgr.info(f'{n_tasks=}')
             
             if job_pool_size > 1:
                 log_level_to_set = logging.ERROR
