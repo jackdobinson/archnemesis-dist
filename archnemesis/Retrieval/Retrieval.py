@@ -1604,10 +1604,12 @@ class Retrieval:
 		self.Layer = fm_instance.LayerX
 		
 		# Updating the spectroscopy
-		self.Spectroscopy = fm_instance.SpectroscopyX
+		#self.Spectroscopy = fm_instance.SpectroscopyX
 		
 		#Updating the reference classes based on the retrieved parameters
 		self.calculate_profiles()
+		
+		self.calculate_layer_opacity()
 		
 		#Plot and write retrieval results if required
 		if do_plot:
