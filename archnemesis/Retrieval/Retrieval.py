@@ -150,9 +150,9 @@ class Retrieval:
 	@staticmethod
 	def set_log_level(log_level : int) -> None:
 		"""
-		Sets the log level for `archnemesis` to `log_level`.
-		
-		E.g. `retrieval.set_log_leve(logging.DEBUG)`
+			Sets the log level for `archnemesis` to `log_level`.
+			
+			E.g. `retrieval.set_log_level(logging.DEBUG)`
 		"""
 		_lgr.setLevel(log_level)
 	
@@ -171,7 +171,7 @@ class Retrieval:
 			runname : str,
 			path_redirects : tuple[redirect_file_access.Redirector] = tuple(),
 			lazy_load = True,
-		) -> Self:
+	) -> Self:
 		
 		instance = cls(
 			runname,
@@ -192,7 +192,7 @@ class Retrieval:
 			runname : str,
 			path_redirects : tuple[redirect_file_access.Redirector] = tuple(),
 			lazy_load=True,
-		)-> Self:
+	)-> Self:
 		
 		instance = cls(
 			runname,
@@ -213,9 +213,9 @@ class Retrieval:
 			fpath : str,
 			path_redirects : tuple[redirect_file_access.Redirector] = tuple(),
 			lazy_load = True,
-		) -> Self:
+	) -> Self:
 		"""
-		Creates a retrieval instance from the specified file
+			Creates a retrieval instance from the specified file
 		"""
 		fpath = os.path.abspath(str(fpath))
 		
@@ -256,9 +256,9 @@ class Retrieval:
 			runname_path : str, # e.g. ".../some/dir/runname" ends in a runname not in an actual file
 			path_redirects : tuple[redirect_file_access.Redirector] = tuple(),
 			lazy_load = True,
-		) -> Self:
+	) -> Self:
 		"""
-		Creates a retrieval instance from the specified file
+			Creates a retrieval instance from the specified file
 		"""	
 		dirname = os.path.dirname(runname_path)
 		runname = runname_path.rsplit(os.sep, maxsplit=1)[1]
@@ -305,9 +305,9 @@ class Retrieval:
 			dir_path : str,
 			path_redirects : tuple[redirect_file_access.Redirector] = tuple(),
 			lazy_load = True
-		) -> Self:
+	) -> Self:
 		"""
-		Creates a retrieval instance from the specified directory, attempts to find the correct files, can fail and raise a FileNotFoundError
+			Creates a retrieval instance from the specified directory, attempts to find the correct files, can fail and raise a FileNotFoundError
 		"""
 		if not os.path.exists(dir_path):
 			raise FileNotFoundError(f'the directory "{dir_path}" does not exist')
@@ -352,7 +352,7 @@ class Retrieval:
 			path : Path,
 			path_redirects : tuple[redirect_file_access.Redirector] = tuple(),
 			lazy_load = True
-		) -> Self:
+	) -> Self:
 		if not path.exists(): # Assume ends in a runname
 			retrieval = Retrieval.from_runname(str(path), path_redirects, lazy_load)
 		elif path.is_file():
@@ -365,11 +365,11 @@ class Retrieval:
 	
 	@classmethod
 	def copy(
-			cls, 
-			other : Self, 
-		) -> Self:
+		cls, 
+		other : Self, 
+	) -> Self:
 		"""
-		Make a complete copy of the instance
+			Make a complete copy of the instance
 		"""
 		instance = copy.deepcopy(other)
 		return instance
@@ -431,10 +431,12 @@ class Retrieval:
 				RetrievalEngine,
 			)
 		
+		# NOTE: Possibly move this into a different method.
+		_lgr.info('Checking the retrieval after reading HDF5 file for any inconsistencies...')
 		if self._data is None:
 			raise RuntimeError('Could not open RetrievalData from HDF5 file')
 		
-		"""
+		
 		#Checking if retrieved parameters are available
 		retrieved_values_valid = True
 		retrieved_params = RetrievedParams(*ans.read_retparam_hdf5(self.runname))
@@ -510,7 +512,7 @@ class Retrieval:
 				
 				self._data.Variables.XN[...] = np.where(self._data.Variables.LX==1, sv_log, retrieved_state_vector_values)
 				np.fill_diagonal(self._data.Variables.SX, np.where(self._data.Variables.LX==1, se_frac, retrieved_error_values)**2)
-		"""
+		
 		return
 	
 	
@@ -587,45 +589,55 @@ class Retrieval:
 		
 		# 
 		if not retrieved_values_valid:
-			_lgr.warning('Optimal estimation setup is out-of-sync with the current Retrieval. Removing retrieved arrays and updating apriori arrays.')
-			# Remove all retrieved arrays as they are invalid for the current setup
-			# self.Variables
-			self.RetrievalEngine.XN = None
-			self.RetrievalEngine.ST = None
-			self.RetrievalEngine.KK = None
-			self.RetrievalEngine.AA = None
-			self.RetrievalEngine.DD = None
-			# self.Measurement
-			self.RetrievalEngine.YN = None
+			if isinstance(self.RetrievalEngine, ans.OptimalEstimation_0):
+				_lgr.warning('Optimal estimation setup is out-of-sync with the current Retrieval. Removing retrieved arrays and updating apriori arrays.')
+				# Remove all retrieved arrays as they are invalid for the current setup
+				# self.Variables
+				self.RetrievalEngine.XN = None
+				self.RetrievalEngine.ST = None
+				self.RetrievalEngine.KK = None
+				self.RetrievalEngine.AA = None
+				self.RetrievalEngine.DD = None
+				# self.Measurement
+				self.RetrievalEngine.YN = None
+				
+				# Update apriori arrays to match
+				# self.Variables
+				self.RetrievalEngine.XA = np.array(self.Variables.XA)
+				self.RetrievalEngine.SA = np.array(self.Variables.SA)
+				# self.Measurement
+				self.RetrievalEngine.Y = self.Measurement.Y
+				self.RetrievalEngine.SE = self.Measurement.SE
+				
+				
+				# Update state vector size to match
+				# self.Variables
+				self.RetrievalEngine.NX = self.Variables.NX
+				# self.Measurement
+				self.RetrievalEngine.NY = self.Measurement.NY
 			
-			# Update apriori arrays to match
-			# self.Variables
-			self.RetrievalEngine.XA = np.array(self.Variables.XA)
-			self.RetrievalEngine.SA = np.array(self.Variables.SA)
-			# self.Measurement
-			self.RetrievalEngine.Y = self.Measurement.Y
-			self.RetrievalEngine.SE = self.Measurement.SE
-			
-			
-			# Update state vector size to match
-			# self.Variables
-			self.RetrievalEngine.NX = self.Variables.NX
-			# self.Measurement
-			self.RetrievalEngine.NY = self.Measurement.NY
+			elif if isinstance(self.RetrievalEngine, ans.NestedSampling_0):
+				_lgr.warning('Nested sampling setup is out-of-sync with the current Retrieval. Removing retrieved arrays and updating apriori arrays.')
+				raise NotImplementedError('Nested Sampling is not implemented in Retrieval class yet')
 		
 		else:
-			_lgr.info('Optimal estimation setup is in-sync with the current Retrieval.')
-			if (
-					(self.RetrievalEngine.YN is not None) 
-					and (
-						(not hasattr(self.RetrievalEngine, 'PHI'))
-						or (not hasattr(self.RetrievalEngine, 'CHISQ'))
-					)
-				):
-					self.RetrievalEngine.calc_phiret()
+			if isinstance(self.RetrievalEngine, ans.OptimalEstimation_0):
+				_lgr.info('Optimal estimation setup is in-sync with the current Retrieval.')
+				if (
+						(self.RetrievalEngine.YN is not None) 
+						and (
+							(not hasattr(self.RetrievalEngine, 'PHI'))
+							or (not hasattr(self.RetrievalEngine, 'CHISQ'))
+						)
+					):
+						self.RetrievalEngine.calc_phiret()
+			
+			elif if isinstance(self.RetrievalEngine, ans.NestedSampling_0):
+				_lgr.info('Nested sampling setup is in-sync with the current Retrieval.')
+				raise NotImplementedError('Nested Sampling is not implemented in Retrieval class yet')
 		
 		
-		if retrieved_values_valid and self.RetrievalEngine.YN is not None:
+		if retrieved_values_valid and isinstance(self.RetrievalEngine, ans.OptimalEstimation_0) and self.RetrievalEngine.YN is not None:
 			# We can assume that the retrieved spectra is ok to use if we have gotten here and still have a retrieved spectra
 			_lgr.info('Setting self.Measurement.SPECMOD to retrieved spectra')
 			if self.Measurement.SPECMOD is None:
@@ -773,11 +785,12 @@ class Retrieval:
 
 
 	@property
-	def RetrievalEngine(self) -> ans.OptimalEstimation_0:
+	def RetrievalEngine(self) -> ans.OptimalEstimation_0 | ans.NestedSampling_0:
 		return self.load(reload=False)._data.RetrievalEngine
 
 	@RetrievalEngine.setter
-	def RetrievalEngine(self, value : ans.OptimalEstimation_0) -> None:
+	def RetrievalEngine(self, value : ans.OptimalEstimation_0 | ans.NestedSampling_0) -> None:
+		assert isinstance(value, (ans.OptimalEstimation_0, ans.NestedSampling_0)), "Must set Retrieval.RetrievalEngine to an instance of OptimalEstimation_0 or NestedSampling_0"
 		self.load(reload=False)._data.RetrievalEngine = value
 
 
@@ -889,8 +902,11 @@ class Retrieval:
 		
 		return self._cached_forward_model_instance
 	
+	def _set_forward_model_instance(self, forward_model_instance : ForwardModel_0):
+		self._cached_forward_model_instance = forward_model_instance
+	
 	def _set_optimal_estimation_setup_from_measurement(self):
-		
+		assert isinstance(self.RetrievalEngine, OptimalEstimation_0), "Retrieval.RetrievalEngine must be an OptimalEstimation_0 instance"
 		self.RetrievalEngine.NY = self.Measurement.NY
 		
 		if self.Measurement.Y is not None:
@@ -904,6 +920,7 @@ class Retrieval:
 				self.RetrievalEngine.YN[ik:ik+self.Measurement.NCONV[igeom]] = self.Measurement.SPECMOD[0:self.Measurement.NCONV[igeom],igeom]
 	
 	def _set_optimal_estimation_setup_from_variables(self, variables : None | ans.Variables_0 = None):
+		assert isinstance(self.RetrievalEngine, OptimalEstimation_0), "Retrieval.RetrievalEngine must be an OptimalEstimation_0 instance"
 		if variables is None:
 			variables = self.Variables
 		
@@ -913,6 +930,24 @@ class Retrieval:
 		self.RetrievalEngine.edit_SA(variables.SA)
 		self.RetrievalEngine.ST = variables.SX
 	
+	def _update_modelled_spectra_from_retrival_engine(self):
+		# Extracting the best-fit spectra
+		modelled_spectra = np.zeros_like(self.Measurement.MEAS)
+		
+		if isinstance(self.RetrievalEngine, OptimalEstimation_0):
+			ix = 0
+			for i in range(self.Measurement.NGEOM):
+				modelled_spectra[0:self.Measurement.NCONV[i],i] = self.RetrievalEngine.YN[ix:ix+self.Measurement.NCONV[i]]
+				ix += self.Measurement.NCONV[i]
+		
+		elif isinstance(self.RetrievalEngine, NestedSampling_0):
+			raise NotImplementedError('Nested sampling is not implmented for Retrieval class yet')
+		
+		else:
+			raise RuntimeError(f'Unknown retrieval engine type {type(self.RetrievalEngine)}')
+		
+		# Updating the best-fit in the Measurement class
+		self.Measurement.edit_SPECMOD(modelled_spectra)
 	
 	## Public Methods ##
 	@contextlib.contextmanager
@@ -1153,35 +1188,36 @@ class Retrieval:
 
 	##################################################################################################
 
-	def run_forward_model(self, 
-						  apriori : bool = False,
-						  include_tau_gas : bool = True,
-						  include_tau_dust : bool = True,
-						  include_tau_cia : bool = True
-						):
+	def run_forward_model(
+			self, 
+			apriori : bool = False,
+			include_tau_gas : bool = True,
+			include_tau_dust : bool = True,
+			include_tau_cia : bool = True
+	) -> np.ndarray: # [NCONV, NGEOM]
 		"""
-		Run a forward model simulation
+			Run a forward model simulation
 
-		Optional Parameters
-		-------------------
+			Optional Parameters
+			-------------------
 
-		apriori : bool
-			If True, it will set the state vector parameters to the a priori parameters
+			apriori : bool
+				If True, it will set the state vector parameters to the a priori parameters
 
-		include_tau_gas : bool
-			If False, it will not add any opacity contributions from gases
+			include_tau_gas : bool
+				If False, it will not add any opacity contributions from gases
 
-		include_tau_dust : bool
-			If False, it will not add any opacity contributions from aerosols
+			include_tau_dust : bool
+				If False, it will not add any opacity contributions from aerosols
 
-		include_tau_cia : bool
-			If False, it will not add any opacity contributions from CIA absorption
+			include_tau_cia : bool
+				If False, it will not add any opacity contributions from CIA absorption
 
-		Returns
-		-----------
+			Returns
+			-----------
 
-		self.Measurement.SPECMOD : ndarray (NCONV,NGEOM)
-			Modelled spectrum
+			self.Measurement.SPECMOD : ndarray (NCONV,NGEOM)
+				Modelled spectrum
 		"""
 		if self.has_modelled_spectra():
 			_lgr.warning(f"Retrieval(runname={self.runname}) already has a modelled spectra, running the forward model will overwrite the current value")
@@ -1228,29 +1264,35 @@ class Retrieval:
 	
 	##################################################################################################
 
-	def run_forward_model_gas_contributions(self, 
-												apriori : bool = False,
-												include_telluric = True,
-											):
+	def run_forward_model_gas_contributions(
+			self, 
+			apriori : bool = False,
+			include_telluric = True,
+	) -> tuple[np.ndarray, np.ndarray, np.ndarray]: # [NCONV, NGEOM], [NCONV, NGEOM, NGAS], [NCONV, NGEOM]
 		"""
-		Run a calculation of the forward model including the contribution of each gas
-		in the Spectroscopy class independently
+			Run a calculation of the forward model including the contribution of each gas
+			in the Spectroscopy class independently
 
-		Optional Parameters
-		-------------------
+			Optional Parameters
+			-------------------
 
-		apriori : bool
-			If True, it will set the state vector parameters to the a priori parameters
+			apriori : bool
+				If True, it will set the state vector parameters to the a priori parameters
 
-		include_telluric : bool
-			If True, it will also include the telluric absorption
+			include_telluric : bool
+				If True, it will also include the telluric absorption
 
-		Returns
-		-----------
+			Returns
+			-----------
 
-		SPECONV : ndarray (NCONV,NGEOM,NGAS)
-			Modelled spectrum for each gas
-
+			SPECONV : ndarray (NCONV,NGEOM)
+				Modelled spectrum for all gasses
+			
+			SPECONV_GAS : ndarray (NCONV,NGEOM,NGAS)
+				Modelled spectrum for each gas
+			
+			SPECONV_noGAS : ndarray (NCONV,NGEOM)
+				Modelled spectrum without gasses
 		"""
 		if self.has_modelled_spectra():
 			_lgr.warning(f"Retrieval(runname={self.runname}) already has a modelled spectra, running the forward model will overwrite the current value")
@@ -1267,8 +1309,8 @@ class Retrieval:
 			Telluric_Spectroscopy = copy.deepcopy(forward_model_instance.Telluric.Spectroscopy)
 			forward_model_instance.Telluric.Spectroscopy = None
 
-		_lgr.info(f".................................................................")
-		_lgr.info(f"Running forward model with all gas contributions")
+		_lgr.info(".................................................................")
+		_lgr.info("Running forward model with all gas contributions")
 
 		#Selecting the forward model type
 		nemesis_method = forward_model_instance.select_nemesis_fm(
@@ -1288,10 +1330,16 @@ class Retrieval:
 		#Saving the reference spectroscopy including all gases
 		Spectroscopy_ref = copy.deepcopy(forward_model_instance.Spectroscopy)
 
-		SPECONV_GAS = np.zeros((forward_model_instance.Measurement.NCONV.max(),forward_model_instance.Measurement.NGEOM,forward_model_instance.Spectroscopy.NGAS))
+		SPECONV_GAS = np.zeros(
+			(
+				forward_model_instance.Measurement.NCONV.max(),
+				forward_model_instance.Measurement.NGEOM,
+				forward_model_instance.Spectroscopy.NGAS
+			)
+		)
 		for igas in range(Spectroscopy_ref.NGAS):
 
-			_lgr.info(f".................................................................")
+			_lgr.info( ".................................................................")
 			_lgr.info(f"Running forward model for gas {igas+1} of {Spectroscopy_ref.NGAS}")
 			if((Spectroscopy_ref.ILBL == 0) or (Spectroscopy_ref.ILBL == 2)):
 				forward_model_instance.Spectroscopy.NGAS = 1
@@ -1313,8 +1361,8 @@ class Retrieval:
 				with redirect_file_access.using(*self._path_redirects):
 					SPECONV_GAS[:,:,igas] = nemesis_method()
 		
-		_lgr.info(f".................................................................")
-		_lgr.info(f"Running forward model with no gas contributions")
+		_lgr.info(".................................................................")
+		_lgr.info("Running forward model with no gas contributions")
 
 		#Selecting the forward model type
 		nemesis_method = forward_model_instance.select_nemesis_fm(
@@ -1348,23 +1396,24 @@ class Retrieval:
 
 	##################################################################################################
 
-	def run_telluric_transmission(self, 
-						  apriori : bool = False,
-						):
+	def run_telluric_transmission(
+			self, 
+			apriori : bool = False,
+	) -> np.ndarray: # [NCONV, NGEOM]
 		"""
-		Run a forward model simulation of the telluric transmission
+			Run a forward model simulation of the telluric transmission
 
-		Optional Parameters
-		-------------------
+			Optional Parameters
+			-------------------
 
-		apriori : bool
-			If True, it will set the state vector parameters to the a priori parameters
+			apriori : bool
+				If True, it will set the state vector parameters to the a priori parameters
 
-		Returns
-		-----------
+			Returns
+			-----------
 
-		TELLURIC_TRANSMISSION : ndarray (NCONV,NGEOM)
-			Modelled telluric transmission
+			TELLURIC_TRANSMISSION : ndarray (NCONV,NGEOM)
+				Modelled telluric transmission
 		"""
 
 		forward_model_instance = self._get_forward_model_instance()
@@ -1387,26 +1436,26 @@ class Retrieval:
 
 	##################################################################################################
 
-	def run_jacobian_matrix(self, 
-						  apriori : bool = False,
-						):
+	def run_jacobian_matrix(
+			self, 
+			apriori : bool = False,
+	) -> tuple[np.ndarray, np.ndarray]: # [NY], [NY,NX]
 		"""
-		Run a forward model simulation with calculation of the Jacobian matrix
+			Run a forward model simulation with calculation of the Jacobian matrix
 
-		Optional Parameters
-		-------------------
+			Optional Parameters
+			-------------------
 
-		apriori : bool
-			If True, it will set the state vector parameters to the a priori parameters
+			apriori : bool
+				If True, it will set the state vector parameters to the a priori parameters
 
-		Returns
-		-----------
+			Returns
+			-----------
 
-		YN : ndarray (NY)
-			Modelled measurement vector (i.e., concatenated spectra)
-		KK : ndarray (NY,NX)
-			Modelled Jacobian matrix (dR/dx)
-
+			YN : ndarray (NY)
+				Modelled measurement vector (i.e., concatenated spectra)
+			KK : ndarray (NY,NX)
+				Modelled Jacobian matrix (dR/dx)
 		"""
 		if self.has_modelled_spectra():
 			_lgr.warning(f"Retrieval(runname={self.runname}) already has a modelled spectra, running the forward model will overwrite the current value")
@@ -1422,11 +1471,13 @@ class Retrieval:
 		# Run the forward model
 		with self.working_directory_context():
 			with redirect_file_access.using(*self._path_redirects):
-				YN, KK = forward_model_instance.jacobian_nemesis(nemesisSO=self.nemesisSO,
-																 nemesisC=self.nemesisC,
-																 nemesisL=self.nemesisL,
-																 nemesisPT=self.nemesisPT,
-																 nemesisdisc=self.nemesisdisc)
+				YN, KK = forward_model_instance.jacobian_nemesis(
+					nemesisSO=self.nemesisSO,
+					nemesisC=self.nemesisC,
+					nemesisL=self.nemesisL,
+					nemesisPT=self.nemesisPT,
+					nemesisdisc=self.nemesisdisc
+				)
 
 		# Only the self.Atmosphere component has profiles, so update that one
 		self.Atmosphere = forward_model_instance.AtmosphereX
@@ -1450,29 +1501,30 @@ class Retrieval:
 			restart = True,
 			do_write : bool = True,
 			do_plot : bool = False,
-		) -> Self:
+	) -> Self:
 		"""
-		Run an optimal estimation retrieval
+			Run an optimal estimation retrieval
 
-		Optional Parameters
-		-------------------
+			Optional Parameters
+			-------------------
 
-		n_iter : int (default = None)
-			Number of retrieval iterations
-		n_cores : int (default = None)
-			Number of parallel forward models for numerical calculation of Jacobian matrix
-		write_itr : bool (default = False)
-			If True, it will write a .itr file with the retrieval metrics in every iteration
-		do_plot : bool (default = False)
-			If True, makes some diagnostic plots at the end of the retrieval
-		do_write : bool (default = True)
-			If True, writes the retrieval results to the output files
+			n_iter : int (default = None)
+				Number of retrieval iterations
+			n_cores : int (default = None)
+				Number of parallel forward models for numerical calculation of Jacobian matrix
+			write_itr : bool (default = False)
+				If True, it will write a .itr file with the retrieval metrics in every iteration
+			do_plot : bool (default = False)
+				If True, makes some diagnostic plots at the end of the retrieval
+			do_write : bool (default = True)
+				If True, writes the retrieval results to the output files
 
-		Returns
-		-----------
+			Returns
+			-----------
 
-		self.Measurement.SPECMOD : ndarray (NCONV,NGEOM)
-			Modelled spectrum
+			self : Retrieval
+				The instance, updated with the retrieved values. Get the retrieved spectra
+				via `self.Measurement.SPECMOD`, and the
 		"""
 		if restart:
 			# Reset the current state vector to the apriori state vector
@@ -1523,6 +1575,8 @@ class Retrieval:
 				return_phi_and_chisq_history=True,
 			)
 			
+			self._set_forward_model_instance(ForwardModel)
+			
 			if not os.path.exists('phi_chisq.txt') and (phi_history is not None and chisq_history is not None):
 				with open('phi_chisq.txt', 'w') as f:
 					w_iter = max(4, int(np.ceil(np.log10(OptimalEstimationResult.NITER))))
@@ -1541,19 +1595,11 @@ class Retrieval:
 		# Update the retrieval with the result
 		self.RetrievalEngine = copy.deepcopy(OptimalEstimationResult)
 		
-		# Extracting the best-fit spectra
-		modelled_spectra = np.zeros_like(self.Measurement.MEAS)
-		ix = 0
-		for i in range(self.Measurement.NGEOM):
-			modelled_spectra[0:self.Measurement.NCONV[i],i] = OptimalEstimationResult.YN[ix:ix+self.Measurement.NCONV[i]]
-			ix += self.Measurement.NCONV[i]
-		
-
-		# Updating the best-fit in the Measurement class
-		self.Measurement.edit_SPECMOD(modelled_spectra)
+		# Extract the best-fit spectra
+		self._update_modelled_spectra_from_retrival_engine()
 		
 		# Updating the Layering
-		self.Layer = ForwardModel.LayerX
+		self.Layer = self._get_forward_model_instance().LayerX
 		
 		#Updating the reference classes based on the retrieved parameters
 		self.calculate_profiles()
@@ -1563,6 +1609,7 @@ class Retrieval:
 			self.plot()
 		if do_write:
 			self.write()
+		return self
 	
 	def run_nested_sampling(
 			self,

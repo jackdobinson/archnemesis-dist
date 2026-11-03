@@ -30,7 +30,7 @@ class LayerPlotter:
 	
 	def plot(self) -> tuple[str, mpl.figure.Figure, tuple[np.ndarray[mpl.axes.Axes]]]:
 		_lgr.dev(f'{self.retrieval.Layer=}')
-		if self.retrieval.Layer is None:
+		if self.retrieval.Layer is None or self.retrieval.Layer.PRESS is None:
 			self.retrieval.calculate_layering()
 		
 		return 'layer', *self.do_plot(self.retrieval.Layer, self.retrieval.Atmosphere.ID, self.retrieval.Atmosphere.ISO)

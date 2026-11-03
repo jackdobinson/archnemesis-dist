@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 import textwrap
 
-
+from archnemesis import ForwardModel_0
 from archnemesis.enum import WaveUnitEnum, SpectraUnitEnum
 from archnemesis.helpers.maths_helper import is_diagonal
 import archnemesis.helpers.h5py_helper as h5py_helper
@@ -1201,12 +1201,12 @@ def coreretOE(
         nemesisC=False,
         return_forward_model=False,
         return_phi_and_chisq_history=False,
-    ) -> (
-        OptimalEstimation_0 
-        | tuple[OptimalEstimation_0, ForwardModel_0]
-        | tuple[OptimalEstimation_0, np.ndarray, np.ndarray]
-        | tuple[OptimalEstimation_0, ForwardModel_0, np.ndarray, np.ndarray]
-    ):
+) -> 
+    OptimalEstimation_0 
+    | tuple[OptimalEstimation_0, ForwardModel_0]
+    | tuple[OptimalEstimation_0, np.ndarray, np.ndarray]
+    | tuple[OptimalEstimation_0, ForwardModel_0, np.ndarray, np.ndarray]
+:
 
 
     """
@@ -1250,6 +1250,15 @@ def coreretOE(
 
             OptimalEstimation :: Python class defining all the variables required as input or output
                                  from the Optimal Estimation retrieval
+            
+            ForwardModel : ForwardModel_0 [optional, included when `return_forward_model==True`]
+                ForwardModel_0 instance used to compute the optimal estimation result.
+            
+            phi_history : np.ndarray [optional, included when `return_phi_and_chisq_history==True`]
+                The value of the cost function calculated each iteration.
+            
+            chisq_history : np.ndarray [optional, included when `return_phi_and_chisq_history==True`]
+                The value of the chisq fit of modelled spectra to measured spectra calculated each iteration.
  
         CALLING SEQUENCE:
         
@@ -1258,9 +1267,6 @@ def coreretOE(
         MODIFICATION HISTORY : Juan Alday (06/08/2021)
 
     """
-
-    from archnemesis import OptimalEstimation_0
-    from archnemesis import ForwardModel_0
     
     # Reset the warning flag each time we do a retrieval
     ForwardModel_0.reset_DONE_GAS_SPECTROSCOPY_DATA_WARNING_ONCE_FLAG()

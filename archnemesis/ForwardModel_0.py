@@ -119,130 +119,130 @@ class ForwardModel_0:
             NCores=None
     ):
 
-        """Forward Model class
+        """
+            Forward Model class
 
-        The Forward Model class compiles different function required to perform the radiative transfer calculations.
-        It takes as arguments the different Reference Classes, which provide all the required information to compute
-        the forward model. The Forward Model class then modifies and uses this information to perform the calculations.
+            The Forward Model class compiles different function required to perform the radiative transfer calculations.
+            It takes as arguments the different Reference Classes, which provide all the required information to compute
+            the forward model. The Forward Model class then modifies and uses this information to perform the calculations.
 
 
-        Inputs (Reference classes)
-        ------
-        @class Atmosphere:,
-            Class defining the Atmosphere
-        @class Surface:,
-            Class defining the Surface
-        @class Measurement:,
-            Class defining the Measurement
-        @class Scatter:,
-            Class defining the Scatter
-        @class Spectroscopy:,
-            Class defining the Spectroscopy
-        @class Stellar:,
-            Class defining the Stellar
-        @class CIA:,
-            Class defining the CIA
-        @class Layer:,
-            Class defining the Layer
-        @class Variables:,
-            Class defining the Variables
-        @class Telluric:,
-            Class defining the Telluric
-        @class Emissions:,
-            Class defining the Emissions
-        @log adjust_hydrostat:,
-            Flag indicating whether the re-adjustment of the pressure or altitude levels
-            based on the hydrostatic equilibrium equation must be performed or not.
+            Inputs (Reference classes)
+            ------
+            @class Atmosphere:,
+                Class defining the Atmosphere
+            @class Surface:,
+                Class defining the Surface
+            @class Measurement:,
+                Class defining the Measurement
+            @class Scatter:,
+                Class defining the Scatter
+            @class Spectroscopy:,
+                Class defining the Spectroscopy
+            @class Stellar:,
+                Class defining the Stellar
+            @class CIA:,
+                Class defining the CIA
+            @class Layer:,
+                Class defining the Layer
+            @class Variables:,
+                Class defining the Variables
+            @class Telluric:,
+                Class defining the Telluric
+            @class Emissions:,
+                Class defining the Emissions
+            @log adjust_hydrostat:,
+                Flag indicating whether the re-adjustment of the pressure or altitude levels
+                based on the hydrostatic equilibrium equation must be performed or not.
 
-        Attributes (Attribute classes)
-        ----------
+            Attributes (Attribute classes)
+            ----------
 
-        Note: The classes appear to be duplicated, some of them having an X in the end.
-        The main difference between these two types is that ones are the reference classes
-        given as an input, and which are not varied through the Forward Model. The other ones
-        are the reference classes modified by the model paramterisations and varied through
-        the calculations to calculate a specific forward model
+            Note: The classes appear to be duplicated, some of them having an X in the end.
+            The main difference between these two types is that ones are the reference classes
+            given as an input, and which are not varied through the Forward Model. The other ones
+            are the reference classes modified by the model paramterisations and varied through
+            the calculations to calculate a specific forward model
 
-        @attribute AtmosphereX:
-            Class defining the Atmospheric profile for a particular forward model
-        @attribute SurfaceX:
-            Class defining the Surface for a particular forward model
-        @attribute MeasurementX:
-            Class defining the Measurement for a particular forward model
-        @attribute ScatterX:
-            Class defining the Scatter for a particular forward model
-        @attribute CIAX:
-            Class defining the CIA for a particular forward model
-        @attribute SpectroscopyX:
-            Class defining the Spectroscopy for a particular forward model
-        @attribute StellarX:
-            Class defining the Stellar for a particular forward model
-        @attribute LayerX:
-            Class defining the Layer for a particular forward model
-        @attribute PathX:
-            Class defining the Path for a particular forward model
-        @attribute TelluricX:
-            Class defining the Telluric for a particular forward model
-        @attribute EmissionsX:
-            Class defining the Emissions for a particular forward model
+            @attribute AtmosphereX:
+                Class defining the Atmospheric profile for a particular forward model
+            @attribute SurfaceX:
+                Class defining the Surface for a particular forward model
+            @attribute MeasurementX:
+                Class defining the Measurement for a particular forward model
+            @attribute ScatterX:
+                Class defining the Scatter for a particular forward model
+            @attribute CIAX:
+                Class defining the CIA for a particular forward model
+            @attribute SpectroscopyX:
+                Class defining the Spectroscopy for a particular forward model
+            @attribute StellarX:
+                Class defining the Stellar for a particular forward model
+            @attribute LayerX:
+                Class defining the Layer for a particular forward model
+            @attribute PathX:
+                Class defining the Path for a particular forward model
+            @attribute TelluricX:
+                Class defining the Telluric for a particular forward model
+            @attribute EmissionsX:
+                Class defining the Emissions for a particular forward model
 
-        Methods
-        -------
+            Methods
+            -------
 
-        Forward Models and Jacobeans
-        ##########################################
+            Forward Models and Jacobeans
+            ##########################################
 
-            ForwardModel_0.nemesisfm()
-            ForwardModel_0.nemesisfmg()
-            ForwardModel_0.nemesisSOfm()
-            ForwardModel_0.nemesisSOfmg()
-            ForwardModel_0.nemesisdiscfm()
-            ForwardModel_0.nemesisdiscfmg()
-            ForwardModel_0.nemesisLfm()
-            ForwardModel_0.nemesisLfmg()
-            ForwardModel_0.nemesisCfm()
-            ForwardModel_0.nemesisPTfm()
-            ForwardModel_0.jacobian_nemesis(nemesisSO=False)
+                ForwardModel_0.nemesisfm()
+                ForwardModel_0.nemesisfmg()
+                ForwardModel_0.nemesisSOfm()
+                ForwardModel_0.nemesisSOfmg()
+                ForwardModel_0.nemesisdiscfm()
+                ForwardModel_0.nemesisdiscfmg()
+                ForwardModel_0.nemesisLfm()
+                ForwardModel_0.nemesisLfmg()
+                ForwardModel_0.nemesisCfm()
+                ForwardModel_0.nemesisPTfm()
+                ForwardModel_0.jacobian_nemesis(nemesisSO=False)
 
-        Mapping models into reference classes
-        ##########################################
+            Mapping models into reference classes
+            ##########################################
 
-            ForwardModel_0.subprofretg()
-            ForwardModel_0.subspecret()
+                ForwardModel_0.subprofretg()
+                ForwardModel_0.subspecret()
 
-        Path calculation and geometry
-        ##########################################
+            Path calculation and geometry
+            ##########################################
 
-            ForwardModel_0.select_Measurement()
-            ForwardModel_0.select_location()
-            ForwardModel_0.calc_path()
-            ForwardModel_0.calc_pathg()
-            ForwardModel_0.calc_path_SO()
-            ForwardModel_0.calc_pathg_SO()
-            ForwardModel_0.calc_path_L()
-            ForwardModel_0.calc_pathg_L()
+                ForwardModel_0.select_Measurement()
+                ForwardModel_0.select_location()
+                ForwardModel_0.calc_path()
+                ForwardModel_0.calc_pathg()
+                ForwardModel_0.calc_path_SO()
+                ForwardModel_0.calc_pathg_SO()
+                ForwardModel_0.calc_path_L()
+                ForwardModel_0.calc_pathg_L()
 
-        Radiative transfer calculations
-        ##########################################
+            Radiative transfer calculations
+            ##########################################
 
-            ForwardModel_0.CIRSrad()
-            ForwardModel_0.CIRSradg()
-            ForwardModel_0.calc_tau_cia()
-            ForwardModel_0.calc_tau_dust()
-            ForwardModel_0.calc_tau_gas()
-            ForwardModel_0.calc_tau_rayleigh()
-            ForwardModel_0.calc_brdf_matrix()
+                ForwardModel_0.CIRSrad()
+                ForwardModel_0.CIRSradg()
+                ForwardModel_0.calc_tau_cia()
+                ForwardModel_0.calc_tau_dust()
+                ForwardModel_0.calc_tau_gas()
+                ForwardModel_0.calc_tau_rayleigh()
+                ForwardModel_0.calc_brdf_matrix()
 
-        Multiple scattering routines
-        ###########################################
+            Multiple scattering routines
+            ###########################################
 
-            ForwardModel_0.scloud11wave()
-            
-        Error checks
-        ###########################################
+                ForwardModel_0.scloud11wave()
+                
+            Error checks
+            ###########################################
 
-            ForwardModel_0.check_gas_spec_atm()
-
+                ForwardModel_0.check_gas_spec_atm()
         """
 
         
@@ -437,10 +437,12 @@ class ForwardModel_0:
         return partial(method, **kwargs)
         
 
-    def nemesisfm(self,
-                    include_tau_gas=True,
-                    include_tau_dust=True,
-                    include_tau_cia=True):
+    def nemesisfm(
+            self,
+            include_tau_gas=True,
+            include_tau_dust=True,
+            include_tau_cia=True
+    ) -> np.ndarray: # [NCONV, NGEOM]
 
         """
             FUNCTION NAME : nemesisfm()
@@ -3069,33 +3071,39 @@ class ForwardModel_0:
 
     ###############################################################################################
 
-    def calc_path(self,Atmosphere=None,Scatter=None,Measurement=None,Layer=None):
+    def calc_path(
+            self,
+            Atmosphere=None,
+            Scatter=None,
+            Measurement=None,
+            Layer=None
+    ):
 
         """
-        FUNCTION NAME : calc_path()
+            FUNCTION NAME : calc_path()
 
-        DESCRIPTION : Based on the flags read in the different NEMESIS files (e.g., .fla, .set files),
-                    different parameters in the Path class are changed to perform correctly
-                    the radiative transfer calculations
+            DESCRIPTION : Based on the flags read in the different NEMESIS files (e.g., .fla, .set files),
+                        different parameters in the Path class are changed to perform correctly
+                        the radiative transfer calculations
 
-        INPUTS : None
+            INPUTS : None
 
-        OPTIONAL INPUTS:
+            OPTIONAL INPUTS:
 
-            Atmosphere :: Python class defining the reference atmosphere (Default : self.AtmosphereX)
-            Scatter :: Python class defining the parameters required for scattering calculations (Default : self.ScatterX)
-            Measurement :: Python class defining the measurements and observations (Default : self.MeasurementX)
-            Layer :: Python class defining the atmospheric layering scheme for the calculation (Default : self.LayerX)
+                Atmosphere :: Python class defining the reference atmosphere (Default : self.AtmosphereX)
+                Scatter :: Python class defining the parameters required for scattering calculations (Default : self.ScatterX)
+                Measurement :: Python class defining the measurements and observations (Default : self.MeasurementX)
+                Layer :: Python class defining the atmospheric layering scheme for the calculation (Default : self.LayerX)
 
-        OUTPUTS :
+            UPDATES ATTRIBUTE:
 
-            self.PathX :: Python class defining the calculation type and the path
+                self.PathX :: Python class defining the calculation type and the path
 
-        CALLING SEQUENCE:
+            CALLING SEQUENCE:
 
-            Layer,Path = calc_path(Atmosphere,Scatter,Layer)
+                Layer,Path = calc_path(Atmosphere,Scatter,Layer)
 
-        MODIFICATION HISTORY : Juan Alday (15/03/2021)
+            MODIFICATION HISTORY : Juan Alday (15/03/2021)
         """
 
         from archnemesis import AtmCalc_0,Path_0
@@ -3121,7 +3129,16 @@ class ForwardModel_0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
             Layer.LAYANG = 90.0
 
-        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID, VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2, MOLWT=Atmosphere.MOLWT)
+        Layer.calc_layering(
+            H=Atmosphere.H,
+            P=Atmosphere.P,
+            T=Atmosphere.T,
+            ID=Atmosphere.ID,
+            VMR=Atmosphere.VMR,
+            DUST=Atmosphere.DUST,
+            PARAH2=Atmosphere.PARAH2,
+            MOLWT=Atmosphere.MOLWT
+        )
         
         #Setting the flags for the Path and calculation types
         ##############################################################################
