@@ -3,7 +3,7 @@ Configures logging for the package
 """
 import sys
 import logging
-from contextlib import contextmgr
+from contextlib import contextmanager
 
 from .build_environment import BUILD_NAME
 
@@ -205,7 +205,7 @@ def pop_packagewide_level():
         pkg_level, progress_level = _packagewide_level_stack.pop()
         set_packagewide_level(pkg_level, progress_level)
 
-@contextmgr
+@contextmanager
 def packagewide_level_cxt(log_level : int, progress_log_level : int | None = None):
     push_packagewide_level(log_level, progress_log_level)
     yield
