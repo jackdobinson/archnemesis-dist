@@ -27,7 +27,6 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 import textwrap
 
-from archnemesis import ForwardModel_0
 from archnemesis.enum import WaveUnitEnum, SpectraUnitEnum
 from archnemesis.helpers.maths_helper import is_diagonal
 import archnemesis.helpers.h5py_helper as h5py_helper
@@ -1201,11 +1200,11 @@ def coreretOE(
         nemesisC=False,
         return_forward_model=False,
         return_phi_and_chisq_history=False,
-) -> 
-    OptimalEstimation_0 
-    | tuple[OptimalEstimation_0, ForwardModel_0]
-    | tuple[OptimalEstimation_0, np.ndarray, np.ndarray]
-    | tuple[OptimalEstimation_0, ForwardModel_0, np.ndarray, np.ndarray]
+) -> \
+    OptimalEstimation_0                                                  \
+    | tuple[OptimalEstimation_0, ForwardModel_0]                         \
+    | tuple[OptimalEstimation_0, np.ndarray, np.ndarray]                 \
+    | tuple[OptimalEstimation_0, ForwardModel_0, np.ndarray, np.ndarray] \
 :
 
 
