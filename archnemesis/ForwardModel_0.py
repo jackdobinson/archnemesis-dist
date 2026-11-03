@@ -2410,6 +2410,10 @@ class ForwardModel_0:
             _lgr.info(f'{KK.shape=} {YN_pertrubations.shape=} {YN.shape=} {self.Variables.DSTEP.shape=}')
             KK[:,numerical_grad_idxs] = (YN_pertrubations - YN[:,None]) / self.Variables.DSTEP[None,numerical_grad_idxs]
         
+        
+        assert self.Variables.XN == state_vector, "Jacobian calculation must not alter the state vector"
+        
+        
         return YN, KK
 
 
@@ -4544,10 +4548,10 @@ class ForwardModel_0:
             MODIFICATION HISTORY : Juan Alday (25/07/2021)
 
         """
-        _lgr.dev(f'{self.Spectroscopy.NWAVE=}')
-        _lgr.dev(f'{self.Spectroscopy.WAVE.shape=}')
-        _lgr.dev(f'{self.SpectroscopyX.NWAVE=}')
-        _lgr.dev(f'{self.SpectroscopyX.WAVE.shape=}')
+        #_lgr.dev(f'{self.Spectroscopy.NWAVE=}')
+        #_lgr.dev(f'{self.Spectroscopy.WAVE.shape=}')
+        #_lgr.dev(f'{self.SpectroscopyX.NWAVE=}')
+        #_lgr.dev(f'{self.SpectroscopyX.WAVE.shape=}')
         
         #Initialise some arrays
         ###################################
