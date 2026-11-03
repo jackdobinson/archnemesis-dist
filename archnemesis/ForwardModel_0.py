@@ -2363,7 +2363,7 @@ class ForwardModel_0:
         # If we have numerical gradients to calculate, do so here
         if numerical_grad_idxs.size >= 1:
         
-            YN_pertrubations = np.zeros((self.Measurement.YN, numerical_grad_idxs.size), dtype=float)
+            YN_pertrubations = np.zeros((self.Measurement.NY, numerical_grad_idxs.size), dtype=float)
         
             # If we have not yet got the state vector calculation, add it to the gradients to the list of calculations
             n_calcs = numerical_grad_idxs.size + (0 if state_vector_calc_complete else 1)
