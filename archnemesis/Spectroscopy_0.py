@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
+import traceback
 from pathlib import Path
 
 from typing import NamedTuple, Any, Iterable, Self
@@ -1500,6 +1500,7 @@ class Spectroscopy_0:
         """
         
         _lgr.info('Reading tables')
+        traceback.print_stack() # TESTING
         
         if self.ILBL==SpectralCalculationModeEnum.LINE_BY_LINE_RUNTIME:
 
