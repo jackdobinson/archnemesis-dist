@@ -881,7 +881,7 @@ class Retrieval:
 	## Private Methods ##
 	###################################################################################################
 	
-	def _get_forward_model_instance(self, IGEOM : int = None, IAV : int = None, new : bool = False):
+	def _get_forward_model_instance(self, IGEOM : int = None, IAV : int = None, new : bool = False, n_cores : int = 1):
 		if new or self._cached_forward_model_instance is None:
 			self._cached_forward_model_instance = ans.ForwardModel_0(
 				runname = self.runname, 
@@ -895,6 +895,7 @@ class Retrieval:
 				Layer = self.Layer,
 				Variables = self.Variables,
 				Telluric = self.Telluric,
+				NCores = n_cores
 			)
 			
 			with redirect_file_access.using(*self._path_redirects):
@@ -1550,22 +1551,14 @@ class Retrieval:
 			phi_history = None
 			chisq_history = None
 			
+			forward_model_instance = self._get_foward_model_instance(n_cores = n_cores)
+			
 			_lgr.info(f'Running optimal estimation in {self._working_directory}')
-			OptimalEstimationResult, ForwardModel, phi_history, chisq_history = ans.coreretOE(
+			OptimalEstimationResult, _, phi_history, chisq_history = ans.coreretOE_impl(
 				self.runname,
-				self.Variables,
-				self.Measurement,
-				self.Atmosphere,
-				self.Spectroscopy,
-				self.Scatter,
-				self.Stellar,
-				self.Surface,
-				self.CIA,
-				self.Layer,
-				self.Telluric,
+				forward_model_instance,
 				NITER = n_iter,
 				PHILIMIT = self.RetrievalEngine.PHILIMIT,
-				NCores = n_cores,
 				nemesisSO = self.nemesisSO,
 				nemesisC = self.nemesisC,
 				nemesisdisc = self.nemesisdisc,
@@ -1574,8 +1567,6 @@ class Retrieval:
 				return_forward_model = True,
 				return_phi_and_chisq_history=True,
 			)
-			
-			self._set_forward_model_instance(ForwardModel)
 			
 			if not os.path.exists('phi_chisq.txt') and (phi_history is not None and chisq_history is not None):
 				with open('phi_chisq.txt', 'w') as f:
@@ -1598,10 +1589,8 @@ class Retrieval:
 		# Extract the best-fit spectra
 		self._update_modelled_spectra_from_retrival_engine()
 		
-		fm_instance = self._get_forward_model_instance() 
-		
 		# Updating the Layering
-		self.Layer = fm_instance.LayerX
+		self.Layer = forward_model_instance.LayerX
 		
 		# Updating the spectroscopy
 		#self.Spectroscopy = fm_instance.SpectroscopyX

@@ -95,89 +95,89 @@ class Spectroscopy_0:
             ILBL: SpectralCalculationModeEnum = SpectralCalculationModeEnum.LINE_BY_LINE_TABLES, 
             #NGAS: int = 0, 
             ONLINE: bool = False,
-        ):
+    ):
 
         """
-        Inputs
-        ------
-        @param ISPACE: int,
-            Flag indicating the units of the spectral coordinate:
-            (0) Wavenumber (cm-1) 
-            (1) Wavelength (um)
-        @param ILBL: SpectralCalculationMode enum,
-            Flag indicating if the calculations are performed using:
-            - K_TABLES (0) - Pre-tabulated correlated-k tables
-            - LINE_BY_LINE_RUNTIME (1) - Calculate line-by-line during runtime  
-            - LINE_BY_LINE_TABLES (2) - Pre-tabulated line-by-line tables
-        @param ONLINE: bool,
-            Flag indicating whether the look-up tables must be read and stored on memory (False), 
-            or they are read online when calling calc_klbl or calc_k (True)
-        @param NGAS: int,
-            Number of active gases to include in the atmosphere
-        @param ID: 1D array,
-            Gas ID for each active gas (using Gas enum)
-        @param ISO: 1D array,
-            Isotope ID for each gas, default 0 for all isotopes in terrestrial relative abundance
-        @param LOCATION: 1D array,
-            List of strings indicating where the .lta or .kta tables are stored for each of the gases
-        @param NWAVE: int,
-            Number of wavelengths included in the K-tables or LBL-tables
-        @param WAVE: 1D array,
-            Wavelengths at which the K-tables or LBL-tables are defined
-        @param NP: int,
-            Number of pressure levels at which the K-tables or LBL-tables were computed
-        @param NT: int,
-            Number of temperature levels at which the K-tables or LBL-tables were computed
-        @param PRESS: 1D array
-            Pressure levels at which the K-tables or LBL-tables were computed (Pa)
-        @param TEMP: 1D array
-            Temperature levels at which the K-tables or LBL-tables were computed (K)
-        @param NG: int,
-            Number of g-ordinates included in the k-tables (NG=1 for line-by-line)
-        @param G_ORD: 1D array,
-            G-ordinates
-        @param DELG: 1D array,
-            Intervals of g-ordinates
-        @param FWHM: real,
-            Full-width at half maximum (only in case of K-tables)
+            Inputs
+            ------
+            @param ISPACE: int,
+                Flag indicating the units of the spectral coordinate:
+                (0) Wavenumber (cm-1) 
+                (1) Wavelength (um)
+            @param ILBL: SpectralCalculationMode enum,
+                Flag indicating if the calculations are performed using:
+                - K_TABLES (0) - Pre-tabulated correlated-k tables
+                - LINE_BY_LINE_RUNTIME (1) - Calculate line-by-line during runtime  
+                - LINE_BY_LINE_TABLES (2) - Pre-tabulated line-by-line tables
+            @param ONLINE: bool,
+                Flag indicating whether the look-up tables must be read and stored on memory (False), 
+                or they are read online when calling calc_klbl or calc_k (True)
+            @param NGAS: int,
+                Number of active gases to include in the atmosphere
+            @param ID: 1D array,
+                Gas ID for each active gas (using Gas enum)
+            @param ISO: 1D array,
+                Isotope ID for each gas, default 0 for all isotopes in terrestrial relative abundance
+            @param LOCATION: 1D array,
+                List of strings indicating where the .lta or .kta tables are stored for each of the gases
+            @param NWAVE: int,
+                Number of wavelengths included in the K-tables or LBL-tables
+            @param WAVE: 1D array,
+                Wavelengths at which the K-tables or LBL-tables are defined
+            @param NP: int,
+                Number of pressure levels at which the K-tables or LBL-tables were computed
+            @param NT: int,
+                Number of temperature levels at which the K-tables or LBL-tables were computed
+            @param PRESS: 1D array
+                Pressure levels at which the K-tables or LBL-tables were computed (Pa)
+            @param TEMP: 1D array
+                Temperature levels at which the K-tables or LBL-tables were computed (K)
+            @param NG: int,
+                Number of g-ordinates included in the k-tables (NG=1 for line-by-line)
+            @param G_ORD: 1D array,
+                G-ordinates
+            @param DELG: 1D array,
+                Intervals of g-ordinates
+            @param FWHM: real,
+                Full-width at half maximum (only in case of K-tables)
 
 
-        @param LOCATION_LD: 1D array,
-            If ILBL = 1, List of strings indicating the paths to the line databases to use
-        @param LOCATION_PF: 1D array,
-            If ILBL = 1, List of strings indicating the paths to the partition function database to use
-        @param LOCATION_CD: 1D array,
-            If ILBL = 1, List of strings indicating the paths to the continuum database to use
-        @param LINE_DATA_PARAMS: 1D array of tuples
-            IF ILBL = 1, Dictionary including the information required to calculate the absorption cross sections for each gas. The information to include is:
-                - lineshape : Integer indicating the lineshape to use (enum is SpectroscopicLineProfileEnum) (default is VOIGT lineshape).
-                - wn_calc_window : Wavenumber region around a line where the line calculations are performed (default = 25 cm-1).
-                - wn_approx_window : Wavenumber region around a line up to which an approximation for the wings are included (default = 75 cm-1).
-                - amb_gas : List of ambient gases (default = [ans.enum.AmbientGasEnum.AIR]),
-                - s_min : float = -1.0,
-                - s_floor : float = 0.0,
-                - isotopic_abundance : If not None, abundance of each isotope to calculate the overall absorption by the gas (default = None, which uses standard isotopic abundances in the RADTRAN dictionary)
-                - include_pressure_shift : If True, it applies the pressure-induced shift in the position of the lines (default = True)
-                - include_continuum : If True, it applies a pseudo-continuum from weak lines (default = True)
-                - include_lines : If True, it adds the absorption from the lines (default = True)
-                - use_cache : If True, the calculations are optimised using a cache (default = True)
+            @param LOCATION_LD: 1D array,
+                If ILBL = 1, List of strings indicating the paths to the line databases to use
+            @param LOCATION_PF: 1D array,
+                If ILBL = 1, List of strings indicating the paths to the partition function database to use
+            @param LOCATION_CD: 1D array,
+                If ILBL = 1, List of strings indicating the paths to the continuum database to use
+            @param LINE_DATA_PARAMS: 1D array of tuples
+                IF ILBL = 1, Dictionary including the information required to calculate the absorption cross sections for each gas. The information to include is:
+                    - lineshape : Integer indicating the lineshape to use (enum is SpectroscopicLineProfileEnum) (default is VOIGT lineshape).
+                    - wn_calc_window : Wavenumber region around a line where the line calculations are performed (default = 25 cm-1).
+                    - wn_approx_window : Wavenumber region around a line up to which an approximation for the wings are included (default = 75 cm-1).
+                    - amb_gas : List of ambient gases (default = [ans.enum.AmbientGasEnum.AIR]),
+                    - s_min : float = -1.0,
+                    - s_floor : float = 0.0,
+                    - isotopic_abundance : If not None, abundance of each isotope to calculate the overall absorption by the gas (default = None, which uses standard isotopic abundances in the RADTRAN dictionary)
+                    - include_pressure_shift : If True, it applies the pressure-induced shift in the position of the lines (default = True)
+                    - include_continuum : If True, it applies a pseudo-continuum from weak lines (default = True)
+                    - include_lines : If True, it adds the absorption from the lines (default = True)
+                    - use_cache : If True, the calculations are optimised using a cache (default = True)
 
-        
-        Methods
-        -------
-        Spectroscopy_0.edit_WAVE()
-        Spectroscopy_0.edit_K()
-        Spectroscopy_0.write_hdf5()
-        Spectroscopy_0.read_hdf5()
-        Spectroscopy_0.read_lls()
-        Spectroscopy_0.read_kls()
-        Spectroscopy_0.read_header()
-        Spectroscopy_0.read_tables()
-        Spectroscopy_0.write_table_hdf5()
-        Spectroscopy_0.calc_klbl()
-        Spectroscopy_0.calc_k()
-        Spectroscopy_0.calc_klblg()
-        Spectroscopy_0.calc_kg()
+            
+            Methods
+            -------
+            Spectroscopy_0.edit_WAVE()
+            Spectroscopy_0.edit_K()
+            Spectroscopy_0.write_hdf5()
+            Spectroscopy_0.read_hdf5()
+            Spectroscopy_0.read_lls()
+            Spectroscopy_0.read_kls()
+            Spectroscopy_0.read_header()
+            Spectroscopy_0.read_tables()
+            Spectroscopy_0.write_table_hdf5()
+            Spectroscopy_0.calc_klbl()
+            Spectroscopy_0.calc_k()
+            Spectroscopy_0.calc_klblg()
+            Spectroscopy_0.calc_kg()
         """
 
 
@@ -964,7 +964,7 @@ class Spectroscopy_0:
                             LOCATION[igas] = LOCATION1[igas].decode('ascii')
                         self.LOCATION = LOCATION
                         
-                        #Reading the header information
+                        # Reading the header information
                         self.read_header()
                     
     ######################################################################################################
@@ -1484,7 +1484,7 @@ class Spectroscopy_0:
             self.ISO = np.zeros((0,),dtype=int)
 
     ######################################################################################################
-    def read_tables(self, wavemin=0., wavemax=1.0e10, wavedelta=1.0):
+    def read_tables(self, wavemin=0.0, wavemax=np.inf):
         """
         Reads the .kta or .lta tables and stores the results into this class
         
@@ -1497,8 +1497,6 @@ class Spectroscopy_0:
             Minimum wavenumber (cm-1) or wavelength (um)
         @param wavemax: real
             Maximum wavenumber (cm-1) or wavelength (um)
-        @param wavedelta: real
-            Wave step wavenumber (cm-1) or wavelength (um) if `self.WAVE` is not defined
         """
         
         _lgr.info('Reading tables')

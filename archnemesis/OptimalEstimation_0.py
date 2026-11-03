@@ -1267,8 +1267,111 @@ def coreretOE(
 
     """
     
+    ForwardModel = ForwardModel_0(
+        runname=runname, 
+        Atmosphere=Atmosphere,
+        Surface=Surface,
+        Measurement=Measurement,
+        Spectroscopy=Spectroscopy,
+        Stellar=Stellar,
+        Scatter=Scatter,
+        CIA=CIA,
+        Layer=Layer,
+        Variables=Variables,
+        Telluric=Telluric,
+        NCores=NCores,
+    )
+
+    return coreretOE_impl(
+        runname,
+        ForwardModel,
+        NITER = NITER,
+        PHILIMIT = PHILIMIT,
+        LIN = LIN,
+        nemesisSO = nemesisSO,
+        nemesisdisc = nemesisdisc,
+        nemesisPT = nemesisPT,
+        write_itr = write_itr,
+        return_forward_model = return_forward_model,
+        return_phi_and_chisq_history = return_phi_and_chisq_history,
+    )
+
+
+
+
+def coreretOE_impl(
+        runname,
+        ForwardModel,
+        NITER=10,
+        PHILIMIT=0.1,
+        LIN=0,
+        nemesisSO=False,
+        nemesisdisc=False,
+        nemesisPT=False,
+        write_itr=False,
+        nemesisC=False,
+        return_forward_model=False,
+        return_phi_and_chisq_history=False,
+) -> \
+    OptimalEstimation_0                                                  \
+    | tuple[OptimalEstimation_0, ForwardModel_0]                         \
+    | tuple[OptimalEstimation_0, np.ndarray, np.ndarray]                 \
+    | tuple[OptimalEstimation_0, ForwardModel_0, np.ndarray, np.ndarray] \
+:
+
+
+    """
+        FUNCTION NAME : coreretOE()
+        
+        DESCRIPTION : 
+
+            This subroutine runs the Optimal Estimation iterarive algorithm to solve the inverse
+            problem and find the set of parameters that fit the spectral measurements and are closest
+            to the a priori estimates of the parameters.
+
+        INPUTS :
+       
+            runname :: Name of the Nemesis run
+            ForwardModel :: The ForwardModel_0 instance to use for this calculation
+
+        OPTIONAL INPUTS:
+
+            NITER :: Number of iterations in retrieval
+            PHILIMIT :: Percentage convergence limit. If the percentage reduction of the cost function PHI
+                        is less than philimit then the retrieval is deemed to have converged.
+
+            nemesisSO :: If True, it indicates that the retrieval is for a solar occultation observation
+            nemesisdisc :: If True, it indicates that the retrieval is for a disc-averaged observation
+            nemesisPT :: If True, it indicates that the retrieval is for a primary transit observation
+            nemesisC :: If True, forward models compute all geometries at once (multiple scattering)
+                         for solar occultation observations.
+            
+            return_forward_model :: if True will return the ForwardModel as well as the OptimalEstimation.
+
+        OUTPUTS :
+
+            OptimalEstimation :: Python class defining all the variables required as input or output
+                                 from the Optimal Estimation retrieval
+            
+            ForwardModel : ForwardModel_0 [optional, included when `return_forward_model==True`]
+                ForwardModel_0 instance used to compute the optimal estimation result.
+            
+            phi_history : np.ndarray [optional, included when `return_phi_and_chisq_history==True`]
+                The value of the cost function calculated each iteration.
+            
+            chisq_history : np.ndarray [optional, included when `return_phi_and_chisq_history==True`]
+                The value of the chisq fit of modelled spectra to measured spectra calculated each iteration.
+ 
+        CALLING SEQUENCE:
+        
+            OptimalEstimation = coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,Layer,Telluric)
+ 
+        MODIFICATION HISTORY : Juan Alday (06/08/2021)
+
+    """
+    
     # Reset the warning flag each time we do a retrieval
-    ForwardModel_0.reset_DONE_GAS_SPECTROSCOPY_DATA_WARNING_ONCE_FLAG()
+    ForwardModel.reset_DONE_GAS_SPECTROSCOPY_DATA_WARNING_ONCE_FLAG()
 
     #Creating class and including inputs
     #############################################
@@ -1278,17 +1381,17 @@ def coreretOE(
     OptimalEstimation.NITER = NITER
     OptimalEstimation.PHILIMIT = PHILIMIT
     OptimalEstimation.LIN = LIN
-    OptimalEstimation.NCORES = NCores
-    OptimalEstimation.NX = Variables.NX
-    OptimalEstimation.NY = Measurement.NY
-    OptimalEstimation.edit_XA(Variables.XA)
-    OptimalEstimation.edit_XN(Variables.XN)
-    OptimalEstimation.edit_SA(Variables.SA)
-    OptimalEstimation.edit_Y(Measurement.Y)
-    OptimalEstimation.edit_SE(Measurement.SE)
+    OptimalEstimation.NCORES = ForwardModel.NCores
+    OptimalEstimation.NX = ForwardModel.Variables.NX
+    OptimalEstimation.NY = ForwardModel.Measurement.NY
+    OptimalEstimation.edit_XA(ForwardModel.Variables.XA)
+    OptimalEstimation.edit_XN(ForwardModel.Variables.XN)
+    OptimalEstimation.edit_SA(ForwardModel.Variables.SA)
+    OptimalEstimation.edit_Y(ForwardModel.Measurement.Y)
+    OptimalEstimation.edit_SE(ForwardModel.Measurement.SE)
     
     simple = False
-    if Measurement.SE.shape[0] == 1 and Measurement.SE.shape[1] == 1:
+    if ForwardModel.Measurement.SE.shape[0] == 1 and ForwardModel.Measurement.SE.shape[1] == 1:
         simple = True
         
     phi_history = np.full((NITER+1,), fill_value=np.nan)
@@ -1336,22 +1439,8 @@ def coreretOE(
     #Calculate the first measurement vector and jacobian matrix
     #################################################################
 
-    ForwardModel = ForwardModel_0(
-        runname=runname, 
-        Atmosphere=Atmosphere,
-        Surface=Surface,
-        Measurement=Measurement,
-        Spectroscopy=Spectroscopy,
-        Stellar=Stellar,
-        Scatter=Scatter,
-        CIA=CIA,
-        Layer=Layer,
-        Variables=Variables,
-        Telluric=Telluric,
-        NCores=NCores,
-    )
     _lgr.info('nemesis :: Calculating Jacobian matrix KK')
-    YN,KK = ForwardModel.jacobian_nemesis(NCores=NCores,nemesisSO=nemesisSO,nemesisdisc=nemesisdisc,nemesisPT=nemesisPT,nemesisC=nemesisC)
+    YN,KK = ForwardModel.jacobian_nemesis(NCores=ForwardModel.NCores,nemesisSO=nemesisSO,nemesisdisc=nemesisdisc,nemesisPT=nemesisPT,nemesisC=nemesisC)
     
     OptimalEstimation.edit_YN(YN)
     OptimalEstimation.edit_KK(KK)
@@ -1433,29 +1522,29 @@ def coreretOE(
             
             XN1 = OptimalEstimation.XN + (X_OUT-OptimalEstimation.XN)/(1.0+alambda)
             
-            if np.any(((XN1 > 85) | (XN1 < -85)) & (Variables.LX==1)):
+            if np.any(((XN1 > 85) | (XN1 < -85)) & (ForwardModel.Variables.LX==1)):
                 _lgr.info('nemesis :: log(number gone out of range) --- increasing brake')
                 alambda *= 10
                 check_marquardt_brake = True
             
             else:
                 #Check to see if any VMRs or other parameters have gone negative.
-                Variables1 = deepcopy(Variables)
+                Variables1 = deepcopy(ForwardModel.Variables)
                 Variables1.XN = XN1
 
                 ForwardModel1 = ForwardModel_0(
                     runname=runname, 
-                    Atmosphere=Atmosphere,
-                    Surface=Surface,
-                    Measurement=Measurement,
-                    Spectroscopy=Spectroscopy,
-                    Stellar=Stellar,
-                    Scatter=Scatter,
-                    CIA=CIA,
-                    Layer=Layer,
-                    Telluric=Telluric,
-                    Variables=Variables1,
-                    NCores=NCores,
+                    Atmosphere=ForwardModel.Atmosphere,
+                    Surface=ForwardModel.Surface,
+                    Measurement=ForwardModel.Measurement,
+                    Spectroscopy=ForwardModel.Spectroscopy,
+                    Stellar=ForwardModel.Stellar,
+                    Scatter=ForwardModel.Scatter,
+                    CIA=ForwardModel.CIA,
+                    Layer=ForwardModel.Layer,
+                    Telluric=ForwardModel.Telluric,
+                    Variables=ForwardModel.Variables1,
+                    NCores=ForwardModel.NCores,
                 )
                 ForwardModel1.subprofretg()
 
@@ -1468,24 +1557,10 @@ def coreretOE(
         #Calculate test spectrum using trial state vector xn1. 
         #Put output spectrum into temporary spectrum yn1 with
         #temporary kernel matrix kk1. Does it improve the fit? 
-        Variables.edit_XN(XN1)
+        ForwardModel.Variables.edit_XN(XN1)
         _lgr.info('nemesis :: Calculating Jacobian matrix KK')
 
-        ForwardModel = ForwardModel_0(
-            runname=runname, 
-            Atmosphere=Atmosphere,
-            Surface=Surface,
-            Measurement=Measurement,
-            Spectroscopy=Spectroscopy,
-            Stellar=Stellar,
-            Scatter=Scatter,
-            CIA=CIA,
-            Layer=Layer,
-            Telluric=Telluric,
-            Variables=Variables,
-            NCores=NCores,
-        )
-        YN1,KK1 = ForwardModel.jacobian_nemesis(NCores=NCores,nemesisSO=nemesisSO,nemesisdisc=nemesisdisc,nemesisPT=nemesisPT,nemesisC=nemesisC)
+        YN1,KK1 = ForwardModel.jacobian_nemesis(NCores=ForwardModel.NCores,nemesisSO=nemesisSO,nemesisdisc=nemesisdisc,nemesisPT=nemesisPT,nemesisC=nemesisC)
 
         OptimalEstimation1 = deepcopy(OptimalEstimation)
         OptimalEstimation1.edit_YN(YN1)
@@ -1503,7 +1578,7 @@ def coreretOE(
             OptimalEstimation.edit_XN(XN1)
             OptimalEstimation.edit_YN(YN1)
             OptimalEstimation.edit_KK(KK1)
-            Variables.edit_XN(XN1)
+            ForwardModel.Variables.edit_XN(XN1)
 
             #Now calculate the gain matrix and averaging kernels
             OptimalEstimation.calc_gain_matrix()
