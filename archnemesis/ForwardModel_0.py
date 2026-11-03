@@ -2344,7 +2344,8 @@ class ForwardModel_0:
         
         state_vector = self.Variables.XN
         state_vector_perturbations = np.tile(state_vector, (state_vector.size,1)) + np.diag(self.Variables.DSTEP)
-        print(f'{state_vector_perturbations=}')
+        for i, svp in enumerate(state_vector_perturbations):
+            print(f'svp[i]={svp}')
         
         #nxn = self.Variables.NX+1
         xnx = np.zeros([self.Variables.NX,self.Variables.NX+1], dtype=float)
