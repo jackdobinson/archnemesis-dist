@@ -2404,7 +2404,7 @@ class ForwardModel_0:
                 n_jobs=job_pool_size,
                 return_as = 'generator_unordered',
             )(
-                delayed(self.execute_fm)(sv_idx, task_id, sv, **kwargs) for sv_idx, task_id, sv, **kwargs in job_arg_list
+                delayed(self.execute_fm)(sv_idx, task_id, sv, **kwargs) for sv_idx, task_id, sv, kwargs in job_arg_list
             )
             
             for i, (sv_idx, task_id, SPECMOD) in enumerate(job_results):
