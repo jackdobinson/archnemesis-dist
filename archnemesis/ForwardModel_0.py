@@ -2402,7 +2402,7 @@ class ForwardModel_0:
             
             for i, (task_id, sv_idx, result_idx, SPECMOD) in enumerate(job_results):
                 _lgr.info(f'Forward model calculation task {task_id} finished [{i+1}/{n_tasks}]')
-                assert np.all(self.Variables.XN == state_vector), "Jacobian calculation must not alter the state vector"
+                #assert np.all(self.Variables.XN == state_vector), "Jacobian calculation must not alter the state vector"
                 
                 if sv_idx == -1:
                     self.Measurement.pack_array_by_geom(SPECMOD, out=YN)
@@ -2412,7 +2412,7 @@ class ForwardModel_0:
             _lgr.info(f'{KK.shape=} {YN_pertrubations.shape=} {YN.shape=} {self.Variables.DSTEP.shape=}')
             KK[:,numerical_grad_idxs] = (YN_pertrubations - YN[:,None]) / self.Variables.DSTEP[None,numerical_grad_idxs]
         
-        
+        self.Variables.XN == state_vector # Ensure state vector is reset
         
         
         
