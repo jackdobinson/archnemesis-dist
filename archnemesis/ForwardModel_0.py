@@ -411,9 +411,9 @@ class ForwardModel_0:
             nemesisC : bool = False,
             analytical_gradient : bool = False,
             **kwargs: Any,
-        ) -> Callable[[],np.ndarray] | Callable[[],tuple[np.ndarray,np.ndarray]]:
+    ) -> Callable[[],np.ndarray] | Callable[[],tuple[np.ndarray,np.ndarray]]:
         """
-        Selects the correct method to calculate the nemesis forward model based on passed flags.
+            Selects the correct method to calculate the nemesis forward model based on passed flags.
         """
         method = None
 
@@ -2142,27 +2142,19 @@ class ForwardModel_0:
 
     ###############################################################################################
 
-    def execute_fm(self, inp):
+    def execute_fm(
+            self, 
+            sv_idx : int, # index of the variable in the state vector that is perturbed
+            task_id : int, # task id
+            state_vector_perturbed : np.ndarray, # The perturbed state vector
+            nemesisSO : bool = False,
+            nemesisL : bool = False,
+            nemesisdisc : bool = False,
+            nemesisPT : bool = False,
+            nemesisC : bool = False,
+    ) -> tuple[int, int, np.ndarray]:
+        _lgr.info(f'Forward model calculation task {task_id} started...')
         
-        import archnemesis.cfg.logs
-        
-        # Unpack input tuple (Includes nemesisC, nemesisPT, and n_jobs_internal)
-        ifm, nfm, xnx, ixrun, nemesisSO, nemesisL, nemesisC, nemesisdisc, nemesisPT, YNtot, n_jobs_internal = inp
-        # ifm - index of forward model
-        # nfm - number of forward models
-        # xnx - array holding state vectors for all parallel forward models
-        # ixrun - number of state vector entries for this forward model
-        # nemesisSO - boolean flag to perform solar occultation forward model
-        # nemesisL - boolean flag to perform limb forward model
-        # nemesisC - boolean flag (User added)
-        # nemesisPT - boolean flag (Upstream added)
-        # YNtot - modelled spectra for all parallel forward models
-        
-        # define variables
-        SPECMOD = None
-        
-        # Find the method to use when modelling the spectrum
-        # Using Keyword Arguments to safely include both C and PT flags
         nemesis_method = self.select_nemesis_fm(
             nemesisSO=nemesisSO, 
             nemesisL=nemesisL, 
@@ -2172,35 +2164,11 @@ class ForwardModel_0:
             analytical_gradient=False
         )
         
-        _lgr.info(f'Calculating forward model {ifm+1}/{nfm}')
-        
         # load state vector with state for this specific forward model
-        self.Variables.XN = xnx[:, ixrun[ifm]]
+        self.Variables.XN[...] = state_vector_perturbed
         
-        # --- HYBRID PARALLELIZATION ---
-        # Set the internal NCores for this specific worker instance.
-        self.NCores = int(n_jobs_internal)
-        # ------------------------------
+        return sv_idx, task_id, nemesis_method()
         
-        # Turn off warning and below logging
-        archnemesis.cfg.logs.push_packagewide_level(logging.ERROR)
-        try:
-            # model the spectrum
-            SPECMOD = nemesis_method()
-        finally:
-            archnemesis.cfg.logs.pop_packagewide_level()
-
-        if SPECMOD is not None:
-            ik = 0
-            for igeom in range(self.Measurement.NGEOM):
-                YNtot[ik:ik+self.Measurement.NCONV[igeom],ifm] = SPECMOD[0:self.Measurement.NCONV[igeom],igeom]
-                ik += self.Measurement.NCONV[igeom]
-            
-            _lgr.info(f'Calculated forward model {ifm+1}/{nfm}')
-        else:
-            raise RuntimeError(f'Something went wrong when calculating forward model {ifm+1}/{nfm}.')
-            
-        return YNtot
     
     ###############################################################################################
 
@@ -2341,9 +2309,9 @@ class ForwardModel_0:
 
         self.Variables.calc_DSTEP() #Calculating the step size for the perturbation of each element
         
-        
+        dstep = np.diag(self.Variables.DSTEP)
         state_vector = self.Variables.XN
-        state_vector_perturbations = np.tile(state_vector, (state_vector.size,1)) + np.diag(self.Variables.DSTEP)
+        state_vector_perturbations = np.tile(state_vector, (state_vector.size,1)) + dstep
         for i, svp in enumerate(state_vector_perturbations):
             print(f'svp[i]={svp}')
         
@@ -2369,17 +2337,14 @@ class ForwardModel_0:
         _lgr.dev(f'{numerical_grad_idxs=}')
         _lgr.dev(f'{analytical_grad_idxs=}')
         
+        state_vector_calc_complete = False
+        YN = np.zeros((self.Measurement.NY,), dtype=float) # state vector result
+        KK = np.zeros([self.Measurement.NY,self.Variables.NX]) # jacobian
         
-        ian1 = np.where(self.Variables.NUM==0)  #Gradients calculated using CIRSradg
-        ian1 = ian1[0]
-
-        iYN = 0
-        KK = np.zeros([self.Measurement.NY,self.Variables.NX])
-
-        if len(ian1)>0:
-
+        # If we have analytical gradients to calculate, do so here
+        if analytical_grad_idxs.size >= 1:
             _lgr.info('Calculating analytical part of the Jacobian :: Calling nemesisfmg ')
-            nemesis_method = self.select_nemesis_fm(
+            nemesis_grad_method = self.select_nemesis_fm(
                 nemesisSO=nemesisSO,
                 nemesisL=nemesisL,
                 nemesisC=nemesisC,
@@ -2388,92 +2353,64 @@ class ForwardModel_0:
                 analytical_gradient=True
             )
 
-            SPECMOD,dSPECMOD = nemesis_method()
-                
-            #Re-shaping the arrays to create the measurement vector and Jacobian matrix
-            YN = np.zeros(self.Measurement.NY)
-            ik = 0
-            for igeom in range(self.Measurement.NGEOM):
-                YN[ik:ik+self.Measurement.NCONV[igeom]] = SPECMOD[0:self.Measurement.NCONV[igeom],igeom]
-                KK[ik:ik+self.Measurement.NCONV[igeom],:] = dSPECMOD[0:self.Measurement.NCONV[igeom],igeom,:]
-                ik += self.Measurement.NCONV[igeom]
-
-            iYN = 1 #Indicates that some of the gradients and the measurement vector have already been caculated
-
-        #################################################################################
-        # Calculating all the required forward models for numerical differentiation
-        #################################################################################
-
-        inum1 = np.where( (self.Variables.NUM==1) & (self.Variables.FIX==0) ) # only do numerical differentiation for elements of state vector that can vary (i.e. FIX==0, 'not fixed')
-        inum = inum1[0]
-
-        if iYN==0:
-            nfm = len(inum) + 1  #Number of forward models to run to calculate the Jacobian and measurement vector
-            ixrun = np.zeros(nfm,dtype='int32')
-            ixrun[0] = 0
-            ixrun[1:nfm] = inum[:] + 1
-        else:
-            nfm = len(inum)  #Number of forward models to run to calculate the Jacobian
-            ixrun = np.zeros(nfm,dtype='int32')
-            ixrun[0:nfm] = inum[:] + 1
-
-
-        #Calling the forward model nfm times to calculate the measurement vector for each case
-        YNtot = np.zeros((self.Measurement.NY,nfm))
-
+            SPECMOD,dSPECMOD = nemesis_grad_method()
         
-        if nfm > 0:
-            _lgr.info('Calculating numerical part of the Jacobian :: running '+str(nfm)+' forward models ')
+            self.Measurement.pack_array_by_geom(SPECMOD, out=YN)
+            KK[:,analytical_grad_idxs] = self.Measurement.pack_array_by_geom(dSPECMOD)[:, analytical_grad_idxs]
+            state_vector_calc_complete = True
+        
+        
+        # If we have numerical gradients to calculate, do so here
+        if numerical_grad_idxs.size >= 1:
+        
+            YN_pertrubations = np.zeros((self.Measurement.YN, numerical_grad_idxs.size), dtype=float)
+        
+            # If we have not yet got the state vector calculation, add it to the gradients to the list of calculations
+            n_calcs = numerical_grad_idxs.size + (0 if state_vector_calc_complete else 1)
+            n_cores = NCores if NCores is not None else 1
+            job_pool_size = min(n_calcs, n_cores)
             
-            total_cores = NCores if NCores is not None else 1
+            job_arg_list = []
+            nemesis_method_selection_args = (nemesisSO, nemesisL, nemesisdisc, nemesisPT, nemesisC) # NOTE: Require the same ordering as `self.execute_fm(...)`
+            if not state_vector_calc_complete:
+                job_arg_list.append(
+                    (-1, -1, state_vector, *nemesis_method_selection_args)
+                )
             
-            # 1. Determine Outer Parallelism (Jacobian Branches)
-            # Limit by total cores AND total models needed
-            n_jobs_jac = min(total_cores, nfm)
+            for task_id, sv_idx in enumerate(numerical_grad_idxs):
+                job_arg_list.append(
+                    (sv_idx, task_id, state_vector_perturbations[sv_idx], nemesis_method_selection_args)
+                )
             
-            # 2. Inner Parallelism (Disc Integration): sequential (nested Parallel calls run on threads)
-            n_jobs_internal = 1
+            n_tasks = len(job_arg_list)
             
-            base_chunk_size = nfm // n_jobs_jac
-            remainder = nfm % n_jobs_jac
-
-            # Pack arguments including nemesisC, nemesisPT, and n_jobs_internal
-            chunks = [(
-                i * base_chunk_size + min(i, remainder),
-                (i + 1) * base_chunk_size + min(i + 1, remainder),
-                xnx, ixrun, nemesisSO, nemesisL, nemesisC, nemesisdisc, nemesisPT, YNtot, nfm, n_jobs_internal
-            ) for i in range(n_jobs_jac)]
-
-            results = Parallel(n_jobs=total_cores)(
-                delayed(self.chunked_execution)(chunk) for chunk in chunks
-            )
-            
-            ordered_results = sorted(results, key=lambda x: x[0])
-            YNtot = np.sum(np.stack([res[1] for res in ordered_results]), axis=0)
-
-            if iYN==0:
-                YN = np.zeros(self.Measurement.NY)
-                YN[:] = YNtot[0:self.Measurement.NY,0]
-
-
-        #################################################################################
-        # Calculating the Jacobian matrix
-        #################################################################################
-
-        for i in range(len(inum)):
-
-            if iYN==0:
-                ifm = i + 1
+            if job_pool_size > 1:
+                log_level_to_set = logging.ERROR
             else:
-                ifm = i
+                log_level_to_set = None # means we do not change anything
+            
+            
+            # NOTE: This may not properly isolate `self.Variables` between multiple iterations,
+            #       there could be a race condition when setting `self.Variables.XN` for each task.
+            with logging.packagewide_level_cxt(log_level_to_set):
+                job_results = Parallel(
+                    n_jobs=job_pool_size,
+                    return_as = 'generator_unordered',
+                )(
+                    delayed(self.execute_fm)(*args) for args in job_arg_list
+                )
+            
+            for i, (sv_idx, task_id, SPECMOD) in enumerate(job_results):
+                _lgr.info(f'Forward model calculation task {task_id} finished [{i+1}/{n_tasks}]')
+                if sv_idx == -1:
+                    self.Measurement.pack_array_by_geom(SPECMOD, out=YN)
+                else:
+                    self.Measurement.pack_array_by_geom(SPECMOD, out=YN_pertrubations[:,sv_idx])
+        
+            KK[:,numerical_grad_idxs] = (YN_pertrubations - YN[:,None]) / dstep[None,:]
+        
+        return YN, KK
 
-            xn1 = self.Variables.XN[inum[i]] * 1.05
-            if xn1==0.0:
-                xn1=0.05
-            if self.Variables.FIX[inum[i]] == 0:
-                KK[:,inum[i]] = (YNtot[:,ifm]-YN)/(xn1-self.Variables.XN[inum[i]])
-
-        return YN,KK
 
 
     ###############################################################################################

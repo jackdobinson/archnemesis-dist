@@ -54,180 +54,181 @@ State Vector Class.
 
 class Measurement_0:
 
-    """Measurement class.
+    """
+        Measurement class.
 
-    This class includes all information required to model the specification of the measurement, such as the geometry of the observation
-    or the instrument characteristics. 
+        This class includes all information required to model the specification of the measurement, such as the geometry of the observation
+        or the instrument characteristics. 
 
-    Attributes
-    ----------
-    runname : str
-        Name of the Nemesis run
-    NGEOM : int       
-        Number of observing geometries
-    FWHM : float
-        Full-width at half-maximum of the instrument
-    ISHAPE : int
-        Instrument lineshape (only used if FWHM>0)
-            (0) Square lineshape
-            (1) Triangular
-            (2) Gaussian
-            (3) Hamming
-            (4) Hanning
-    ISPACE : int
-        Spectral units
-            (0) Wavenumber (cm-1)
-            (1) Wavelength (um)
-    IFORM : int
-        Units of the spectra
-            (0) Radiance - W cm-2 sr-1 (cm-1)-1 if ISPACE=0 ---- W cm-2 sr-1 μm-1 if ISPACE=1
-            (1) F_planet/F_star - Dimensionsless
-            (2) A_planet/A_star - 100.0 * A_planet/A_star (dimensionsless)
-            (3) Integrated spectral power of planet - W (cm-1)-1 if ISPACE=0 ---- W um-1 if ISPACE=1
-            (4) Atmospheric transmission multiplied by solar flux
-            (5) Normalised radiance to a given wavelength (VNORM)
-            (6) Integrated radiance over filter function - W cm-2 sr-1 if ISPACE=0 ---- W cm-2 sr-1 if ISPACE=1
-    LATITUDE : float
-        Planetocentric latitude at centre of the field of view
-    LONGITUDE : float
-        Planetocentric longitude at centre of the field of view
-    V_DOPPLER : float
-        Doppler velocity between the observed body and the observer (km/s)
-        It is considered positive if source body is moving towards observer, and negative if it is moving away
-    NCONV : 1D array, int (NGEOM)
-        Number of convolution spectral points in each spectrum
-    NAV : 1D array, int (NGEOM)
-        For each geometry, number of individual geometries need to be calculated and averaged to reconstruct the field of view
-    VCONV : 2D array, float (NCONV,NGEOM)
-        Convolution spectral points (wavelengths/wavenumbers) in each spectrum
-    WOFF : float
-        Wavenumber/Wavelength offset to add to measured spectrum
-    MEAS : 2D array, float (NCONV,NGEOM)
-        Measured spectrum for each geometry
-    ERRMEAS : 2D array, float (NCONV,NGEOM)
-        Noise in the measured spectrum for each geometry
-    FLAT : 2D array, float (NGEOM,AV)
-        Latitude of each averaging point needed to reconstruct the FOV (when NAV > 1)
-    FLON : 2D array, float (NGEOM,NAV)
-        Longitude of each averaging point needed to reconstruct the FOV (when NAV > 1)
-    SOL_ANG : 2D array, float (NGEOM,NAV)
-        Solar indicent angle of each averaging point needed to reconstruct the FOV (when NAV > 1)
-    EMISS_ANG : 2D array, float (NGEOM,NAV)
-        Emission angle of each averaging point needed to reconstruct the FOV (when NAV > 1)
-    AZI_ANG : 2D array, float (NGEOM,NAV)
-        Azimuth angle of each averaging point needed to reconstruct the FOV (when NAV > 1)
-    IPZEN : ZenithAngleOriginEnum
-        Origin of angle-defined rays: 0 = bottom layer, 1 = zero altitude, 2 = atmosphere top.
-        Explicit limb rays use TANHE instead.
-    TANHE : 2D array, float (NGEOM,NAV)
-        Tangent height of each averaging point needed to reconstruct the FOV (when NAV > 1)
-        (For limb or solar occultation observations)
-    WGEOM : 2D array, float (NGEOM,NAV)
-        Weights of each point for the averaging of the FOV (when NAV > 1)
-    NWAVE : int
-        Number of calculation wavelengths required to model the convolution wavelengths
-    WAVE : 1D array (NWAVE)
-        Calculation wavenumbers for one particular geometry
-    NFIL : 1D array, int (NCONV)
-        If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
-        NFIL represents the number of spectral points to defined the ILS for each convolution wavenumber.
-    VFIL : 2D array, int (NFIL,NCONV)
-        If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
-        VFIL represents the calculation wavenumbers at which the ILS is defined for each each convolution wavenumber.
-    AFIL : 2D array, int (NFIL,NCONV)
-        If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
-        AFIL represents the value of the ILS at each VFIL for each convolution wavenumber.
-    NY : int
-        Number of points in the Measurement vector (sum of all NCONV)
-    Y : 1D array, float (NY)
-        Measurement vector (concatenation of all spectra in the class)
-    SE : 2D array, float (NY,NY)
-        Measurement uncertainty covariance matrix (assumed to be diagonal)
-    SPECMOD : 2D array, float (NCONV,NGEOM)
-        Modelled spectrum for each geometry
-    VNORM : float 
-        If IFORM=5, then VNORM defines the wavelength at which the spectra must be normalised
-    VFMERR : 1D array, float (NVFMERR)
-        Wavenumber/wavelength at which the forward modelling error is defined
-    FMERR : 1D array, float (NVFMERR)
-        Forward modelling error at each VFMERR
-    NORDERS_AOTF : int
-        Number of orders to consider to reconstruct AOTF filter function (if required)
-    VCONV_AOTF : 2D array, float (NCONV,NGEOM,NORDERS_AOTF)
-        Convolution wavelengths/wavenumbers for each order (if required)
-    TRANS_AOTF : 2D array, float (NCONV,NGEOM,NORDERS_AOTF)
-        Transmission of the AOTF filter for each diffraction order (if required)
-    NFIL_AOTF : 2D array, int (NCONV,NORDERS_AOTF)
-        If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
-        NFIL represents the number of spectral points to defined the ILS for each convolution wavenumber.
-        In this case, we use a different ILS for each diffraction order for the reconstruction of the AOTF filter function.
-    VFIL_AOTF : 3D array, int (NFIL,NCONV,NORDERS_AOTF)
-        If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
-        VFIL represents the calculation wavenumbers at which the ILS is defined for each each convolution wavenumber.
-        In this case, we use a different ILS for each diffraction order for the reconstruction of the AOTF filter function.
-    AFIL_AOTF : 3D array, int (NFIL,NCONV,NORDERS_AOTF)
-        If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
-        AFIL represents the value of the ILS at each VFIL for each convolution wavenumber.
-        In this case, we use a different ILS for each diffraction order for the reconstruction of the AOTF filter function.
+        Attributes
+        ----------
+        runname : str
+            Name of the Nemesis run
+        NGEOM : int       
+            Number of observing geometries
+        FWHM : float
+            Full-width at half-maximum of the instrument
+        ISHAPE : int
+            Instrument lineshape (only used if FWHM>0)
+                (0) Square lineshape
+                (1) Triangular
+                (2) Gaussian
+                (3) Hamming
+                (4) Hanning
+        ISPACE : int
+            Spectral units
+                (0) Wavenumber (cm-1)
+                (1) Wavelength (um)
+        IFORM : int
+            Units of the spectra
+                (0) Radiance - W cm-2 sr-1 (cm-1)-1 if ISPACE=0 ---- W cm-2 sr-1 μm-1 if ISPACE=1
+                (1) F_planet/F_star - Dimensionsless
+                (2) A_planet/A_star - 100.0 * A_planet/A_star (dimensionsless)
+                (3) Integrated spectral power of planet - W (cm-1)-1 if ISPACE=0 ---- W um-1 if ISPACE=1
+                (4) Atmospheric transmission multiplied by solar flux
+                (5) Normalised radiance to a given wavelength (VNORM)
+                (6) Integrated radiance over filter function - W cm-2 sr-1 if ISPACE=0 ---- W cm-2 sr-1 if ISPACE=1
+        LATITUDE : float
+            Planetocentric latitude at centre of the field of view
+        LONGITUDE : float
+            Planetocentric longitude at centre of the field of view
+        V_DOPPLER : float
+            Doppler velocity between the observed body and the observer (km/s)
+            It is considered positive if source body is moving towards observer, and negative if it is moving away
+        NCONV : 1D array, int (NGEOM)
+            Number of convolution spectral points in each spectrum
+        NAV : 1D array, int (NGEOM)
+            For each geometry, number of individual geometries need to be calculated and averaged to reconstruct the field of view
+        VCONV : 2D array, float (NCONV,NGEOM)
+            Convolution spectral points (wavelengths/wavenumbers) in each spectrum
+        WOFF : float
+            Wavenumber/Wavelength offset to add to measured spectrum
+        MEAS : 2D array, float (NCONV,NGEOM)
+            Measured spectrum for each geometry
+        ERRMEAS : 2D array, float (NCONV,NGEOM)
+            Noise in the measured spectrum for each geometry
+        FLAT : 2D array, float (NGEOM,AV)
+            Latitude of each averaging point needed to reconstruct the FOV (when NAV > 1)
+        FLON : 2D array, float (NGEOM,NAV)
+            Longitude of each averaging point needed to reconstruct the FOV (when NAV > 1)
+        SOL_ANG : 2D array, float (NGEOM,NAV)
+            Solar indicent angle of each averaging point needed to reconstruct the FOV (when NAV > 1)
+        EMISS_ANG : 2D array, float (NGEOM,NAV)
+            Emission angle of each averaging point needed to reconstruct the FOV (when NAV > 1)
+        AZI_ANG : 2D array, float (NGEOM,NAV)
+            Azimuth angle of each averaging point needed to reconstruct the FOV (when NAV > 1)
+        IPZEN : ZenithAngleOriginEnum
+            Origin of angle-defined rays: 0 = bottom layer, 1 = zero altitude, 2 = atmosphere top.
+            Explicit limb rays use TANHE instead.
+        TANHE : 2D array, float (NGEOM,NAV)
+            Tangent height of each averaging point needed to reconstruct the FOV (when NAV > 1)
+            (For limb or solar occultation observations)
+        WGEOM : 2D array, float (NGEOM,NAV)
+            Weights of each point for the averaging of the FOV (when NAV > 1)
+        NWAVE : int
+            Number of calculation wavelengths required to model the convolution wavelengths
+        WAVE : 1D array (NWAVE)
+            Calculation wavenumbers for one particular geometry
+        NFIL : 1D array, int (NCONV)
+            If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
+            NFIL represents the number of spectral points to defined the ILS for each convolution wavenumber.
+        VFIL : 2D array, int (NFIL,NCONV)
+            If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
+            VFIL represents the calculation wavenumbers at which the ILS is defined for each each convolution wavenumber.
+        AFIL : 2D array, int (NFIL,NCONV)
+            If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
+            AFIL represents the value of the ILS at each VFIL for each convolution wavenumber.
+        NY : int
+            Number of points in the Measurement vector (sum of all NCONV)
+        Y : 1D array, float (NY)
+            Measurement vector (concatenation of all spectra in the class)
+        SE : 2D array, float (NY,NY)
+            Measurement uncertainty covariance matrix (assumed to be diagonal)
+        SPECMOD : 2D array, float (NCONV,NGEOM)
+            Modelled spectrum for each geometry
+        VNORM : float 
+            If IFORM=5, then VNORM defines the wavelength at which the spectra must be normalised
+        VFMERR : 1D array, float (NVFMERR)
+            Wavenumber/wavelength at which the forward modelling error is defined
+        FMERR : 1D array, float (NVFMERR)
+            Forward modelling error at each VFMERR
+        NORDERS_AOTF : int
+            Number of orders to consider to reconstruct AOTF filter function (if required)
+        VCONV_AOTF : 2D array, float (NCONV,NGEOM,NORDERS_AOTF)
+            Convolution wavelengths/wavenumbers for each order (if required)
+        TRANS_AOTF : 2D array, float (NCONV,NGEOM,NORDERS_AOTF)
+            Transmission of the AOTF filter for each diffraction order (if required)
+        NFIL_AOTF : 2D array, int (NCONV,NORDERS_AOTF)
+            If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
+            NFIL represents the number of spectral points to defined the ILS for each convolution wavenumber.
+            In this case, we use a different ILS for each diffraction order for the reconstruction of the AOTF filter function.
+        VFIL_AOTF : 3D array, int (NFIL,NCONV,NORDERS_AOTF)
+            If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
+            VFIL represents the calculation wavenumbers at which the ILS is defined for each each convolution wavenumber.
+            In this case, we use a different ILS for each diffraction order for the reconstruction of the AOTF filter function.
+        AFIL_AOTF : 3D array, int (NFIL,NCONV,NORDERS_AOTF)
+            If FWHM<0.0, the ILS is expected to be defined separately for each convolution wavenumber.
+            AFIL represents the value of the ILS at each VFIL for each convolution wavenumber.
+            In this case, we use a different ILS for each diffraction order for the reconstruction of the AOTF filter function.
 
-    Methods
-    ----------
-    
-    Measurement_0.assess()
-    Measurement_0.summary_info()
-    
-    Measurement_0.write_hdf5()
-    Measurement_0.read_hdf5()
-    Measurement_0.read_spx()
-    Measurement_0.read_spx_SO()
-    Measurement_0.write_spx()
-    Measurement_0.write_spx_SO()
-    Measurement_0.read_sha()
-    Measurement_0.write_sha()
-    Measurement_0.read_fil()
-    Measurement_0.write_fil()
-    
-    Measurement_0.edit_VCONV()
-    Measurement_0.edit_MEAS()
-    Measurement_0.edit_ERRMEAS()
-    Measurement_0.edit_SPECMOD()
-    Measurement_0.edit_FLAT()
-    Measurement_0.edit_FLON()
-    Measurement_0.edit_SOL_ANG()
-    Measurement_0.edit_EMISS_ANG()
-    Measurement_0.edit_AZI_ANG()
-    Measurement_0.edit_TANHE()
-    Measurement_0.edit_WGEOM()
-    
-    Measurement_0.add_fmerr()
-    Measurement_0.calc_MeasurementVector()
-    
-    Measurement_0.remove_geometry()
-    Measurement_0.select_geometry()
-    Measurement_0.select_geometries()
-    Measurement_0.select_TANHE_SO()
-    Measurement_0.crop_wave()
-    
-    Measurement_0.calc_wave_range()
-    
-    Measurement_0.lblconv()
-    Measurement_0.lblconvg()
-    Measurement_0.conv()
-    Measurement_0.cong()
-    
-    Measurement_0.calc_doppler_shift()
-    Measurement_0.invert_doppler_shift()
-    Measurement_0.correct_doppler_shift()
+        Methods
+        ----------
+        
+        Measurement_0.assess()
+        Measurement_0.summary_info()
+        
+        Measurement_0.write_hdf5()
+        Measurement_0.read_hdf5()
+        Measurement_0.read_spx()
+        Measurement_0.read_spx_SO()
+        Measurement_0.write_spx()
+        Measurement_0.write_spx_SO()
+        Measurement_0.read_sha()
+        Measurement_0.write_sha()
+        Measurement_0.read_fil()
+        Measurement_0.write_fil()
+        
+        Measurement_0.edit_VCONV()
+        Measurement_0.edit_MEAS()
+        Measurement_0.edit_ERRMEAS()
+        Measurement_0.edit_SPECMOD()
+        Measurement_0.edit_FLAT()
+        Measurement_0.edit_FLON()
+        Measurement_0.edit_SOL_ANG()
+        Measurement_0.edit_EMISS_ANG()
+        Measurement_0.edit_AZI_ANG()
+        Measurement_0.edit_TANHE()
+        Measurement_0.edit_WGEOM()
+        
+        Measurement_0.add_fmerr()
+        Measurement_0.calc_MeasurementVector()
+        
+        Measurement_0.remove_geometry()
+        Measurement_0.select_geometry()
+        Measurement_0.select_geometries()
+        Measurement_0.select_TANHE_SO()
+        Measurement_0.crop_wave()
+        
+        Measurement_0.calc_wave_range()
+        
+        Measurement_0.lblconv()
+        Measurement_0.lblconvg()
+        Measurement_0.conv()
+        Measurement_0.cong()
+        
+        Measurement_0.calc_doppler_shift()
+        Measurement_0.invert_doppler_shift()
+        Measurement_0.correct_doppler_shift()
 
-    Measurement_0.calc_avepoints_exoplanet()
-    Measurement_0.calc_geometry_primary_transit()
-    
-    Measurement_0.plot_ils()
-    Measurement_0.plot_filters()
-    Measurement_0.plot_SO()
-    Measurement_0.plot_nadir()
-    Measurement_0.plot_disc_averaging()
-    
+        Measurement_0.calc_avepoints_exoplanet()
+        Measurement_0.calc_geometry_primary_transit()
+        
+        Measurement_0.plot_ils()
+        Measurement_0.plot_filters()
+        Measurement_0.plot_SO()
+        Measurement_0.plot_nadir()
+        Measurement_0.plot_disc_averaging()
+        
     """
 
     def __init__(
@@ -1449,6 +1450,24 @@ class Measurement_0:
             ix = ix + self.NCONV[i]
 
         self.SE += np.diag(fmerrx**2)
+
+    def pack_array_by_geom(self, a, out=None) -> np.ndarray:
+        if out is None:
+            out = np.zeros((self.NY,*a.shape[1:]), dtype=a.dtype)
+        i = 0
+        for igeom in range(self.NGEOM):
+            out[i:i+self.NCONV[igeom],...] = a[:self.NCONV[igeom],igeom,...]
+            i += self.NCONV[igeom]
+        return out
+    
+    def split_array_by_geom(self, b, out=None) -> np.ndarray:
+        if out is None:
+            out = np.zeros((int(np.max(self.NCONV)), self.NGEOM, *b.shape[1:]), dtype=b.dtype)
+        i = 0
+        for igeom in range(self.NGEOM):
+            out[:self.NCONV[igeom], igeom,...] = b[i:i+self.NCONV[igeom],...]
+            i += self.NCONV[igeom]
+        return out
 
     #################################################################################################################
 

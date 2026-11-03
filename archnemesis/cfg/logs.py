@@ -3,6 +3,7 @@ Configures logging for the package
 """
 import sys
 import logging
+from contextlib import contextmgr
 
 from .build_environment import BUILD_NAME
 
@@ -178,28 +179,37 @@ def resetLogFormat(progress : bool = False):
 
 _packagewide_level_stack : list[tuple[int,int]] = []
 
-def set_packagewide_level(log_level : int):
+def set_packagewide_level(log_level : int, progress_log_level : None | int = None):
     """
     Sets the logging level of the package and progress loggers at once.
     """
     pkg_lgr.setLevel(log_level)
-    progress_lgr.setLevel(log_level)
+    progress_lgr.setLevel(progress_log_level if progress_log_level is not None else log_level)
 
-def push_packagewide_level(log_level : int):
+def push_packagewide_level(log_level : None | int, progress_log_level : int | None = None):
     """
     Saves the current packagewide logging level and sets it to `log_level`.
     Undo with `pop_packagewide_level()`.
     """
     _packagewide_level_stack.append((pkg_lgr.level, progress_lgr.level))
-    set_packagewide_level(log_level)
+    set_packagewide_level(
+        log_level is log_level is not None else pkg_lgr.level, 
+        progress_log_level
+    )
 
 def pop_packagewide_level():
     """
     Restores the packagewide logging level saved by the last `push_packagewide_level(...)`.
     """
-    pkg_level, progress_level = _packagewide_level_stack.pop()
-    pkg_lgr.setLevel(pkg_level)
-    progress_lgr.setLevel(progress_level)
+    if len(_packagewide_level_stack) > 0:
+        pkg_level, progress_level = _packagewide_level_stack.pop()
+        set_packagewide_level(pkg_level, progress_level)
+
+@contextmgr
+def packagewide_level_cxt(log_level : int, progress_log_level : int | None = None):
+    push_packagewide_level(log_level, progress_log_level)
+    yield
+    pop_packagewide_level()
 
 def __getattr__(name):
     return getattr(logging, name)
