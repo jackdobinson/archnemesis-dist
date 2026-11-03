@@ -2341,6 +2341,11 @@ class ForwardModel_0:
 
         self.Variables.calc_DSTEP() #Calculating the step size for the perturbation of each element
         
+        
+        state_vector = self.Variables.XN
+        state_vector_perturbations = np.repeat(state_vector, state_vector.size) + np.diag(self.Variables.DSTEP)
+        print(f'{state_vector_perturbations=}')
+        
         #nxn = self.Variables.NX+1
         xnx = np.zeros([self.Variables.NX,self.Variables.NX+1], dtype=float)
         
