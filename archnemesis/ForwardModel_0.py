@@ -2346,10 +2346,12 @@ class ForwardModel_0:
         
         xnx[:,0] = self.Variables.XN
         xnx[:,1:] = np.repeat(self.Variables.XN[:,None], self.Variables.NX, axis=1) + np.diag(self.Variables.DSTEP)
+        _lgr.dev(f'{xnx=}')
+        
         diag = np.arange(self.Variables.NX)
         zeros_mask = xnx[diag,diag+1] == 0   #Only the perturbed element of each state vector
         xnx[diag[zeros_mask],diag[zeros_mask]+1] = 0.05
-        
+        _lgr.dev(f'{xnx=}')
 
 
         #################################################################################
