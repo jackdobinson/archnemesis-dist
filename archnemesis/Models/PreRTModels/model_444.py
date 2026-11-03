@@ -251,6 +251,8 @@ class Model444(PreRTModelBase):
             start = ix - int(nwave)
             for j in range(int(nwave)):
                 for k in range(int(nwave)):
+                    if j == k:
+                        continue
                     delv = haze_waves[k] - haze_waves[j]
                     arg = abs(delv / float(clen))
                     xfac = np.exp(-arg)

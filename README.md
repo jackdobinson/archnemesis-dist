@@ -102,6 +102,9 @@ Reference spectroscopic databases compatible with archNEMESIS are available from
 
 Users wishing to work with spectroscopic databases that are not included in this collection can generate their own archNEMESIS-formatted databases. If you require assistance with this process, please contact us.
 
+## Basemap
+
+The `basemap` package is used to plot planetary features. However, it is not always available for the most up-to-date `python` or `numpy` versions. Therefore it may be required to [install it from source](https://matplotlib.org/basemap/stable/users/installation.html#installing-from-source)
 
 ## Contributing to archNEMESIS
 

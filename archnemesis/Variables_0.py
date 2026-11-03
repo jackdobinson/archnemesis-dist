@@ -546,13 +546,8 @@ class Variables_0:
         ix = 0
         for i in range(self.NVAR):
 
-            if self.NVAR>1:
-                imod = self.VARIDENT[i,2]
-                #ipar = self.VARPARAM[i,0]
-            else:
-                imod = self.VARIDENT[0,2]
-                #ipar = self.VARPARAM[0,0]
-
+            imod = self.VARIDENT[i,2]
+            
             if imod == 228:
                 
                 #V0,C0,C1,C2,P0,P1,P2,P3
@@ -561,7 +556,7 @@ class Variables_0:
                 dstep[ix+2] = 0.5 * np.sqrt( self.SA[ix+2,ix+2] )
                 dstep[ix+3] = 0.5 * np.sqrt( self.SA[ix+3,ix+3] )
 
-            ix = ix + self.NXVAR[i]
+            ix += self.NXVAR[i]
 
         self.DSTEP = dstep
 
