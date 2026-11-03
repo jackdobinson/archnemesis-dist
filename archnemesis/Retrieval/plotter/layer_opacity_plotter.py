@@ -36,6 +36,13 @@ class LayerOpacityPlotter:
 
 	def do_plot(self, Layer, Spectroscopy, Measurement, f=None) -> tuple[mpl.figure.Figure, tuple[np.ndarray[mpl.axes.Axes]]]:
 		
+		
+		wavecalc_min,wavecalc_max = Measurement.calc_wave_range(apply_doppler=True,IGEOM=0)
+			
+		#Reading tables in the required wavelength range
+		if Spectroscopy.NGAS>0:
+			Spectroscopy.read_tables(wavemin=wavecalc_min,wavemax=wavecalc_max)
+		
 		_lgr.debug(f'{Spectroscopy.WAVE.shape=} {Spectroscopy.NWAVE}')
 		_lgr.debug(f'{Layer.BASEP.shape=}')
 		_lgr.debug(f'{Layer.TAUTOT.shape=}')

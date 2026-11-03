@@ -2123,7 +2123,7 @@ class Measurement_0:
                 wavemax = self.VCONV[self.NCONV[IGEOM]-1,IGEOM] + dv
             else:
                 #Finding the minimum and maximum wave for all geometries
-                wavemin = 1.0e10
+                wavemin = np.inf
                 wavemax = 0.
                 for igeom in range(self.NGEOM):
                     if ((self.VCONV[0,igeom] - dv)<wavemin):
@@ -2133,7 +2133,7 @@ class Measurement_0:
                         
         elif self.FWHM<0.0:
 
-            wavemin = 1.0e10
+            wavemin = np.inf
             wavemax = 0.0
             for i in range(self.NCONV[0]):  #In this case all geometries are assumed to have the same spectral array
                 vminx = self.VFIL[0,i]
