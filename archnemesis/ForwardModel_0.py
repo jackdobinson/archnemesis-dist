@@ -4078,6 +4078,7 @@ class ForwardModel_0:
         else:
             TAUGAS = np.zeros((self.SpectroscopyX.NWAVE,self.SpectroscopyX.NG,self.LayerX.NLAY)) #(NWAVE,NG,NLAY)
             dTAUGAS = np.zeros((self.SpectroscopyX.NWAVE,self.SpectroscopyX.NG,self.AtmosphereX.NVMR+2+self.ScatterX.NDUST,self.LayerX.NLAY)) #(NWAVE,NG,NLAY,NGAS+2+NDUST)
+        print(f'TESTING :: {TAUGAS=}')
         self.LayerX.TAUGAS = TAUGAS
         
         #Calculating the continuum absorption by gaseous species
@@ -4095,7 +4096,7 @@ class ForwardModel_0:
         else:
             TAUCIA = np.zeros((self.SpectroscopyX.NWAVE,self.LayerX.NLAY)) #(NWAVE,NG,NLAY)
             dTAUCIA = np.zeros((self.SpectroscopyX.NWAVE,self.LayerX.NLAY,self.AtmosphereX.NVMR+2+self.ScatterX.NDUST)) #(NWAVE,NLAY,NGAS+2+NDUST)
-
+        print(f'TESTING :: {TAUCIA=}')
         
         if return_grad and dTAUCIA is not None:
             dTAUCON[:,0:self.AtmosphereX.NVMR,:] = dTAUCON[:,0:self.AtmosphereX.NVMR,:] + np.transpose(np.transpose(dTAUCIA[:,:,0:self.AtmosphereX.NVMR],axes=(2,0,1)) / (self.LayerX.TOTAM.T),axes=(1,0,2)) #dTAUCIA/dAMOUNT (m2)
@@ -4110,6 +4111,7 @@ class ForwardModel_0:
         #################################################################################################################
 
         TAURAY,dTAURAY = self.calc_tau_rayleigh(MakePlot=False)  #(NWAVE,NLAY)
+        print(f'TESTING :: {TAURAY=}')
         self.LayerX.TAURAY = TAURAY
         
         if return_grad and (dTAURAY is not None):
@@ -4136,6 +4138,9 @@ class ForwardModel_0:
         #Adding the opacity by the different dust populations
         TAUDUST = np.sum(TAUDUST1,2)  #(NWAVE,NLAYER) Absorption + Scattering
         TAUSCAT = np.sum(TAUCLSCAT,2)  #(NWAVE,NLAYER) Scattering
+        print(f'TESTING :: {TAUDUST=}')
+        print(f'TESTING :: {TAUSCAT=}')
+        print(f'TESTING :: {TAUCLSCAT=}')
 
         self.LayerX.TAUDUST = TAUDUST
         self.LayerX.TAUSCAT = TAUSCAT
@@ -4153,6 +4158,7 @@ class ForwardModel_0:
         
         #(NWAVE,NG,NLAY)
         TAUTOT = TAUGAS + TAUCIA[:,None,:] + TAUDUST[:,None,:] + TAURAY[:,None,:]
+        print(f'TESTING :: {TAUTOT=}')
         
         if return_grad:
             #(NWAVE,NG,NVMR+2+NDUST,NLAY)
@@ -4178,6 +4184,10 @@ class ForwardModel_0:
             dTAUTOT_LAYINC = dTAUTOT[:,:,:,self.PathX.LAYINC[:,:]] * self.PathX.SCALE[:,:] #(NWAVE,NG,NGAS+2+NDUST,NLAYIN,NPATH)
         else:
             dTAUTOT_LAYINC = None
+        
+        print(f'TESTING :: {TAUTOT_LAYINC=}')
+        print(f'TESTING :: {TAUTOT_PATH=}')
+        print(f'TESTING :: {dTAUTOT_LAYINC=}')
         
         return TAUTOT_LAYINC, TAUTOT_PATH, dTAUTOT_LAYINC
 
@@ -4702,25 +4712,25 @@ class ForwardModel_0:
 
     def calc_tau_cia(self,ISPACE=None,WAVEC=None,CIA=None,Atmosphere=None,Layer=None,MakePlot=False):
         """
-        Calculate the CIA opacity in each atmospheric layer
-        This is the new version developed for archNEMESIS (more versatile in terms of CIA pairs included)
-        
-        @param ISPACE: int
-            Flag indicating whether the calculation must be performed in wavenumbers (0) or wavelength (1)
-        @param WAVEC: int
-            Wavenumber (cm-1) or wavelength array (um)
-        @param CIA: class
-            Python class defining the CIA cross sections
-        @param Atmosphere: class
-            Python class defining the reference atmosphere
-        @param Layer: class
-            Layer :: Python class defining the layering scheme to be applied in the calculations
+            Calculate the CIA opacity in each atmospheric layer
+            This is the new version developed for archNEMESIS (more versatile in terms of CIA pairs included)
+            
+            @param ISPACE: int
+                Flag indicating whether the calculation must be performed in wavenumbers (0) or wavelength (1)
+            @param WAVEC: int
+                Wavenumber (cm-1) or wavelength array (um)
+            @param CIA: class
+                Python class defining the CIA cross sections
+            @param Atmosphere: class
+                Python class defining the reference atmosphere
+            @param Layer: class
+                Layer :: Python class defining the layering scheme to be applied in the calculations
 
-        Outputs
-        ________
+            Outputs
+            ________
 
-        TAUCIA(NWAVE,NLAY) :: CIA optical depth in each atmospheric layer
-        dTAUCIA(NWAVE,NLAY,NVMR+2) :: Rate of change of CIA optical depth with:
+            TAUCIA(NWAVE,NLAY) :: CIA optical depth in each atmospheric layer
+            dTAUCIA(NWAVE,NLAY,NVMR+2) :: Rate of change of CIA optical depth with:
                                  (0 to NVMR-1) Gaseous VMRs
                                  (NVMR) Temperature
                                  (NVMR+1) para-H2 fraction
