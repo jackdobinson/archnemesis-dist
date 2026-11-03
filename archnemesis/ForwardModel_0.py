@@ -2144,8 +2144,9 @@ class ForwardModel_0:
 
     def execute_fm(
             self, 
-            sv_idx : int, # index of the variable in the state vector that is perturbed
             task_id : int, # task id
+            sv_idx : int, # index of the variable in the state vector that is perturbed
+            result_idx : int, # index that tells us where to put the result
             state_vector_perturbed : np.ndarray, # The perturbed state vector
             nemesisSO : bool = False,
             nemesisL : bool = False,
@@ -2172,7 +2173,7 @@ class ForwardModel_0:
             SPECMOD = nemesis_method()
         
         
-        return sv_idx, task_id, SPECMOD
+        return task_id, sv_idx, result_idx, SPECMOD
         
     
     ###############################################################################################
@@ -2390,9 +2391,9 @@ class ForwardModel_0:
                     (-1, -1, state_vector, static_kwargs)
                 )
             
-            for task_id, sv_idx in enumerate(numerical_grad_idxs):
+            for result_idx, sv_idx in enumerate(numerical_grad_idxs):
                 job_arg_list.append(
-                    (sv_idx, task_id, state_vector_perturbations[sv_idx], static_kwargs)
+                    (sv_idx, result_idx, state_vector_perturbations[sv_idx], static_kwargs)
                 )
             
             n_tasks = len(job_arg_list)
@@ -2404,15 +2405,15 @@ class ForwardModel_0:
                 n_jobs=job_pool_size,
                 return_as = 'generator_unordered',
             )(
-                delayed(self.execute_fm)(sv_idx, task_id, sv, **kwargs) for sv_idx, task_id, sv, kwargs in job_arg_list
+                delayed(self.execute_fm)(task_id, sv_idx, result_idx, sv, **kwargs) for task_id, (sv_idx, result_idx, sv, kwargs) in enumerate(job_arg_list)
             )
             
-            for i, (sv_idx, task_id, SPECMOD) in enumerate(job_results):
+            for i, (task_id, sv_idx, result_idx, SPECMOD) in enumerate(job_results):
                 _lgr.info(f'Forward model calculation task {task_id} finished [{i+1}/{n_tasks}]')
                 if sv_idx == -1:
                     self.Measurement.pack_array_by_geom(SPECMOD, out=YN)
                 else:
-                    self.Measurement.pack_array_by_geom(SPECMOD, out=YN_pertrubations[:,sv_idx])
+                    self.Measurement.pack_array_by_geom(SPECMOD, out=YN_pertrubations[:,result_idx])
         
             KK[:,numerical_grad_idxs] = (YN_pertrubations - YN[:,None]) / dstep[None,:]
         
