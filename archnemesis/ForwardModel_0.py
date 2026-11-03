@@ -2152,6 +2152,7 @@ class ForwardModel_0:
             nemesisdisc : bool = False,
             nemesisPT : bool = False,
             nemesisC : bool = False,
+            log_level : None | int = None,
     ) -> tuple[int, int, np.ndarray]:
         _lgr.info(f'Forward model calculation task {task_id} started...')
         
@@ -2167,7 +2168,11 @@ class ForwardModel_0:
         # load state vector with state for this specific forward model
         self.Variables.XN[...] = state_vector_perturbed
         
-        return sv_idx, task_id, nemesis_method()
+        with logging.packagewide_level_cxt(log_level):
+            SPECMOD = nemesis_method()
+        
+        
+        return sv_idx, task_id, SPECMOD
         
     
     ###############################################################################################
@@ -2372,10 +2377,17 @@ class ForwardModel_0:
             _lgr.info(f'{n_calcs=} {n_cores=} {job_pool_size=}')
             
             job_arg_list = []
-            nemesis_method_selection_args = (nemesisSO, nemesisL, nemesisdisc, nemesisPT, nemesisC) # NOTE: Require the same ordering as `self.execute_fm(...)`
+            static_kwargs = dict(
+                nemesisSO=nemesisSO, 
+                nemesisL=nemesisL, 
+                nemesisdisc=nemesisdisc, 
+                nemesisPT=nemesisPT, 
+                nemesisC=nemesisC,
+                log_level=logging.ERROR if job_pool_size > 1 else None
+            )
             if not state_vector_calc_complete:
                 job_arg_list.append(
-                    (-1, -1, state_vector, *nemesis_method_selection_args)
+                    (-1, -1, state_vector, nemesis_method_selection_args)
                 )
             
             for task_id, sv_idx in enumerate(numerical_grad_idxs):
@@ -2386,21 +2398,14 @@ class ForwardModel_0:
             n_tasks = len(job_arg_list)
             _lgr.info(f'{n_tasks=}')
             
-            if job_pool_size > 1:
-                log_level_to_set = logging.ERROR
-            else:
-                log_level_to_set = None # means we do not change anything
-            
-            
             # NOTE: This may not properly isolate `self.Variables` between multiple iterations,
             #       there could be a race condition when setting `self.Variables.XN` for each task.
-            with logging.packagewide_level_cxt(log_level_to_set):
-                job_results = Parallel(
-                    n_jobs=job_pool_size,
-                    return_as = 'generator_unordered',
-                )(
-                    delayed(self.execute_fm)(*args) for args in job_arg_list
-                )
+            job_results = Parallel(
+                n_jobs=job_pool_size,
+                return_as = 'generator_unordered',
+            )(
+                delayed(self.execute_fm)(sv_idx, task_id, sv, **kwargs) for sv_idx, task_id, sv, **kwargs in job_arg_list
+            )
             
             for i, (sv_idx, task_id, SPECMOD) in enumerate(job_results):
                 _lgr.info(f'Forward model calculation task {task_id} finished [{i+1}/{n_tasks}]')
