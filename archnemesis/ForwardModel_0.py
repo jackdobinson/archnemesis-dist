@@ -2363,8 +2363,8 @@ class ForwardModel_0:
         else:
             sv_numerical_grads = self.Variables.NUM == 1
         
-        numerical_grad_idxs = np.argwhere(sv_numerical_grads)
-        analytical_grad_idxs = np.argwhere(~sv_numerical_grads)
+        numerical_grad_idxs = np.flatnonzero(sv_numerical_grads)
+        analytical_grad_idxs = np.flatnonzero(~sv_numerical_grads)
         
         _lgr.dev(f'{numerical_grad_idxs=}')
         _lgr.dev(f'{analytical_grad_idxs=}')
