@@ -2343,7 +2343,7 @@ class ForwardModel_0:
         
         
         state_vector = self.Variables.XN
-        state_vector_perturbations = np.repeat(state_vector, state_vector.size) + np.diag(self.Variables.DSTEP)
+        state_vector_perturbations = np.tile(state_vector, (state_vector.size,1)) + np.diag(self.Variables.DSTEP)
         print(f'{state_vector_perturbations=}')
         
         #nxn = self.Variables.NX+1
