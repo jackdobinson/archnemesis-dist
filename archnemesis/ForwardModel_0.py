@@ -2415,6 +2415,7 @@ class ForwardModel_0:
                 else:
                     self.Measurement.pack_array_by_geom(SPECMOD, out=YN_pertrubations[:,result_idx])
         
+            _lgr.info(f'{KK.shape=} {YN_perturbations.shape=} {YN.shape=} {dstep.shape=}')
             KK[:,numerical_grad_idxs] = (YN_pertrubations - YN[:,None]) / dstep[None,:]
         
         return YN, KK
