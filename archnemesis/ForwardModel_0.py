@@ -2315,7 +2315,7 @@ class ForwardModel_0:
 
         self.Variables.calc_DSTEP() #Calculating the step size for the perturbation of each element
         
-        state_vector = self.Variables.XN
+        state_vector = np.array(self.Variables.XN) # copy
         state_vector_perturbations = np.tile(state_vector, (state_vector.size,1)) + np.diag(self.Variables.DSTEP)
 
 
