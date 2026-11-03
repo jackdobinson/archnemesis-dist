@@ -1598,8 +1598,13 @@ class Retrieval:
 		# Extract the best-fit spectra
 		self._update_modelled_spectra_from_retrival_engine()
 		
+		fm_instance = self._get_forward_model_instance() 
+		
 		# Updating the Layering
-		self.Layer = self._get_forward_model_instance().LayerX
+		self.Layer = fm_instance.LayerX
+		
+		# Updating the spectroscopy
+		self.Spectroscopy = fm_instance.SpectroscopyX
 		
 		#Updating the reference classes based on the retrieved parameters
 		self.calculate_profiles()
