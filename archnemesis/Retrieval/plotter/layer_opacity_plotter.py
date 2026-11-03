@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 
 from .value import Value
 
+from archnemesis.helpers.array_helper import get_edges_from_mids
+
 if TYPE_CHECKING:
 	from ..Retrieval import Retrieval
 
@@ -47,14 +49,11 @@ class LayerOpacityPlotter:
 		# TAUTOT : (NWAV,NG,NLAYER), DELG : (NG) -> opacity_at_wav_layer : (NWAV,NLAYER)
 		opacity_at_wav_layer = np.tensordot(Layer.TAUTOT, Spectroscopy.DELG, axes=([1],[0])).T[:,::-1] # opacity is unitless, is already scaled to thickness of layer
 		
-		wav_edges = np.array([
-			1.5*Spectroscopy.WAVE[0] - 0.5*Spectroscopy.WAVE[1],
-			*(0.5*(Spectroscopy.WAVE[:-1] + Spectroscopy.WAVE[1:])),
-			1.5*Spectroscopy.WAVE[-1] - 0.5*Spectroscopy.WAVE[-2]
-		])
+		wav_edges = get_edges_from_mids(Spectroscopy.WAVE)
+		pressure_edges = get_edges_from_mids(Layer.BASEP) / 1E5
+		height_edges = get_edges_from_mids(Layer.BASEH) / 1E3
 		
-		pressure_edges = (np.array([*Layer.BASEP, 2*Layer.BASEP[-1]-Layer.BASEP[-2]]) / 1E5)
-		height_edges = (np.array([*Layer.BASEH, 2*Layer.BASEH[-1]-Layer.BASEH[-2]]) / 1E3)
+		_lgr.debug(f'{wav_edges.shape=} {pressure_edges.shape=} {height_edges.shape=}')
 		
 		height_to_pressure = lambda h: np.exp(np.interp(h, height_edges, np.log(pressure_edges)))
 		pressure_to_height = lambda p: np.log(np.interp(p, pressure_edges[::-1], np.exp(height_edges[::-1])))
