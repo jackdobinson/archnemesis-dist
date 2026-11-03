@@ -818,7 +818,7 @@ class Variables_0:
                         _lgr.info(f'\nVariables_0 :: read_apr :: varident {varident[i]}. Constructed model "{model.__name__}" (id={model.id})')
                         try:
                             io_helper.OutWidth.push(io_helper.OutWidth.get() - 2)
-                            _lgr.info(textwrap.indent(str(self._models[-1].info(lx,x0)), '  '))
+                            _lgr.info('\n'+textwrap.indent(str(self._models[-1].info(lx,x0)), '  '))
                         finally:
                             io_helper.OutWidth.pop()
                         
