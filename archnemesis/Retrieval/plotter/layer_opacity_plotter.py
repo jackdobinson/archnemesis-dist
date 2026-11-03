@@ -46,14 +46,19 @@ class LayerOpacityPlotter:
 		#Reading tables in the required wavelength range
 		#Spectroscopy.read_tables(wavemin=wavecalc_min,wavemax=wavecalc_max)
 	
-		# TAUTOT : (NWAV,NG,NLAYER), DELG : (NG) -> opacity_at_wav_layer : (NWAV,NLAYER)
-		opacity_at_wav_layer = np.tensordot(Layer.TAUTOT, Spectroscopy.DELG, axes=([1],[0])).T[:,::-1] # opacity is unitless, is already scaled to thickness of layer
-		
 		wav_edges = get_edges_from_mids(Spectroscopy.WAVE)
 		pressure_edges = get_edges_from_mids(Layer.BASEP) / 1E5
 		height_edges = get_edges_from_mids(Layer.BASEH) / 1E3
 		
 		_lgr.debug(f'{wav_edges.shape=} {pressure_edges.shape=} {height_edges.shape=}')
+	
+		# TAUTOT : (NWAV,NG,NLAYER), DELG : (NG) -> opacity_at_wav_layer : (NWAV,NLAYER)
+		_lgr.debug(f'{Spectroscopy.DELG=}')
+		_lgr.debug(f'{Spectroscopy.ILBL=}')
+		_lgr.debug(f'{Spectroscopy.K.shape=}')
+		opacity_at_wav_layer = np.tensordot(Layer.TAUTOT, Spectroscopy.DELG, axes=([1],[0])).T[:,::-1] # opacity is unitless, is already scaled to thickness of layer
+		
+		
 		
 		height_to_pressure = lambda h: np.exp(np.interp(h, height_edges, np.log(pressure_edges)))
 		pressure_to_height = lambda p: np.log(np.interp(p, pressure_edges[::-1], np.exp(height_edges[::-1])))

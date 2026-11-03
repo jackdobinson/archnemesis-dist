@@ -4048,10 +4048,13 @@ class ForwardModel_0:
         
         return TAUCIA, dTAUCIA
 
-    def calculate_layer_opacity(self, return_grad=False,
-                                      include_tau_gas=True,
-                                      include_tau_dust=True,
-                                      include_tau_cia=True):
+    def calculate_layer_opacity(
+            self, 
+            return_grad=False,
+            include_tau_gas=True,
+            include_tau_dust=True,
+            include_tau_cia=True
+    ):
         #There will be different kinds of opacities:
         #   Line opacity due to gaseous absorption (K-tables or LBL-tables)
         #   Continuum opacity due to aerosols coming from the extinction coefficient
@@ -4269,7 +4272,7 @@ class ForwardModel_0:
             TAUTOT_PATH,
             dTAUTOT_LAYINC,
             return_grad = False
-        ) -> tuple[np.ndarray, None|np.ndarray]:
+    ) -> tuple[np.ndarray, None|np.ndarray]:
         SPECOUT = np.exp(-(TAUTOT_PATH))  #(NWAVE,NG,NPATH)
         #del TAUTOT_PATH
 
@@ -4294,7 +4297,7 @@ class ForwardModel_0:
     def calculate_absorption_spectrum(
             TAUTOT_PATH,
             return_grad = False
-        ) -> tuple[np.ndarray]:
+    ) -> tuple[np.ndarray]:
         SPECOUT = 1.0 - np.exp(-(TAUTOT_PATH)) #(NWAVE,NG,NPATH)
         return SPECOUT, None
     
@@ -4305,7 +4308,7 @@ class ForwardModel_0:
             EMITOT_LAYINC,
             dEMITOT_LAYINC,
             return_grad = False
-        ) -> tuple[np.ndarray, None|np.ndarray, None|np.ndarray]:
+    ) -> tuple[np.ndarray, None|np.ndarray, None|np.ndarray]:
         
         _lgr.info('CIRSradg :: Calculating THERMAL_EMISSION')
         
@@ -4415,7 +4418,7 @@ class ForwardModel_0:
             self,
             TAUTOT_LAYINC,
             return_grad = False
-        ) -> np.ndarray:
+    ) -> np.ndarray:
 
         _lgr.info('CIRSrad :: Performing single scattering calculation')
  
@@ -4506,13 +4509,13 @@ class ForwardModel_0:
     def calculate_downward_multiple_scattering_spectrum(
             self,
             return_grad = False
-        ) -> np.ndarray:
+    ) -> np.ndarray:
         raise NotImplementedError('Downwards flux calculation at the bottom of the atmosphere is not implemented')
 
     def calculate_multiple_scattering_spectrum(
             self,
             return_grad = False
-        )->np.ndarray:
+    )->np.ndarray:
         _lgr.info('CIRSrad :: Performing multiple scattering calculation')
         _lgr.info(f"CIRSrad :: NF =  {(self.ScatterX.NF,'; NMU = ',self.ScatterX.NMU,'; NPHI = ',self.ScatterX.NPHI)}")
         _lgr.debug(f'{self.PathX.EMISS_ANG=} {self.PathX.SOL_ANG=} {self.PathX.AZI_ANG=}')
