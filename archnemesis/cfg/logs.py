@@ -193,7 +193,7 @@ def push_packagewide_level(log_level : None | int, progress_log_level : int | No
     """
     _packagewide_level_stack.append((pkg_lgr.level, progress_lgr.level))
     set_packagewide_level(
-        log_level is log_level is not None else pkg_lgr.level, 
+        log_level if log_level is not None else pkg_lgr.level, 
         progress_log_level
     )
 
