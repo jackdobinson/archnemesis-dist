@@ -540,7 +540,8 @@ class Variables_0:
 
         #Generally, we use h = 0.05*x
         dstep = np.zeros(self.NX)
-        dstep[:] = self.XN * 0.05
+        #dstep[:] = self.XN * 0.05
+        dstep[:] = 0.01 * np.sqrt(np.diag(self.SA))
 
         #Changing the step size for certain parameterisations
         ix = 0
