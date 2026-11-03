@@ -2387,12 +2387,12 @@ class ForwardModel_0:
             )
             if not state_vector_calc_complete:
                 job_arg_list.append(
-                    (-1, -1, state_vector, nemesis_method_selection_args)
+                    (-1, -1, state_vector, static_kwargs)
                 )
             
             for task_id, sv_idx in enumerate(numerical_grad_idxs):
                 job_arg_list.append(
-                    (sv_idx, task_id, state_vector_perturbations[sv_idx], nemesis_method_selection_args)
+                    (sv_idx, task_id, state_vector_perturbations[sv_idx], static_kwargs)
                 )
             
             n_tasks = len(job_arg_list)
