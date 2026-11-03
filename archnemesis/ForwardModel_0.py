@@ -2317,10 +2317,6 @@ class ForwardModel_0:
         
         state_vector = self.Variables.XN
         state_vector_perturbations = np.tile(state_vector, (state_vector.size,1)) + np.diag(self.Variables.DSTEP)
-        for i, svp in enumerate(state_vector_perturbations):
-            print(f'svp[i]={svp}')
-        
-
 
 
         #################################################################################
@@ -2338,9 +2334,6 @@ class ForwardModel_0:
         
         numerical_grad_idxs = np.flatnonzero(sv_numerical_grads & (self.Variables.FIX==0))
         analytical_grad_idxs = np.flatnonzero(~sv_numerical_grads & (self.Variables.FIX==0))
-        
-        _lgr.dev(f'{numerical_grad_idxs=}')
-        _lgr.dev(f'{analytical_grad_idxs=}')
         
         state_vector_calc_complete = False
         YN = np.zeros((self.Measurement.NY,), dtype=float) # state vector result
@@ -4507,10 +4500,13 @@ class ForwardModel_0:
 
     ################################################################################################
 
-    def CIRSrad(self, return_grad=False, 
-                      include_tau_gas=True,
-                      include_tau_dust=True,
-                      include_tau_cia=True):
+    def CIRSrad(
+            self, 
+            return_grad=False, 
+            include_tau_gas=True,
+            include_tau_dust=True,
+            include_tau_cia=True
+    ) np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         """
             FUNCTION NAME : CIRSrad()
@@ -4548,11 +4544,11 @@ class ForwardModel_0:
             MODIFICATION HISTORY : Juan Alday (25/07/2021)
 
         """
-
-        #import matplotlib as matplotlib
-        #from scipy import interpolate
-        #from copy import copy
-
+        _lgr.dev(f'{Spectroscopy.NWAVE=}')
+        _lgr.dev(f'{Spectroscopy.WAVE.shape=}')
+        _lgr.dev(f'{SpectroscopyX.NWAVE=}')
+        _lgr.dev(f'{SpectroscopyX.WAVE.shape=}')
+        
         #Initialise some arrays
         ###################################
 
@@ -4562,10 +4558,12 @@ class ForwardModel_0:
             TAUTOT_LAYINC, 
             TAUTOT_PATH, 
             dTAUTOT_LAYINC,
-        ) = self.calculate_layer_opacity(return_grad,
-                                         include_tau_gas=include_tau_gas,
-                                         include_tau_cia=include_tau_cia,
-                                         include_tau_dust=include_tau_dust)
+        ) = self.calculate_layer_opacity(
+            return_grad,
+            include_tau_gas=include_tau_gas,
+            include_tau_cia=include_tau_cia,
+            include_tau_dust=include_tau_dust
+        )
 
         #TAUTOT_LAYINC is the line-of-sight opacity in each layer and path (NWAVE,NG,NLAYIN,NPATH)
         #TAUTOT_PATH is the line-of-sight opacity integrated across all layers (NWAVE,NG,NPATH)
