@@ -4506,7 +4506,7 @@ class ForwardModel_0:
             include_tau_gas=True,
             include_tau_dust=True,
             include_tau_cia=True
-    ) np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         """
             FUNCTION NAME : CIRSrad()
@@ -4544,10 +4544,10 @@ class ForwardModel_0:
             MODIFICATION HISTORY : Juan Alday (25/07/2021)
 
         """
-        _lgr.dev(f'{Spectroscopy.NWAVE=}')
-        _lgr.dev(f'{Spectroscopy.WAVE.shape=}')
-        _lgr.dev(f'{SpectroscopyX.NWAVE=}')
-        _lgr.dev(f'{SpectroscopyX.WAVE.shape=}')
+        _lgr.dev(f'{self.Spectroscopy.NWAVE=}')
+        _lgr.dev(f'{self.Spectroscopy.WAVE.shape=}')
+        _lgr.dev(f'{self.SpectroscopyX.NWAVE=}')
+        _lgr.dev(f'{self.SpectroscopyX.WAVE.shape=}')
         
         #Initialise some arrays
         ###################################
