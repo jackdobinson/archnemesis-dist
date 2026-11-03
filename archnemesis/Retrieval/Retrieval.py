@@ -1551,7 +1551,7 @@ class Retrieval:
 			phi_history = None
 			chisq_history = None
 			
-			forward_model_instance = self._get_foward_model_instance(n_cores = n_cores)
+			forward_model_instance = self._get_forward_model_instance(n_cores = n_cores)
 			
 			_lgr.info(f'Running optimal estimation in {self._working_directory}')
 			OptimalEstimationResult, _, phi_history, chisq_history = ans.coreretOE_impl(
