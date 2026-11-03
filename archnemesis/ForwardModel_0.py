@@ -2411,7 +2411,7 @@ class ForwardModel_0:
             KK[:,numerical_grad_idxs] = (YN_pertrubations - YN[:,None]) / self.Variables.DSTEP[None,numerical_grad_idxs]
         
         
-        assert self.Variables.XN == state_vector, "Jacobian calculation must not alter the state vector"
+        assert np.all(self.Variables.XN == state_vector), "Jacobian calculation must not alter the state vector"
         
         
         return YN, KK
