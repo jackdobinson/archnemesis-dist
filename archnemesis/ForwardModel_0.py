@@ -2408,11 +2408,13 @@ class ForwardModel_0:
                     self.Measurement.pack_array_by_geom(SPECMOD, out=YN)
                 else:
                     self.Measurement.pack_array_by_geom(SPECMOD, out=YN_pertrubations[:,result_idx])
-        
+            
+            self.Variables.XN[...] == state_vector # Ensure state vector is reset
+            
             _lgr.info(f'{KK.shape=} {YN_pertrubations.shape=} {YN.shape=} {self.Variables.DSTEP.shape=}')
             KK[:,numerical_grad_idxs] = (YN_pertrubations - YN[:,None]) / self.Variables.DSTEP[None,numerical_grad_idxs]
         
-        self.Variables.XN[...] == state_vector # Ensure state vector is reset
+        
         
         
         
