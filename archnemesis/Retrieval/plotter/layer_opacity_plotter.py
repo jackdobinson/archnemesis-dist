@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DEBUG)
 
 
 
