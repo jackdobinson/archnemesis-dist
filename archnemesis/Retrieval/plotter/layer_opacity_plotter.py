@@ -30,6 +30,7 @@ class LayerOpacityPlotter:
 	
 	def plot(self) -> tuple[str, mpl.figure.Figure, tuple[np.ndarray[mpl.axes.Axes]]]:
 		if self.retrieval.Layer.TAUTOT is None:
+			_lgr.debug('Calculating layer opacity...')
 			self.retrieval.calculate_layer_opacity()
 		return 'layer_opacity', *self.do_plot(self.retrieval.Layer, self.retrieval.Spectroscopy, self.retrieval.Measurement)
 
