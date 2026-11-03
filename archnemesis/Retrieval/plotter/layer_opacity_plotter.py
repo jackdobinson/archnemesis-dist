@@ -55,9 +55,8 @@ class LayerOpacityPlotter:
 		# TAUTOT : (NWAV,NG,NLAYER), DELG : (NG) -> opacity_at_wav_layer : (NWAV,NLAYER)
 		_lgr.debug(f'{Spectroscopy.DELG=}')
 		_lgr.debug(f'{Spectroscopy.ILBL=}')
-		_lgr.debug(f'{Spectroscopy.K.shape=}')
 		opacity_at_wav_layer = np.tensordot(Layer.TAUTOT, Spectroscopy.DELG, axes=([1],[0])).T[:,::-1] # opacity is unitless, is already scaled to thickness of layer
-		
+		_lgr.debug(f'{opacity_at_wav_layer=}')
 		
 		
 		height_to_pressure = lambda h: np.exp(np.interp(h, height_edges, np.log(pressure_edges)))
