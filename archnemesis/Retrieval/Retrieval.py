@@ -902,11 +902,11 @@ class Retrieval:
 		
 		return self._cached_forward_model_instance
 	
-	def _set_forward_model_instance(self, forward_model_instance : ForwardModel_0):
+	def _set_forward_model_instance(self, forward_model_instance : ans.ForwardModel_0):
 		self._cached_forward_model_instance = forward_model_instance
 	
 	def _set_optimal_estimation_setup_from_measurement(self):
-		assert isinstance(self.RetrievalEngine, OptimalEstimation_0), "Retrieval.RetrievalEngine must be an OptimalEstimation_0 instance"
+		assert isinstance(self.RetrievalEngine, ans.OptimalEstimation_0), "Retrieval.RetrievalEngine must be an OptimalEstimation_0 instance"
 		self.RetrievalEngine.NY = self.Measurement.NY
 		
 		if self.Measurement.Y is not None:
@@ -920,7 +920,7 @@ class Retrieval:
 				self.RetrievalEngine.YN[ik:ik+self.Measurement.NCONV[igeom]] = self.Measurement.SPECMOD[0:self.Measurement.NCONV[igeom],igeom]
 	
 	def _set_optimal_estimation_setup_from_variables(self, variables : None | ans.Variables_0 = None):
-		assert isinstance(self.RetrievalEngine, OptimalEstimation_0), "Retrieval.RetrievalEngine must be an OptimalEstimation_0 instance"
+		assert isinstance(self.RetrievalEngine, ans.OptimalEstimation_0), "Retrieval.RetrievalEngine must be an OptimalEstimation_0 instance"
 		if variables is None:
 			variables = self.Variables
 		
@@ -934,13 +934,13 @@ class Retrieval:
 		# Extracting the best-fit spectra
 		modelled_spectra = np.zeros_like(self.Measurement.MEAS)
 		
-		if isinstance(self.RetrievalEngine, OptimalEstimation_0):
+		if isinstance(self.RetrievalEngine, ans.OptimalEstimation_0):
 			ix = 0
 			for i in range(self.Measurement.NGEOM):
 				modelled_spectra[0:self.Measurement.NCONV[i],i] = self.RetrievalEngine.YN[ix:ix+self.Measurement.NCONV[i]]
 				ix += self.Measurement.NCONV[i]
 		
-		elif isinstance(self.RetrievalEngine, NestedSampling_0):
+		elif isinstance(self.RetrievalEngine, ans.NestedSampling_0):
 			raise NotImplementedError('Nested sampling is not implmented for Retrieval class yet')
 		
 		else:
