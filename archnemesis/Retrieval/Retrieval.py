@@ -616,7 +616,7 @@ class Retrieval:
 				# self.Measurement
 				self.RetrievalEngine.NY = self.Measurement.NY
 			
-			elif if isinstance(self.RetrievalEngine, ans.NestedSampling_0):
+			elif isinstance(self.RetrievalEngine, ans.NestedSampling_0):
 				_lgr.warning('Nested sampling setup is out-of-sync with the current Retrieval. Removing retrieved arrays and updating apriori arrays.')
 				raise NotImplementedError('Nested Sampling is not implemented in Retrieval class yet')
 		
@@ -632,7 +632,7 @@ class Retrieval:
 					):
 						self.RetrievalEngine.calc_phiret()
 			
-			elif if isinstance(self.RetrievalEngine, ans.NestedSampling_0):
+			elif isinstance(self.RetrievalEngine, ans.NestedSampling_0):
 				_lgr.info('Nested sampling setup is in-sync with the current Retrieval.')
 				raise NotImplementedError('Nested Sampling is not implemented in Retrieval class yet')
 		
