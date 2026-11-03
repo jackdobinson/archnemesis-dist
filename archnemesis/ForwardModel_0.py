@@ -2412,7 +2412,7 @@ class ForwardModel_0:
             _lgr.info(f'{KK.shape=} {YN_pertrubations.shape=} {YN.shape=} {self.Variables.DSTEP.shape=}')
             KK[:,numerical_grad_idxs] = (YN_pertrubations - YN[:,None]) / self.Variables.DSTEP[None,numerical_grad_idxs]
         
-        self.Variables.XN == state_vector # Ensure state vector is reset
+        self.Variables.XN[...] == state_vector # Ensure state vector is reset
         
         
         
