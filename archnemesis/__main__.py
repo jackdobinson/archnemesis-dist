@@ -35,7 +35,7 @@ def create_parser():
 	parser.add_argument('--no_write', dest='do_write', action='store_false', help='if present, will not write the results to disk', default=True)
 	parser.add_argument('--redirect_path', type=redirect_file_access.Redirector.from_string, action='append', help='Creates a redirect from as string formatted as "{old_path}->{new_path}" any paths relative to {old_path} are redirected to be relative to {new_path}', default=[])
 	#parser.add_argument('--plot_path_fmt', type=PathFormat.from_argument, help=PathFormat.get_description(extra_keywords=('retrieval_dir', 'plot_name',)) + ' (default = "{retrieval_dir}/{plot_name}.png")', default=PathFormat('{retrieval_dir}/{plot_name}.png'))
-	optimal_estimation_parser.add_argument('-n', '--n_cores', type=int, help='Number of cores to run parallelised processes on (default is to use the number specified in the input files)', default=None)
+	parser.add_argument('-n', '--n_cores', type=int, help='Number of cores to run parallelised processes on (default is to use the number specified in the input files)', default=None)
 
 	retrieval_engine_subparsers = parser.add_subparsers(
 		title = 'Retrieval Engine',
