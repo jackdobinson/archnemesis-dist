@@ -2347,17 +2347,7 @@ class ForwardModel_0:
         for i, svp in enumerate(state_vector_perturbations):
             print(f'svp[i]={svp}')
         
-        #nxn = self.Variables.NX+1
-        xnx = np.zeros([self.Variables.NX,self.Variables.NX+1], dtype=float)
-        
-        xnx[:,0] = self.Variables.XN
-        xnx[:,1:] = np.repeat(self.Variables.XN[:,None], self.Variables.NX, axis=1) + np.diag(self.Variables.DSTEP)
-        _lgr.dev(f'{xnx=}')
-        
-        diag = np.arange(self.Variables.NX)
-        zeros_mask = xnx[diag,diag+1] == 0   #Only the perturbed element of each state vector
-        xnx[diag[zeros_mask],diag[zeros_mask]+1] = 0.05
-        _lgr.dev(f'{xnx=}')
+
 
 
         #################################################################################
@@ -2365,11 +2355,20 @@ class ForwardModel_0:
         #################################################################################
 
         #self.Variables.NUM[:] = 1     #Uncomment for trying numerical differentiation
-        if self.Scatter.ISCAT != ScatteringCalculationModeEnum.THERMAL_EMISSION:
-            self.Variables.NUM[:] = 1  #If scattering is present, gradients are calculated numerically
+        if (
+            analytical_gradient is False                                             # If analytical gradients are turned off, gradients are all calculated numerically
+            or self.Scatter.ISCAT != ScatteringCalculationModeEnum.THERMAL_EMISSION  # If scattering is present, gradients are all calculated numerically
+        ):
+            sv_numerical_grads = np.ones((state_vector.size,), dtype=bool)
+        else:
+            sv_numerical_grads = self.Variables.NUM == 1
         
-        if analytical_gradient is False:
-            self.Variables.NUM[:] = 1  
+        numerical_grad_idxs = np.argwhere(sv_numerical_grads)
+        analytical_grad_idxs = np.argwhere(~sv_numerical_grads)
+        
+        _lgr.dev(f'{numerical_grad_idxs=}')
+        _lgr.dev(f'{analytical_grad_idxs=}')
+        
         
         ian1 = np.where(self.Variables.NUM==0)  #Gradients calculated using CIRSradg
         ian1 = ian1[0]

@@ -11,5 +11,5 @@ class ScatteringCalculationModeEnum(IntEnum):
     INTERNAL_RADIATION_FIELD = 2 # Internal radiation field
     SINGLE_SCATTERING_PLANE_PARALLEL = 3 # Single scattering in a plane parallel atmosphere
     SINGLE_SCATTERING_SPHERICAL = 4 # Single scattering in a spherical atmosphere
-    INTERNAL_NET_FJLUX = 5 # Internal net flux
+    INTERNAL_NET_FLUX = 5 # Internal net flux
     DOWNWARD_BOTTOM_FLUX = 6 # Downward flux at the bottom of the atmosphere
