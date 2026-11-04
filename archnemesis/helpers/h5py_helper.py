@@ -519,7 +519,7 @@ if __name__=='__main__':
         'bool' : parse_bool,
         'bool[]': parse_bool_arr,
         'int' : parse_int,
-        'int[]', parse_int_arr,
+        'int[]': parse_int_arr,
         'float' : parse_float,
         'float[]' : parse_float_arr,
         'str' : parse_str,
