@@ -517,7 +517,7 @@ if __name__=='__main__':
     
     type_parsers = {
         'bool' : parse_bool,
-        'bool[]', parse_bool_arr,
+        'bool[]': parse_bool_arr,
         'int' : parse_int,
         'int[]', parse_int_arr,
         'float' : parse_float,
