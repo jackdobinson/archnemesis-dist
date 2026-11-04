@@ -478,3 +478,103 @@ def write(
     
 
 
+if __name__=='__main__':
+    import sys
+    import argparse as ap
+    
+    
+    def parse_bool(s : list[str]):
+        if len(s) > 1:
+            return None
+        return s[0] == 'T' or s[0] == '1'
+        
+    def parse_bool_arr(s : list[str]):
+        return np.array([(x == 'T' or x=='1') for x in s], dtype=bool)
+    
+    def parse_int(s : list[str]):
+        if len(s) > 1:
+            return None
+        return int(s[0])
+        
+    def parse_int_arr(s : list[str]):
+        return np.array([int(x) for x in s], dtype=int)
+    
+    def parse_float(s : list[str]):
+        if len(s) > 1:
+            return None
+        return float(s[0])
+    
+    def parse_float_arr(s : list[str]):
+        return np.array([float(x) for x in s], dtype=float)
+    
+    def parse_str(s : list[str]):
+        if len(s) > 1:
+            return None
+        return s[0]
+    
+    def parse_str_arr(s : list[str]):
+        return np.array(s, dtype=np.dtypes.StringDType())
+    
+    type_parsers = {
+        'bool' : parse_bool,
+        'bool[]', parse_bool_arr,
+        'int' : parse_int,
+        'int[]', parse_int_arr,
+        'float' : parse_float,
+        'float[]' : parse_float_arr,
+        'str' : parse_str,
+        'str[]' : parse_str_arr
+    }
+    
+    parser = ap.ArgumentParser(description='Quick and dirty method to alter values in HDF5 files')
+    
+    parser.add_argument('hdf5_fpath', type=Path, help='Path to HDF5 file to alter')
+    parser.add_argument('dset_path', type=str, help='Path to the dataset to alter')
+    parser.add_argument('value', type=str, nargs='+', help='Value to update dataset to', default=[])
+    parser.add_argument('-t', '--type', choices=tuple(type_parsers.keys()), help='Type to cast value (and new dataset) to, if not present will assume same type as original dataset. Required if dataset does not already exist', default=None)
+    
+    args = parser.parse_args(sys.argv[1:])
+    
+    
+    with h5py.open(args.hdf5_path, 'a') as f:
+        if args.dset_path not in f:
+            if args.type is None:
+                print(f'ERROR: "{args.dset_path}" does not already exist in HDF5 file "{args.hdf5_path}", therefore must supply a `type` argument')
+                print('')
+                parser.print_help()
+                sys.exit(1)
+        else:
+            if args.type is None:
+                prev = f[args.dset_path][tuple()]
+                arr = False
+                dtype = type(prev)
+                if isinstance(prev, np.ndarray):
+                    arr = True
+                    dtype = prev.dtype
+                
+                if isinstance(dtype, (int, np.integer)):
+                    args.type = 'int' + '[]' if arr else ''
+                elif isinstance(dtype, (float, np.floating)):
+                    args.type = 'float' + '[]' if arr else ''
+                elif isinstance(dtype, (str, np.character, np.dtype.StringDType()):
+                    args.type = 'str' + '[]' if arr else ''
+                else:
+                    print(f'ERROR: Cannot infer type for {args.hdf5_path}[{args.dtype_path}] value {prev}')
+                    print()
+                    parser.print_help()
+                    sys.exit(1)
+        
+        args.value = type_parsers[args.type](args.value)
+        if args.value is None:
+            print(f'ERROR: Could not parse value "{args.value}" as type "{args.type}"')
+            print()
+            parser.print_help()
+            sys.exit(1)
+        
+        store_data(
+            f,
+            args.dset_path,
+            args.value,
+            dtype = type(args.value) if not isinstance(args.value, np.ndarray) else args.value.dtype,
+        )
+    

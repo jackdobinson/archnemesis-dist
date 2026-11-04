@@ -16,10 +16,6 @@ from .data import LblTableData
 from .state import LblTableState
 
 
-
-BINARY_K_ABS_PACK_INTO_FLOAT_FACTOR : float = 1.0E20
-
-
 class LblHDF5Base:
 
 	dset_attrs = {
