@@ -536,7 +536,7 @@ if __name__=='__main__':
     args = parser.parse_args(sys.argv[1:])
     
     
-    with h5py.open(args.hdf5_path, 'a') as f:
+    with h5py.File(args.hdf5_path, 'a') as f:
         if args.dset_path not in f:
             if args.type is None:
                 print(f'ERROR: "{args.dset_path}" does not already exist in HDF5 file "{args.hdf5_path}", therefore must supply a `type` argument')
