@@ -556,7 +556,7 @@ if __name__=='__main__':
                     args.type = 'int' + '[]' if arr else ''
                 elif isinstance(dtype, (float, np.floating)):
                     args.type = 'float' + '[]' if arr else ''
-                elif isinstance(dtype, (str, np.character, np.dtype.StringDType()):
+                elif isinstance(dtype, (str, np.character, np.dtype.StringDType())):
                     args.type = 'str' + '[]' if arr else ''
                 else:
                     print(f'ERROR: Cannot infer type for {args.hdf5_path}[{args.dtype_path}] value {prev}')
