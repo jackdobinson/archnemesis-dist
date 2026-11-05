@@ -153,12 +153,14 @@ class MeasurementPlotter:
 					Measurement.VCONV[spec_slice,igeom],
 					Measurement.MEAS[spec_slice,igeom] - n_error_sigma*Measurement.ERRMEAS[spec_slice,igeom],
 					Measurement.MEAS[spec_slice,igeom] + n_error_sigma*Measurement.ERRMEAS[spec_slice,igeom],
+					color='tab:blue',
 					alpha=0.3,
 					label=f'measurement error ({n_error_sigma}'+r'$\sigma$)'
 				)
 				ax.plot(
 					Measurement.VCONV[spec_slice,igeom],
 					Measurement.MEAS[spec_slice,igeom],
+					color='tab:blue',
 					alpha=0.6,
 					linewidth=1,
 					label='measured spectrum'
@@ -168,6 +170,7 @@ class MeasurementPlotter:
 					ax.plot(
 						Measurement.VCONV[spec_slice,igeom],
 						Measurement.SPECMOD[spec_slice,igeom],
+						color='tab:orange',
 						alpha=0.6,
 						linewidth=1,
 						label='modelled spectrum'
@@ -193,11 +196,13 @@ class MeasurementPlotter:
 					Measurement.VCONV[spec_slice,igeom],
 					Measurement.MEAS[spec_slice,igeom] - n_error_sigma*Measurement.ERRMEAS[spec_slice,igeom],
 					Measurement.MEAS[spec_slice,igeom] + n_error_sigma*Measurement.ERRMEAS[spec_slice,igeom],
+					color='tab:blue',
 					alpha=0.3,
 				)
 				ax.plot(
 					Measurement.VCONV[spec_slice,igeom],
 					Measurement.MEAS[spec_slice,igeom],
+					color='tab:blue',
 					alpha=0.6,
 					linewidth=1,
 				)
@@ -206,6 +211,7 @@ class MeasurementPlotter:
 					ax.plot(
 						Measurement.VCONV[spec_slice,igeom],
 						Measurement.SPECMOD[spec_slice,igeom],
+						color='tab:orange',
 						alpha=0.6,
 						linewidth=1,
 					)

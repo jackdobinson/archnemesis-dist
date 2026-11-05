@@ -7,6 +7,7 @@ import contextlib
 import inspect 
 import copy
 import shutil
+import datetime as dt
 
 
 import numpy as np
@@ -32,9 +33,12 @@ from .plotter import (
 	OptimalEstimationPlotter,
 )
 
+from archnemesis._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger("archnemesis.Retrieval.Retrieval")
 _lgr.setLevel(logging.INFO)
+#_lgr.setLevel(logging.DEBUG)
 
 
 if TYPE_CHECKING:
@@ -116,7 +120,7 @@ class RetrievalData:
 
 
 @dc.dataclass(slots=True)
-class Retrieval:
+class Retrieval(DumpStrMixin):
 	"""
 	Holds all the data required to specify an ArchNemesis model, plus methods to operate on that data.
 	"""
@@ -143,7 +147,8 @@ class Retrieval:
 	
 
 	def __repr__(self)->str:
-		return f'Retrieval(working_directory={self.working_directory}, runname={self.runname}, filetype={self._filetype})'
+		return f'Retrieval(working_directory={self.working_directory}, runname={self.runname}, filetype={self._filetype}, nemeisSO={self.nemesisSO}, nemesisL={self.nemesisL}, nemesisdisc={self.nemesisdisc}, nemesisPT={self.nemesisPT}, nemesisC={self.nemesisC})'
+	
 	
 	## Static Helpers ##
 	
@@ -384,7 +389,8 @@ class Retrieval:
 			_lgr.info(f'Loading ArchNemesis data for {self}')
 			self._load_data()
 		else:
-			_lgr.debug(f'ArchNemesis data for {self} already loaded')
+			pass
+			#_lgr.debug(f'ArchNemesis data for {self} already loaded')
 		return self
 	
 	def _load_data(self) -> None:
@@ -556,12 +562,8 @@ class Retrieval:
 		_lgr.debug('Determine validity of loaded self.RetrievalEngine, check lengths of arrays and values of apriori state vector')
 		
 		# Check state vector is consistent
-		#retrieved_values_valid = self.RetrievalEngine.NX == self.Variables.NX
-		if self.RetrievalEngine.KK is not None:
-			retrieved_values_valid = True
-		else:
-			retrieved_values_valid = False
-
+		retrieved_values_valid = self.RetrievalEngine.NX == self.Variables.NX
+		
 
 		if not retrieved_values_valid:
 			_lgr.warning(f'Stored apriori state vector has different length than found from *.apr file, {self.RetrievalEngine.NX=} {self.Variables.NX=}')
@@ -1220,6 +1222,7 @@ class Retrieval:
 			self.Measurement.SPECMOD : ndarray (NCONV,NGEOM)
 				Modelled spectrum
 		"""
+		dt_start = dt.datetime.now()
 		if self.has_modelled_spectra():
 			_lgr.warning(f"Retrieval(runname={self.runname}) already has a modelled spectra, running the forward model will overwrite the current value")
 	
@@ -1261,6 +1264,8 @@ class Retrieval:
 		self._set_optimal_estimation_setup_from_measurement()
 		self._set_optimal_estimation_setup_from_variables(forward_model_instance.Variables)
 		
+		dt_end = dt.datetime.now()
+		_lgr.info(f'Forward model calculation completed, took {dt_end - dt_start}')
 		return modelled_spectra
 	
 	##################################################################################################
@@ -1458,6 +1463,7 @@ class Retrieval:
 			KK : ndarray (NY,NX)
 				Modelled Jacobian matrix (dR/dx)
 		"""
+		dt_start = dt.datetime.now()
 		if self.has_modelled_spectra():
 			_lgr.warning(f"Retrieval(runname={self.runname}) already has a modelled spectra, running the forward model will overwrite the current value")
 	
@@ -1490,6 +1496,8 @@ class Retrieval:
 		self._set_optimal_estimation_setup_from_measurement()
 		self._set_optimal_estimation_setup_from_variables(forward_model_instance.Variables)
 		
+		dt_end = dt.datetime.now()
+		_lgr.info(f'Jacobian calculation completed, took {dt_end - dt_start}')
 		return YN,KK
 
 	################################################################################################
@@ -1527,6 +1535,8 @@ class Retrieval:
 				The instance, updated with the retrieved values. Get the retrieved spectra
 				via `self.Measurement.SPECMOD`, and the
 		"""
+		dt_start = dt.datetime.now()
+		
 		if restart:
 			# Reset the current state vector to the apriori state vector
 			self.Variables.XN[...] = self.Variables.XA
@@ -1589,11 +1599,12 @@ class Retrieval:
 		# Extract the best-fit spectra
 		self._update_modelled_spectra_from_retrival_engine()
 		
-		# Updating the Layering
-		self.Layer = forward_model_instance.LayerX
+		# Only the self.Atmosphere component has profiles, so update that one
+		self.Atmosphere = forward_model_instance.AtmosphereX
 		
-		#Updating the reference classes based on the retrieved parameters
-		self.calculate_profiles()
+		# Update the Retrieval with computed values
+		self.Layer = forward_model_instance.LayerX
+		self.Spectroscopy = forward_model_instance.SpectroscopyX
 		
 		
 		#Plot and write retrieval results if required
@@ -1601,6 +1612,9 @@ class Retrieval:
 			self.plot()
 		if do_write:
 			self.write()
+		
+		dt_end = dt.datetime.now()
+		_lgr.info(f'Optimal estimation completed, took {dt_end - dt_start}')
 		return self
 	
 	def run_nested_sampling(
@@ -1637,19 +1651,19 @@ class Retrieval:
 			self, 
 			plot_path_fmt : None | PathFormat = PathFormat('{retrieval_dir}/{plot_name}.png'),
 			plot_name_suffix : str = '',
-		)  -> tuple[list[str], list[mpl.figure.Figure], list[tuple[np.ndarray[mpl.axes.Axes]]]]:
+	) -> tuple[list[str], list[mpl.figure.Figure], list[tuple[np.ndarray[mpl.axes.Axes]]]]:
 		"""
-		Plots all possible plots for a Retrieval.
+			Plots all possible plots for a Retrieval.
+			
+			## ARGUMENTS ##
 		
-		## ARGUMENTS ##
-	
-		plot_path_fmt : None | PathFormat = PathFormat('{retrieval_dir}/{plot_name}.png')
-			Format to use when getting path to plot, field names are:
-				'retrieval_dir' - the working directory of the retrieval
-				'plot_name' - the name of the plot
-		
-		plot_name_suffix : str = ''
-			A suffix to append to the name of the plot, will be applied before path format.
+			plot_path_fmt : None | PathFormat = PathFormat('{retrieval_dir}/{plot_name}.png')
+				Format to use when getting path to plot, field names are:
+					'retrieval_dir' - the working directory of the retrieval
+					'plot_name' - the name of the plot
+			
+			plot_name_suffix : str = ''
+				A suffix to append to the name of the plot, will be applied before path format.
 		"""
 		names, figs, axes = [], [], []
 		
@@ -1657,22 +1671,24 @@ class Retrieval:
 		plotter_classes = (
 			AtmospherePlotter,
 			MeasurementPlotter,
-			LayerPlotter,
 			CIAPlotter,
-			LayerOpacityPlotter,
 			OptimalEstimationPlotter,
+			LayerPlotter,
+			LayerOpacityPlotter,
 		)
 		
 		for plotter_class in plotter_classes:
-			plotter = plotter_class(self)
-			if plotter.can_plot():
-				name, f, ax = plotter.plot()
-				names.append(name)
-				figs.append(f)
-				axes.append(ax)
-			else:
-				_lgr.warning(f'Plot not created by {plotter_class.__name__} are required components are not present on retrieval.')
-		
+			try:
+				plotter = plotter_class(self)
+				if plotter.can_plot():
+					name, f, ax = plotter.plot()
+					names.append(name)
+					figs.append(f)
+					axes.append(ax)
+				else:
+					_lgr.warning(f'Plot not created by {plotter_class.__name__} are required components are not present on retrieval.')
+			except:
+				_lgr.error(f'Plot not created by {plotter_class.__name__} as something went wrong during the process.')
 		
 		self.Variables.plot_model_parameters(self.working_directory, False)
 		
@@ -1716,6 +1732,7 @@ if __name__=='__main__':
 			'load_only',
 			'plot',
 			'plot_apriori',
+			'run_forward_model',
 			'run_optimal_estimation',
 			'continue_optimal_estimation',
 		),
@@ -1758,9 +1775,12 @@ if __name__=='__main__':
 				retrieval = Retrieval.from_file(os.path.join(args.dir, path))
 			
 			
+			
 			_lgr.info('Performing operations on retrieval...')
 			for op in args.operation:
+				
 				_lgr.info(f'OPERATION: {op}')
+				print(retrieval.dump_str())
 				
 				if op == 'load_only':
 					pass
@@ -1783,13 +1803,22 @@ if __name__=='__main__':
 						plt.show()
 					plt.close('all')
 				
+				elif op == 'run_forward_model':
+					print(f'{retrieval.Stellar=}')
+					retrieval.run_forward_model()
+					print('#'*80)
+					print('#'*80)
+					print('#'*80)
+					retrieval.plot(args.plot_path_fmt, '_after_forward_model')
+					if not args.no_show_plots:
+						plt.show()
+					plt.close('all')
+					
 				elif op == "run_optimal_estimation":
-					retrieval.run_optimal_estimation(args.iter, args.n_cores, args.write_itr)
-					retrieval.write()
+					retrieval.run_optimal_estimation(args.iter, args.n_cores, args.write_itr, do_write=True)
 				
 				elif op == "continue_optimal_estimation":
-					retrieval.run_optimal_estimation(args.iter, args.n_cores, args.write_itr, restart=False)
-					retrieval.write()
+					retrieval.run_optimal_estimation(args.iter, args.n_cores, args.write_itr, restart=False, do_write=True)
 				
 				else:
 					raise RuntimeError(f'Unknown operation "{op}" for Retrieval.')

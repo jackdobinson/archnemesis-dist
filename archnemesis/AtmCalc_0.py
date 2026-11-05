@@ -21,6 +21,7 @@
 import numpy as np
 
 from archnemesis.enum import ZenithAngleOriginEnum, PathObserverPointingEnum, PathCalcEnum
+from ._DumpStrMixin import DumpStrMixin
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ _lgr.setLevel(logging.INFO)
 Object to calculate the atmospheric paths
 """
 
-class AtmCalc_0:
+class AtmCalc_0(DumpStrMixin):
     def __init__(
             self,
             Layer,

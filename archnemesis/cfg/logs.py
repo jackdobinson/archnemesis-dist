@@ -7,6 +7,8 @@ from contextlib import contextmanager
 
 from .build_environment import BUILD_NAME
 
+
+
 NOTSET = logging.NOTSET
 DEBUG = logging.DEBUG
 INFO = logging.INFO
@@ -24,6 +26,9 @@ if BUILD_NAME == 'DEVELOPMENT':
     # so production code should never use it.
     DEV = 100 # Logs information used when developing,
     logging.addLevelName(DEV, 'DEV')
+
+
+NEW_LOGGER_ADAPTOR_LEVEL = logging.INFO
 
 pkg_lgr = logging.getLogger("archnemesis")
 pkg_lgr.setLevel(logging.DEBUG)
@@ -99,7 +104,7 @@ class LogAdaptorFilter():
     
     def getLevel(self, adaptor_name : str):
         #print(f'LogAdaptorFilter::getLevel {adaptor_name=}')
-        return self.adaptor_level_map.get(adaptor_name, logging.NOTSET)
+        return self.adaptor_level_map.get(adaptor_name, NEW_LOGGER_ADAPTOR_LEVEL)
     
     
 
@@ -115,7 +120,7 @@ class ArchnemesisLoggerAdaptor(logging.LoggerAdapter):
     def __init__(self, name, logger):
         super().__init__(logger, extra={"adaptor_name": name})
         self.adaptor_name = name
-        self.level = logging.NOTSET
+        self.level = NEW_LOGGER_ADAPTOR_LEVEL
         
     def setLevel(self, level):
         #print(f'ArchnemesisLoggerAdaptor::setLevel() {level=}')
@@ -193,7 +198,7 @@ def push_packagewide_level(log_level : None | int, progress_log_level : int | No
     """
     _packagewide_level_stack.append((pkg_lgr.level, progress_lgr.level))
     set_packagewide_level(
-        log_level if log_level is not None else pkg_lgr.level, 
+        (log_level if (log_level is not None) else pkg_lgr.level), 
         progress_log_level
     )
 

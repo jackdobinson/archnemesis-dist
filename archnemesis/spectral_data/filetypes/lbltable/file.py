@@ -77,7 +77,6 @@ class LblTableFile:
 				
 	def _set_file_format_from_path(self):
 		if self._file_format == LblTableFileFormatEnum.UNDEFINED:
-			#_lgr.dev(f'{self.path.suffix=}')
 			if self.path.suffix == '.h5':
 				self.file_format = LblTableFileFormatEnum.HDF5
 			elif self.path.suffix == '.lta':

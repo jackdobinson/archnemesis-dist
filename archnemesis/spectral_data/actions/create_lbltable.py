@@ -16,7 +16,7 @@ from archnemesis.enum import (
 from archnemesis.helpers.argparse_helper import ArgArray1D, action_enum_choice
 from archnemesis.helpers.wave_helper import waves_as_unit
 
-from archnemesis.Data.constants import atm_pascal
+from archnemesis.Data.constants import atm_to_pascal
 from archnemesis.LineData_0 import LineData_0, _MODULE_CACHE
 
 from ..mol_selector import MolSelector
@@ -122,7 +122,7 @@ def _action_create_lbltable(
 		else:
 			raise RuntimeError(f'Cannot read atmospheric profile from {use_atm_profile}')
 		
-		press_array = np.array(atm.P) / atm_pascal # Get pressure into atmospheres
+		press_array = np.array(atm.P) / atm_to_pascal # Get pressure into atmospheres
 		temp_array = np.array([atm.T, atm.T+5]).T
 
 		del Atmosphere_0

@@ -29,6 +29,8 @@ from matplotlib.lines import Line2D
 import archnemesis as ans
 import archnemesis.Files
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 _lgr.setLevel(logging.DEBUG)
@@ -37,7 +39,7 @@ pymultinest = NotImplemented
 solve = NotImplemented
 
 
-class NestedSampling_0:
+class NestedSampling_0(DumpStrMixin):
     
     def __init__(self, N_LIVE_POINTS=400, nemesisC=False):
         

@@ -31,6 +31,8 @@ from archnemesis.enum import WaveUnitEnum, SpectraUnitEnum
 from archnemesis.helpers.maths_helper import is_diagonal
 import archnemesis.helpers.h5py_helper as h5py_helper
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 _lgr.setLevel(logging.INFO)
@@ -51,7 +53,7 @@ Optimal Estimation Class. It includes all parameters that are relevant for the r
                           the Optimal Estimation formalism
 """
 
-class OptimalEstimation_0:
+class OptimalEstimation_0(DumpStrMixin):
 
     @classmethod
     def from_itr(cls, runname):
@@ -1405,8 +1407,8 @@ def coreretOE_impl(
         progress_w_iter = 4
     progress_iter_states = {
         'initial' : 'PHI INITIAL     ',
-        True :      'PHI REDUCED     ',
-        False :     'PHI INCREASED   '
+        True      : 'PHI REDUCED     ',
+        False     : 'PHI INCREASED   '
     }
     progress_fmt = f'{{:0{progress_w_iter}}} | {{}} | {{:09.3E}} | {{:09.3E}} | {{}}\n'
     progress_head = ('iter' + ('' if progress_w_iter <= 4 else ' '*(progress_w_iter-4))
@@ -1424,6 +1426,8 @@ def coreretOE_impl(
         initial_indent = ' '*progress_first_dedent,
         subsequent_indent = ' '*40+'-'*progress_w_iter + ' | '+'-'*16+' | '+'-'*9+' | '+'-'*9+' | ',
     )
+    get_progress_entry_for_terminal = lambda *args: progress_fmt.format(*args[:-1], progress_state_vector_wrapper.fill(' '.join((f'{x:09.3E}' for x in args[-1])))[progress_first_dedent:])
+    get_progress_entry_for_file = lambda *args: progress_fmt.format(*args[:-1], ' '.join((f'{x:09.3E}' for x in args[-1])))
     
 
     _lgr.info(f'coreretOE :: Starting OptimalEstimation retrieval with NITER={OptimalEstimation.NITER} PHILIMIT={OptimalEstimation.PHILIMIT} NCORES={OptimalEstimation.NCORES}')
@@ -1464,13 +1468,13 @@ def coreretOE_impl(
     chisq_history[0] = OptimalEstimation.CHISQ
     state_vector_history[0,:] = OptimalEstimation.XN
     
-    progress_line = progress_fmt.format(0, progress_iter_states['initial'], OptimalEstimation.PHI, OptimalEstimation.CHISQ, progress_state_vector_wrapper.fill(' '.join((f'{x:09.3E}' for x in OptimalEstimation.XN)))[progress_first_dedent:])
+    progress_args = (0, progress_iter_states['initial'], OptimalEstimation.PHI, OptimalEstimation.CHISQ, OptimalEstimation.XN)
     progress_lgr.info(f'\t{progress_head}')
-    progress_lgr.info(f'\t{progress_line}')
+    progress_lgr.info(f'\t{get_progress_entry_for_terminal(*progress_args)}')
             
     with open(progress_file, 'w') as f:
         f.write(progress_head)
-        f.write(progress_line)
+        f.write(get_progress_entry_for_file(*progress_args))
 
     #Assessing whether retrieval is going to be OK
     #################################################################
@@ -1608,13 +1612,13 @@ def coreretOE_impl(
             phi_history[n_successful_iterations] = OptimalEstimation.PHI
             chisq_history[n_successful_iterations] = OptimalEstimation.CHISQ
             state_vector_history[n_successful_iterations,:] = OptimalEstimation.XN
-            
-        progress_line = progress_fmt.format(it, progress_iter_states[successful_iteration], OptimalEstimation1.PHI, OptimalEstimation1.CHISQ, progress_state_vector_wrapper.fill(' '.join((f'{x:09.3E}' for x in OptimalEstimation.XN)))[progress_first_dedent:])
+        
+        progress_args = (it, progress_iter_states[successful_iteration], OptimalEstimation.PHI, OptimalEstimation.CHISQ, OptimalEstimation.XN)
         progress_lgr.info(f'\t{progress_head}')
-        progress_lgr.info(f'\t{progress_line}')
+        progress_lgr.info(f'\t{get_progress_entry_for_terminal(*progress_args)}')
                 
         with open(progress_file, 'a') as f:
-            f.write(progress_line)
+            f.write(get_progress_entry_for_file(*progress_args))
     
     _lgr.info('coreretOE :: Completed Optimal Estimation retrieval. Showing phi and chisq evolution')
     with open('phi_chisq.txt', 'w') as f:
@@ -1629,15 +1633,17 @@ def coreretOE_impl(
             +' | state vector '
             +'\n'
         )
-        _lgr.info(f'\t{head}')
         f.write(head)
         for i,(p,c,sv) in enumerate(zip(phi_history, chisq_history, state_vector_history)):
             if i >= n_successful_iterations:
                 break
             line = fmt.format(i, p, c, ' '.join((f'{x:09.3E}' for x in sv)))
-            _lgr.info(f'\t{line}')
             f.write(line)
-            
+    
+    # Output to the terminal as well
+    with open('phi_chisq.txt', 'r') as f:
+        _lgr.info('\n'+f.read())
+    
 
     #Writing into .itr file for final iteration
     ####################################

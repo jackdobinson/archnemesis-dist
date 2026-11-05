@@ -5,6 +5,7 @@ Main entry point for archnemesis can run a retrieval via `python3 -m archnemesis
 """
 import sys
 from pathlib import Path
+import datetime as dt
 
 import argparse as ap
 
@@ -81,6 +82,8 @@ def set_packagewide_log_level(log_stream : str, log_level : None | str):
 
 if __name__ == '__main__':
 
+	dt_start = dt.datetime.now()
+	
 	parser = create_parser()
 	# Use dictionary interface for args
 	args = vars(parser.parse_args(sys.argv[1:]))
@@ -116,9 +119,13 @@ if __name__ == '__main__':
 	retrieval_engine = args.pop('retrieval_engine', 'OptimalEstimation')
 	retrieval_engine = 'OptimalEstimation' if retrieval_engine is None else retrieval_engine
 
+	dt_after_arg_handling = dt.datetime.now()
+	_lgr.info(f'Argument handling took {dt_after_arg_handling - dt_start}')
+
 	# Create and run retrieval with specified engine.
 	n_paths = len(paths)
 	if n_paths == 1:
+		dt_loop_iter_start = dt.datetime.now()
 		path = Path(paths[0])
 		
 		retrieval = Retrieval.from_path(
@@ -129,12 +136,16 @@ if __name__ == '__main__':
 		# perform any conversions first
 		retrieval.filetype = args.pop('convert', retrieval.filetype)
 		
+		dt_before_action = dt.datetime.now()
+		_lgr.info(f'Retrieval instance setup took {dt_before_action - dt_loop_iter_start}')
+		
 		run_retrieval_actions[retrieval_engine](retrieval, **args)
 		
 	else:
 		raise NotImplementedError('Multiple archnemesis runs at once are not implemented yet.')
 		
-
+	dt_end = dt.datetime.now()
+	_lgr.info(f'Archnemesis task completed, took {dt_end - dt_start}')
 
 
 

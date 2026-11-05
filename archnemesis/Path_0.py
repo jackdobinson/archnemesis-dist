@@ -20,6 +20,7 @@
 
 import numpy as np
 
+from ._DumpStrMixin import DumpStrMixin
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ _lgr = logging.getLogger(__name__)
 """
 Object to calculate the atmospheric paths
 """
-class Path_0:
+class Path_0(DumpStrMixin):
     
     def __init__(self,AtmClass_List,COMBINE=False):
         """

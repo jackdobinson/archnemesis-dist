@@ -28,8 +28,11 @@ from numba import jit
 from archnemesis.helpers import h5py_helper
 from archnemesis.enum import GasEnum, ParaH2RatioEnum
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
+_lgr.setLevel(logging.INFO)
 
 ###############################################################################################
 
@@ -41,7 +44,7 @@ Created on Tue Aug 09 17:27:12 2021
 Collision-Induced Absorption Class.
 """
 
-class CIA_0:
+class CIA_0(DumpStrMixin):
 
     def __init__(
             self, 
@@ -292,7 +295,7 @@ class CIA_0:
                 del f['CIA']   #Deleting the Spectroscopy information that was previously written in the file
 
             grp = f.create_group("CIA")
-            print(f'{grp.file.filename=}')
+            _lgr.debug(f'{grp.file.filename=}')
 
             #Writing the necessary flags
             dset = h5py_helper.store_data(grp, 'INORMAL', int(self.INORMAL))
@@ -309,7 +312,7 @@ class CIA_0:
                 CIATABLE_str = CIATABLE_str[:-4]+'.h5'
 
             ciatable_h5_path = os.path.normpath(os.path.join(self.CIADATA, CIATABLE_str))
-            print(f'{ciatable_h5_path=}')
+            _lgr.debug(f'{ciatable_h5_path=}')
             if not os.path.exists(ciatable_h5_path):
                 self.write_ciatable_hdf5(ciatable_h5_path)
             

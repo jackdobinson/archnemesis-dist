@@ -34,6 +34,8 @@ from archnemesis.enum import AtmosphericProfileTypeEnum, GasEnum
 from archnemesis.helpers import io_helper
 from archnemesis.helpers import h5py_helper
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 _lgr.setLevel(logging.INFO)
@@ -57,7 +59,7 @@ class AprReadError(RuntimeError):
     """
 
 
-class Variables_0:
+class Variables_0(DumpStrMixin):
 
     def __init__(self, NVAR=2, NPARAM=10, NX=10, JPRE=-1, JTAN=-1, JSURF=-1, JALB=-1, JXSC=-1, JRAD=-1, JLOGG=-1, JFRAC=-1):
 

@@ -26,6 +26,8 @@ from numba import jit#, njit
 from archnemesis.enum import WaveUnitEnum, LowerBoundaryConditionEnum
 from archnemesis.helpers import h5py_helper
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 
@@ -45,7 +47,7 @@ Created on Tue Jul 22 17:27:12 2021
      have subclasses for each of the different types of lower boundary conditions.
 """
 
-class Surface_0:
+class Surface_0(DumpStrMixin):
 
     def __init__(
             self, 

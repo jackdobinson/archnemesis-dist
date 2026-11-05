@@ -29,6 +29,8 @@ from archnemesis.enum import (
     InterpolationMethodEnum,
 )
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 
@@ -36,7 +38,7 @@ AVOGAD = 6.02214076e23
 """
 Object to store layering scheme settings and averaged properties of each layer.
 """
-class Layer_0:
+class Layer_0(DumpStrMixin):
     def __init__(self, RADIUS=None, LAYHT=0, LAYTYP=LayerTypeEnum.EQUAL_LOG_PRESSURE, LAYINT=LayerIntegrationSchemeEnum.ABSORBER_WEIGHTED_AVERAGE, NLAY=20, NINT=101,
                 LAYANG=0.0, H_base=None, P_base=None):
         """

@@ -3552,8 +3552,6 @@ def generate_isotopologue_table_html():
     Function to generate a gas_table.html file that is directly used in the documentation
     """
 
-    from archnemesis.Data.path_data import archnemesis_path
-
     html = []
 
     # =============================================================================

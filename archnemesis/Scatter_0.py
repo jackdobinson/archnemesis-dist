@@ -30,6 +30,8 @@ import matplotlib.pyplot as plt
 
 from archnemesis.helpers import h5py_helper
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 _lgr.setLevel(logging.DEBUG)
@@ -49,7 +51,7 @@ Scattering Class. Includes the absorption and scattering properties of aerosol p
 JIT-optimised Rayleigh Scattering routines
 """
 
-class Scatter_0:
+class Scatter_0(DumpStrMixin):
 
     def __init__(self, 
         ISPACE=WaveUnitEnum.Wavenumber_cm,

@@ -34,6 +34,7 @@ from archnemesis.helpers import h5py_helper
 from archnemesis.enum import InstrumentLineshapeEnum, WaveUnitEnum, SpectraUnitEnum, ZenithAngleOriginEnum
 from archnemesis import gauss_lobatto
 
+from ._DumpStrMixin import DumpStrMixin
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ Created on Tue Mar 29 17:27:12 2021
 State Vector Class.
 """
 
-class Measurement_0:
+class Measurement_0(DumpStrMixin):
 
     """
         Measurement class.

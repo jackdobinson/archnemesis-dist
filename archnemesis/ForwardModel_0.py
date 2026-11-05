@@ -21,6 +21,8 @@
 #from archnemesis import *
 #from archnemesis.Models import Models
 
+#import traceback
+
 from typing import Any, Callable
 from functools import partial
 import os
@@ -55,22 +57,22 @@ from archnemesis.enum import (
     ZenithAngleOriginEnum,
     AerosolPhaseFunctionCalculationModeEnum,
 )
+from archnemesis.Data.constants import (
+    igl_rho_n_STP_um, # ideal gas law number density (molecules per cubic micron)
+    atm_to_pascal,
+    um_to_cm,
+    cm_to_um,
+    cm_to_m,
+    cm2_to_m2,
+    um2_to_cm2,
+)
+
+from ._DumpStrMixin import DumpStrMixin
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 _lgr.setLevel(logging.INFO)
 
-ATM_TO_PASCAL            : float = 101325.0
-MICRON_TO_CM             : float = 1.0E-4
-CM_TO_MICRON             : float = 1.0E+4
-CM_TO_METER              : float = 1.0E-2
-METER_TO_CM              : float = 1.0E+2
-SQ_CM_TO_SQ_METER        : float = 1.0E-4
-SQ_METER_TO_SQ_CM        : float = 1.0E+4
-SQ_MICRON_TO_SQ_CM       : float = 1.0E-8
-SQ_CM_TO_SQ_MICRON       : float = 1.0E+8
-CUBIC_CM_TO_CUBIC_MICRON : float = 1.0E+12
-CUBIC_MICRON_TO_CUBIC_CM : float = 1.0E-12
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
 
@@ -86,7 +88,7 @@ Forward Model Class.
 
 _DONE_GAS_SPECTROSCOPY_DATA_WARNING_ONCE_FLAG = False
 
-class ForwardModel_0:
+class ForwardModel_0(DumpStrMixin):
     
     @classmethod
     def get_DONE_GAS_SPECTROSCOPY_DATA_WARNING_ONCE_FLAG(cls):
@@ -2475,36 +2477,36 @@ class ForwardModel_0:
     def subprofretg(self):
 
         """
-        FUNCTION NAME : subprogretg()
+            FUNCTION NAME : subprogretg()
 
-        DESCRIPTION : Updates the reference classes based on the variables and parameterisations in the
-                      state vector. Changes to other parameters in the model based on the variables
-                      and parameterisations in the state vector are also performed here. However,
-                      the functional derivatives to these other parameters are not included since
-                      they cannot be determined analytically.
+            DESCRIPTION : Updates the reference classes based on the variables and parameterisations in the
+                        state vector. Changes to other parameters in the model based on the variables
+                        and parameterisations in the state vector are also performed here. However,
+                        the functional derivatives to these other parameters are not included since
+                        they cannot be determined analytically.
 
-        INPUTS : none
+            INPUTS : none
 
-        OPTIONAL INPUTS: none
+            OPTIONAL INPUTS: none
 
-        OUTPUTS :
+            OUTPUTS :
 
-            xmap(maxv,ngas+2+ncont,npro) :: Matrix relating functional derivatives calculated
-                                             by CIRSRADG to the elements of the state vector.
-                                             Elements of XMAP are the rate of change of
-                                             the profile vectors (i.e. temperature, vmr prf
-                                             files) with respect to the change in the state
-                                             vector elements. So if X1(J) is the modified
-                                             temperature,vmr,clouds at level J to be
-                                             written out to runname.prf or aerosol.prf then
-                                            XMAP(K,L,J) is d(X1(J))/d(XN(K)) and where
-                                            L is the identifier (1 to NGAS+1+2*NCONT)
+                xmap(maxv,ngas+2+ncont,npro) :: Matrix relating functional derivatives calculated
+                                                by CIRSRADG to the elements of the state vector.
+                                                Elements of XMAP are the rate of change of
+                                                the profile vectors (i.e. temperature, vmr prf
+                                                files) with respect to the change in the state
+                                                vector elements. So if X1(J) is the modified
+                                                temperature,vmr,clouds at level J to be
+                                                written out to runname.prf or aerosol.prf then
+                                                XMAP(K,L,J) is d(X1(J))/d(XN(K)) and where
+                                                L is the identifier (1 to NGAS+1+2*NCONT)
 
-        CALLING SEQUENCE:
+            CALLING SEQUENCE:
 
-            xmap = ForwardModel.subprofretg()
+                xmap = ForwardModel.subprofretg()
 
-        MODIFICATION HISTORY : Juan Alday (15/03/2022)
+            MODIFICATION HISTORY : Juan Alday (15/03/2022)
 
         """
 
@@ -3894,21 +3896,21 @@ class ForwardModel_0:
 
                 #Calculating the cross sections for each gas in each self.LayerX
                 if return_grad:
-                    k,dkdT = self.SpectroscopyX.calc_klblg(self.LayerX.NLAY,self.LayerX.PRESS/ATM_TO_PASCAL,self.LayerX.TEMP)
+                    k,dkdT = self.SpectroscopyX.calc_klblg(self.LayerX.NLAY,self.LayerX.PRESS/atm_to_pascal,self.LayerX.TEMP)
                 else:
-                    k = self.SpectroscopyX.calc_klbl(self.LayerX.NLAY,self.LayerX.PRESS/ATM_TO_PASCAL,self.LayerX.TEMP)
+                    k = self.SpectroscopyX.calc_klbl(self.LayerX.NLAY,self.LayerX.PRESS/atm_to_pascal,self.LayerX.TEMP)
 
                 for i in range(self.SpectroscopyX.NGAS):
                     IGAS = self.AtmosphereX.locate_gas(self.SpectroscopyX.ID[i],self.SpectroscopyX.ISO[i])
 
                     #Calculating vertical column density in each self.LayerX
-                    VLOSDENS = self.LayerX.AMOUNT[:,IGAS].T * SQ_CM_TO_SQ_METER   #m-2
+                    VLOSDENS = self.LayerX.AMOUNT[:,IGAS].T * cm2_to_m2   #m-2
 
                     #Calculating vertical opacity for each gas in each self.LayerX
                     TAUGAS[:,0,:,i] = k[:,:,i] * VLOSDENS
                     
                     if return_grad:
-                        dTAUGAS[:,0,IGAS,:] = k[:,:,i] * SQ_CM_TO_SQ_METER  #dTAUGAS/dAMOUNT (m2)
+                        dTAUGAS[:,0,IGAS,:] = k[:,:,i] * cm2_to_m2  #dTAUGAS/dAMOUNT (m2)
                         dTAUGAS[:,0,self.AtmosphereX.NVMR,:] = dTAUGAS[:,0,self.AtmosphereX.NVMR,:] + dkdT[:,:,i] * VLOSDENS #dTAUGAS/dT
 
                 #Combining the gaseous opacity in each self.LayerX
@@ -3924,23 +3926,22 @@ class ForwardModel_0:
                     self_frac = np.sum(ave_vmr[igas_all_isotopes]) / np.sum(ave_vmr[:])
                     amb_frac[igas,0] = 1.0 - self_frac
 
-
                 #Calculating the absorption cross sections
                 if return_grad:
-                    k,dkdT = self.SpectroscopyX.calc_klblg_online(self.LayerX.NLAY,self.LayerX.PRESS/ATM_TO_PASCAL,self.LayerX.TEMP,amb_frac=amb_frac)
+                    k,dkdT = self.SpectroscopyX.calc_klblg_online(self.LayerX.NLAY,self.LayerX.PRESS/atm_to_pascal,self.LayerX.TEMP,amb_frac=amb_frac)
                 else:
-                    k = self.SpectroscopyX.calc_klbl_online(self.LayerX.NLAY,self.LayerX.PRESS/ATM_TO_PASCAL,self.LayerX.TEMP,amb_frac=amb_frac)
+                    k = self.SpectroscopyX.calc_klbl_online(self.LayerX.NLAY,self.LayerX.PRESS/atm_to_pascal,self.LayerX.TEMP,amb_frac=amb_frac)
 
                 igas = np.empty((self.SpectroscopyX.NGAS,), dtype=int)
                 for i, (mol_id, iso_id) in enumerate(zip(self.SpectroscopyX.ID,self.SpectroscopyX.ISO)):
                     igas[i] = self.AtmosphereX.locate_gas(mol_id, iso_id)
 
                 #Calculating vertical column density in each self.LayerX
-                VLOSDENS = self.LayerX.AMOUNT * SQ_CM_TO_SQ_METER   #m-2
+                VLOSDENS = self.LayerX.AMOUNT * cm2_to_m2   #m-2
                 TAUGAS[:,0] = k * VLOSDENS[None,:,igas]
                 
                 if return_grad:
-                    dTAUGAS[:,0,igas] = np.moveaxis(k,-1,-2)[...] * SQ_CM_TO_SQ_METER
+                    dTAUGAS[:,0,igas] = np.moveaxis(k,-1,-2)[...] * cm2_to_m2
                     dTAUGAS[:,0,self.AtmosphereX.NVMR] = np.sum(dkdT * VLOSDENS[:,igas],axis=-1) #dTAUGAS/dT
                 
                 #Combining the gaseous opacity in each self.LayerX
@@ -3949,15 +3950,15 @@ class ForwardModel_0:
             elif self.SpectroscopyX.ILBL == SpectralCalculationModeEnum.K_TABLES:    #K-table
                 #Calculating the k-coefficients for each gas in each self.LayerX
                 if return_grad:
-                    k_gas,dkgasdT = self.SpectroscopyX.calc_kg(self.LayerX.NLAY,self.LayerX.PRESS/ATM_TO_PASCAL,self.LayerX.TEMP) # (NWAVE,NG,NLAY,NGAS)
+                    k_gas,dkgasdT = self.SpectroscopyX.calc_kg(self.LayerX.NLAY,self.LayerX.PRESS/atm_to_pascal,self.LayerX.TEMP) # (NWAVE,NG,NLAY,NGAS)
                 else:
-                    k_gas = self.SpectroscopyX.calc_k(self.LayerX.NLAY,self.LayerX.PRESS/ATM_TO_PASCAL,self.LayerX.TEMP) # (NWAVE,NG,NLAY,NGAS) 
+                    k_gas = self.SpectroscopyX.calc_k(self.LayerX.NLAY,self.LayerX.PRESS/atm_to_pascal,self.LayerX.TEMP) # (NWAVE,NG,NLAY,NGAS) 
 
                 f_gas = np.zeros([self.SpectroscopyX.NGAS,self.LayerX.NLAY])
                 #utotl = np.zeros(self.LayerX.NLAY)
                 for i in range(self.SpectroscopyX.NGAS):
                     IGAS = self.AtmosphereX.locate_gas(self.SpectroscopyX.ID[i],self.SpectroscopyX.ISO[i])
-                    f_gas[i,:] = self.LayerX.AMOUNT[:,IGAS] * SQ_CM_TO_SQ_METER  #Vertical column density of the radiatively active gases in cm-2
+                    f_gas[i,:] = self.LayerX.AMOUNT[:,IGAS] * cm2_to_m2  #Vertical column density of the radiatively active gases in cm-2
 
                 #Combining the k-distributions of the different gases in each self.LayerX, as well as their gradients
                 if return_grad:
@@ -3966,7 +3967,7 @@ class ForwardModel_0:
                     #Calculating the gradients of each self.LayerX and for each gas
                     for i in range(self.SpectroscopyX.NGAS):
                         IGAS = self.AtmosphereX.locate_gas(self.SpectroscopyX.ID[i],self.SpectroscopyX.ISO[i])
-                        dTAUGAS[:,:,IGAS,:] = dk_layer[:,:,:,i] * SQ_CM_TO_SQ_METER  #dTAU/dAMOUNT (m2)
+                        dTAUGAS[:,:,IGAS,:] = dk_layer[:,:,:,i] * cm2_to_m2  #dTAU/dAMOUNT (m2)
 
                     dTAUGAS[:,:,self.AtmosphereX.NVMR,:] = dk_layer[:,:,:,self.SpectroscopyX.NGAS] #dTAU/dT
                 else:
@@ -4086,7 +4087,7 @@ class ForwardModel_0:
         #Calculating the total optical depth for the aerosols
         TAUDUST1 = np.clip(np.nan_to_num(TAUDUST1),0,1e20)
         
-        _lgr.info(f"CIRSrad :: Aerosol optical depths at  {(self.SpectroscopyX.WAVE[0],' :: ',np.sum(TAUDUST1[0,:,:],axis=0))}")
+        _lgr.info(f"Aerosol optical depths at  {(self.SpectroscopyX.WAVE[0],' :: ',np.sum(TAUDUST1[0,:,:],axis=0))}")
         
         #Adding the opacity by the different dust populations
         TAUDUST = np.sum(TAUDUST1,2)  #(NWAVE,NLAYER) Absorption + Scattering
@@ -4125,7 +4126,7 @@ class ForwardModel_0:
         #Calculating the line-of-sight opacities
         #################################################################################################################
 
-        _lgr.info('CIRSradg :: Calculating TOTAL line-of-sight opacity')
+        _lgr.info('Calculating TOTAL line-of-sight opacity')
         
         #Calculating the line-of-sight opacities
         TAUTOT_LAYINC = TAUTOT[:,:,self.PathX.LAYINC[:,:]] * self.PathX.SCALE[:,:]  #(NWAVE,NG,NLAYIN,NPATH)
@@ -4137,10 +4138,6 @@ class ForwardModel_0:
             dTAUTOT_LAYINC = dTAUTOT[:,:,:,self.PathX.LAYINC[:,:]] * self.PathX.SCALE[:,:] #(NWAVE,NG,NGAS+2+NDUST,NLAYIN,NPATH)
         else:
             dTAUTOT_LAYINC = None
-        
-        #print(f'TESTING :: {TAUTOT_LAYINC=}')
-        #print(f'TESTING :: {TAUTOT_PATH=}')
-        #print(f'TESTING :: {dTAUTOT_LAYINC=}')
         
         return TAUTOT_LAYINC, TAUTOT_PATH, dTAUTOT_LAYINC
 
@@ -4193,7 +4190,7 @@ class ForwardModel_0:
                     igasx = np.where( (self.AtmosphereX.ID==self.EmissionsX.ID[igas,iemi]) & (self.AtmosphereX.ISO==self.EmissionsX.ISO[igas,iemi]) )[0][0]
                     
                     #Calculating the vertical column density in cm-2
-                    VLOSDENS = self.LayerX.AMOUNT[:,igasx] * SQ_CM_TO_SQ_METER   #cm-2
+                    VLOSDENS = self.LayerX.AMOUNT[:,igasx] * cm2_to_m2   #cm-2
 
                     #Calculating the emitted radiance from the layer
                     EMI[:,:] += emission_rate[:,:,iemi] * VLOSDENS[np.newaxis,:] / (4.*np.pi) #photons s-1 cm-2 sr-1 um-1
@@ -4552,10 +4549,6 @@ class ForwardModel_0:
             MODIFICATION HISTORY : Juan Alday (25/07/2021)
 
         """
-        #_lgr.dev(f'{self.Spectroscopy.NWAVE=}')
-        #_lgr.dev(f'{self.Spectroscopy.WAVE.shape=}')
-        #_lgr.dev(f'{self.SpectroscopyX.NWAVE=}')
-        #_lgr.dev(f'{self.SpectroscopyX.WAVE.shape=}')
         
         #Initialise some arrays
         ###################################
@@ -4742,7 +4735,7 @@ class ForwardModel_0:
         INORMALD = CIA.locate_INORMAL_pairs()
         
         #Calculating the factor to be multiplied by the cross sections to get total optical depth
-        TOTAM = Layer.TOTAM * SQ_CM_TO_SQ_METER #Total column density in each layer (cm-2)
+        TOTAM = Layer.TOTAM * cm2_to_m2 #Total column density in each layer (cm-2)
         XLEN = Layer.DELH * 1.0e2 #Height of each layer (cm)
         XFAC = TOTAM**2. / XLEN   #molec^2 cm-5, which multiplied by cross sections in cm5 molec-2 gives unitless optical depth
         
@@ -5014,10 +5007,10 @@ class ForwardModel_0:
             # Calculating the opacity at each layer
             for j in range(Layer.NLAY):
                 DUSTCOLDENS = Layer.CONT[j, i]  # particles/m2
-                TAUDUST[:, j, i] = kext * SQ_CM_TO_SQ_METER * DUSTCOLDENS
-                TAUCLSCAT[:, j, i] = ksca * SQ_CM_TO_SQ_METER * DUSTCOLDENS
-                dTAUDUSTdq[:, j, i] = kext * SQ_CM_TO_SQ_METER  # dtau/dAMOUNT (m2)
-                dTAUCLSCATdq[:, j, i] = ksca * SQ_CM_TO_SQ_METER  # dtau/dAMOUNT (m2)
+                TAUDUST[:, j, i] = kext * cm2_to_m2 * DUSTCOLDENS
+                TAUCLSCAT[:, j, i] = ksca * cm2_to_m2 * DUSTCOLDENS
+                dTAUDUSTdq[:, j, i] = kext * cm2_to_m2  # dtau/dAMOUNT (m2)
+                dTAUCLSCATdq[:, j, i] = ksca * cm2_to_m2  # dtau/dAMOUNT (m2)
 
         return TAUDUST, TAUCLSCAT, dTAUDUSTdq, dTAUCLSCATdq
 
@@ -5117,14 +5110,14 @@ class ForwardModel_0:
             TAUGAS = np.zeros((self.SpectroscopyX.NWAVE,self.SpectroscopyX.NG,self.LayerX.NLAY,self.SpectroscopyX.NGAS))  #Vertical opacity of each gas in each layer
 
             #Calculating the cross sections for each gas in each layer
-            k = self.SpectroscopyX.calc_klbl(self.LayerX.NLAY,self.LayerX.PRESS/ATM_TO_PASCAL,self.LayerX.TEMP,WAVECALC=self.SpectroscopyX.WAVE)
+            k = self.SpectroscopyX.calc_klbl(self.LayerX.NLAY,self.LayerX.PRESS/atm_to_pascal,self.LayerX.TEMP,WAVECALC=self.SpectroscopyX.WAVE)
 
             for i in range(self.SpectroscopyX.NGAS):
                 IGAS = np.where( (self.AtmosphereX.ID==self.SpectroscopyX.ID[i]) & (self.AtmosphereX.ISO==self.SpectroscopyX.ISO[i]) )
                 IGAS = IGAS[0]
 
                 #Calculating vertical column density in each layer
-                VLOSDENS = self.LayerX.AMOUNT[:,IGAS].T * SQ_CM_TO_SQ_METER   #cm-2
+                VLOSDENS = self.LayerX.AMOUNT[:,IGAS].T * cm2_to_m2   #cm-2
 
                 #Calculating vertical opacity for each gas in each layer
                 TAUGAS[:,0,:,i] = k[:,:,i] * VLOSDENS
@@ -5138,7 +5131,7 @@ class ForwardModel_0:
         elif self.SpectroscopyX.ILBL == SpectralCalculationModeEnum.K_TABLES:    #K-table
 
             #Calculating the k-coefficients for each gas in each layer
-            k_gas,dkgasdT = self.SpectroscopyX.calc_kg(self.LayerX.NLAY,self.LayerX.PRESS/ATM_TO_PASCAL,self.LayerX.TEMP,WAVECALC=self.SpectroscopyX.WAVE) # (NWAVE,NG,NLAY,NGAS)
+            k_gas,dkgasdT = self.SpectroscopyX.calc_kg(self.LayerX.NLAY,self.LayerX.PRESS/atm_to_pascal,self.LayerX.TEMP,WAVECALC=self.SpectroscopyX.WAVE) # (NWAVE,NG,NLAY,NGAS)
 
             f_gas = np.zeros((self.SpectroscopyX.NGAS,self.LayerX.NLAY))
             #utotl = np.zeros(self.LayerX.NLAY)
@@ -5147,7 +5140,7 @@ class ForwardModel_0:
                 IGAS = IGAS[0]
 
                 #When using gradients
-                f_gas[i,:] = self.LayerX.AMOUNT[:,IGAS[0]] * SQ_CM_TO_SQ_METER  #Vertical column density of the radiatively active gases in cm-2
+                f_gas[i,:] = self.LayerX.AMOUNT[:,IGAS[0]] * cm2_to_m2  #Vertical column density of the radiatively active gases in cm-2
 
             #Combining the k-distributions of the different gases in each layer
             k_layer,dk_layer = k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas)
@@ -5170,34 +5163,42 @@ class ForwardModel_0:
     ###############################################################################################
     ###############################################################################################
     
-    def scloud11wave(self, WAVE, Scatter, Surface, Layer, Measurement, Path, SOLAR):
+    def scloud11wave(
+            self, 
+            WAVE        : np.ndarray, 
+            Scatter     : ans.Scatter_0, 
+            Surface     : ans.Surface_0, 
+            Layer       : ans.Layer_0, 
+            Measurement : ans.Measurement_0, 
+            Path        : Path_0, 
+            SOLAR       : np.ndarray
+    ) -> np.ndarray: # [NWAVE]
         """
+            Compute emergent intensity at top of multilayer cloud using the
+            matrix operator algorithm.  Diffuse incident radiation is allowed
+            at the bottom and single-beam incident radiation (sunlight) at
+            the top. 
 
-        Compute emergent intensity at top of multilayer cloud using the
-        matrix operator algorithm.  Diffuse incident radiation is allowed
-        at the bottom and single-beam incident radiation (sunlight) at
-        the top. 
+            If the emission angle is >90, then it is assumed that the observer is
+            at the surface or bottom atmospheric layer and looking up. If the emission
+            angle is <90, then it is assumed that the observer is at the top of the
+            atmosphere and looking down towards the surface.
+    
+            Inputs
+            ________
 
-        If the emission angle is >90, then it is assumed that the observer is
-        at the surface or bottom atmospheric layer and looking up. If the emission
-        angle is <90, then it is assumed that the observer is at the top of the
-        atmosphere and looking down towards the surface.
- 
-        Inputs
-        ________
+            WAVE :: Calculation wavelengths or wavenumbers
+            Scatter :: Python class defining the scattering setup
+            Surface :: Python class defining the surface setup
+            Layer :: Python class defining the properties of each layer including the optical depths
+            Measurement :: Python class defining the measurement
+            Path :: Python class defining the calculation paths (i.e. viewing angles)
+            SOLAR(NWAVE) :: Solar flux 
 
-        WAVE :: Calculation wavelengths or wavenumbers
-        Scatter :: Python class defining the scattering setup
-        Surface :: Python class defining the surface setup
-        Layer :: Python class defining the properties of each layer including the optical depths
-        Measurement :: Python class defining the measurement
-        Path :: Python class defining the calculation paths (i.e. viewing angles)
-        SOLAR(NWAVE) :: Solar flux 
+            Outputs
+            ________
 
-        Outputs
-        ________
-
-        SPECOUT(NWAVE) :: Modelled radiance 
+            SPECOUT(NWAVE) :: Modelled radiance 
 
         """
         
@@ -5713,7 +5714,7 @@ def calc_tau_rayleighj(ISPACE,WAVEC,TOTAM):
     NLAY = len(TOTAM)
 
     if ISPACE==WaveUnitEnum.Wavenumber_cm:
-        LAMBDA = 1./WAVEC * CM_TO_METER  #Wavelength in metres
+        LAMBDA = 1./WAVEC * cm_to_m  #Wavelength in metres
         x = 1.0/(LAMBDA * 1.0e6)
     elif ISPACE==WaveUnitEnum.Wavelength_um:
         LAMBDA = WAVEC * 1.0e-6 #Wavelength in metres
@@ -5777,7 +5778,7 @@ def calc_tau_rayleighv(ISPACE,WAVEC,TOTAM):
     NLAY = len(TOTAM)
 
     if ISPACE==WaveUnitEnum.Wavenumber_cm:
-        LAMBDA = 1./WAVEC * CM_TO_MICRON  #Wavelength in microns
+        LAMBDA = 1./WAVEC * cm_to_um  #Wavelength in microns
         #x = 1.0/(LAMBDA*1.0e6)
     elif ISPACE == WaveUnitEnum.Wavelength_um:
         LAMBDA = WAVEC #Wavelength in microns
@@ -5787,7 +5788,7 @@ def calc_tau_rayleighv(ISPACE,WAVEC,TOTAM):
     C = 8.8e-28   #provided by B. Bezard
 
     #Calculating the scattering cross sections in m2
-    k_rayleighv = C/LAMBDA**4. * SQ_CM_TO_SQ_METER #(NWAVE)
+    k_rayleighv = C/LAMBDA**4. * cm2_to_m2 #(NWAVE)
     
     #Calculating the Rayleigh opacities in each layer
     tau_ray = np.zeros((NWAVE,NLAY))
@@ -5827,7 +5828,7 @@ def calc_tau_rayleighv2(ISPACE,WAVEC,TOTAM):
     NLAY = len(TOTAM)
 
     if ISPACE==WaveUnitEnum.Wavenumber_cm:
-        LAMBDA = 1./WAVEC * CM_TO_MICRON  #Wavelength in microns
+        LAMBDA = 1./WAVEC * cm_to_um  #Wavelength in microns
         #x = 1.0/(LAMBDA*1.0e6)
     elif ISPACE == WaveUnitEnum.Wavelength_um:
         LAMBDA = WAVEC #Wavelength in microns
@@ -5838,7 +5839,7 @@ def calc_tau_rayleighv2(ISPACE,WAVEC,TOTAM):
     dens = 2.5475605e+19
 
     #wave in microns -> cm
-    lam = LAMBDA*MICRON_TO_CM
+    lam = LAMBDA*um_to_cm
 
     #King factor (taken from Ityaksov et al.)
     f_king = 1.14 + (25.3e-12)/(lam*lam)
@@ -5852,7 +5853,7 @@ def calc_tau_rayleighv2(ISPACE,WAVEC,TOTAM):
     factor1 = ( (n*n-1)/(n*n+2.0) )**2.
 
     k_rayleighv = (24.*np.pi**3./lam**4./dens**2.) * factor1 * f_king  #cm2
-    k_rayleighv = k_rayleighv * SQ_CM_TO_SQ_METER
+    k_rayleighv = k_rayleighv * cm2_to_m2
 
     #Calculating the Rayleigh opacities in each layer
     tau_ray = np.zeros((NWAVE,NLAY))
@@ -5940,11 +5941,9 @@ def calc_tau_rayleighls(ISPACE,WAVEC,ID,ISO,VMR,TOTAM):
     comp[:,2] = fch4h2 * comp[:,0]                #CH4
     comp[:,3] = fnh3[:]                           #NH3
     
-    #loschpm3 is molecules per cubic micron at STP
-    loschpm3 = 2.687e19 / CUBIC_CM_TO_CUBIC_MICRON   # constant = 1e12
     
     if ISPACE==WaveUnitEnum.Wavenumber_cm:
-        wl = 1./WAVEC * CM_TO_MICRON  #Wavelength in microns
+        wl = 1./WAVEC * cm_to_um  #Wavelength in microns
     elif ISPACE == WaveUnitEnum.Wavelength_um:
         wl = WAVEC #Wavelength in microns
     else:
@@ -5976,10 +5975,10 @@ def calc_tau_rayleighls(ISPACE,WAVEC,ID,ISO,VMR,TOTAM):
             xc1[ilay,:] = xc1[ilay,:] + (nr**2.0 - 1.0)**2.0*comp[ilay,j]*(6.0+3.0*D[j])/(6.0-7.0*D[j])
         sumwt[:] = sumwt[:] + comp[:,j]
 
-    fact=8.0*(np.pi**3.0)/(3.0*(wl**4.0)*(loschpm3**2.0))   #(NWAVE)
+    fact=8.0*(np.pi**3.0)/(3.0*(wl**4.0)*(igl_rho_n_STP_um**2.0))   #(NWAVE)
 
     #average cross section in m^2 per molecule 
-    k_rayleighls=np.transpose(fact*xc1*SQ_MICRON_TO_SQ_CM)/sumwt * SQ_CM_TO_SQ_METER #(NWAVE,NLAY)
+    k_rayleighls=np.transpose(fact*xc1*um2_to_cm2)/sumwt * cm2_to_m2 #(NWAVE,NLAY)
     
     #Calculating the Rayleigh opacities in each layer
     tau_ray = np.zeros((NWAVE,NLAY))

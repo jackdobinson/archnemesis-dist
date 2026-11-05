@@ -40,11 +40,14 @@ from archnemesis.helpers import h5py_helper, path_redirect
 from archnemesis.Data.path_data import (
     archnemesis_path,
     archnemesis_resolve_path,
+    archnemesis_indirect_path,
 )
 from archnemesis.spectral_data.filetypes.lbltable.file import LblTableFile
 
 
 import copy
+
+from ._DumpStrMixin import DumpStrMixin
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -86,7 +89,7 @@ class MolLineDataParams(NamedTuple):
     use_cache : bool = True
 
 
-class Spectroscopy_0:
+class Spectroscopy_0(DumpStrMixin):
 
     def __init__(
             self, 
@@ -743,7 +746,7 @@ class Spectroscopy_0:
 
                 if((self.ILBL==SpectralCalculationModeEnum.K_TABLES) or (self.ILBL==SpectralCalculationModeEnum.LINE_BY_LINE_TABLES)):
                     dt = h5py.special_dtype(vlen=str)
-                    dset = h5py_helper.store_data(grp, 'LOCATION', self._locations._raw_paths,dtype=dt) # do not save the redirected paths.
+                    dset = h5py_helper.store_data(grp, 'LOCATION', [archnemesis_indirect_path(x) for x in self._locations._raw_paths], dtype=dt) # do not save the redirected paths.
                     dset.attrs['title'] = "Location of the pre-tabulated tables"
 
                 if self.ILBL==SpectralCalculationModeEnum.LINE_BY_LINE_RUNTIME:
@@ -755,15 +758,15 @@ class Spectroscopy_0:
                     dset.attrs['title'] = "Isotope ID of the gaseous species"
 
                     dt = h5py.special_dtype(vlen=str)
-                    dset = h5py_helper.store_data(grp, 'LOCATION_LD', self._locations_ld._raw_paths,dtype=dt) # do not save the redirected paths.
+                    dset = h5py_helper.store_data(grp, 'LOCATION_LD', [archnemesis_indirect_path(x) for x in self._locations_ld._raw_paths], dtype=dt) # do not save the redirected paths.
                     dset.attrs['title'] = "Location of the line database files for each gas"
 
                     dt = h5py.special_dtype(vlen=str)
-                    dset = h5py_helper.store_data(grp, 'LOCATION_PF', self._locations_pf._raw_paths,dtype=dt) # do not save the redirected paths.
+                    dset = h5py_helper.store_data(grp, 'LOCATION_PF', [archnemesis_indirect_path(x) for x in self._locations_pf._raw_paths], dtype=dt) # do not save the redirected paths.
                     dset.attrs['title'] = "Location of the partition function database files for each gas"
 
                     dt = h5py.special_dtype(vlen=str)
-                    dset = h5py_helper.store_data(grp, 'LOCATION_CD', self._locations_cd._raw_paths,dtype=dt) # do not save the redirected paths.
+                    dset = h5py_helper.store_data(grp, 'LOCATION_CD', [archnemesis_indirect_path(x) for x in self._locations_cd._raw_paths], dtype=dt) # do not save the redirected paths.
                     dset.attrs['title'] = "Location of the pseudo-continuum database files for each gas"
 
 
@@ -873,7 +876,7 @@ class Spectroscopy_0:
                             assert LOCATION_LD1.shape == (self.NGAS), 'error :: LOCATION_LD must be (NGAS) for ILBL=1 (LINE_BY_LINE_RUNTIME)'
                         LOCATION_LD = []
                         for igas in range(self.NGAS):
-                            LOCATION_LD.append(LOCATION_LD1[igas].decode('ascii'))
+                            LOCATION_LD.append(archnemesis_resolve_path(LOCATION_LD1[igas].decode('ascii')))
                         self.LOCATION_LD = LOCATION_LD
 
                         LOCATION_PF1 = h5py_helper.retrieve_data(f, name+'/LOCATION_PF', default=None)
@@ -885,7 +888,7 @@ class Spectroscopy_0:
                             assert LOCATION_PF1.shape == (self.NGAS), 'error :: LOCATION_PF must be (NGAS) for ILBL=1 (LINE_BY_LINE_RUNTIME)'
                             LOCATION_PF = []
                             for igas in range(self.NGAS):
-                                LOCATION_PF.append(LOCATION_PF1[igas].decode('ascii'))
+                                LOCATION_PF.append(archnemesis_resolve_path(LOCATION_PF1[igas].decode('ascii')))
                         self.LOCATION_PF = LOCATION_PF
 
 
@@ -898,7 +901,7 @@ class Spectroscopy_0:
                             assert LOCATION_CD1.shape == (self.NGAS), 'error :: LOCATION_CD must be (NGAS) for ILBL=1 (LINE_BY_LINE_RUNTIME)'
                             LOCATION_CD = []
                             for igas in range(self.NGAS):
-                                LOCATION_CD.append(LOCATION_CD1[igas].decode('ascii'))
+                                LOCATION_CD.append(archnemesis_resolve_path(LOCATION_CD1[igas].decode('ascii')))
                         self.LOCATION_CD = LOCATION_CD
 
 
@@ -960,7 +963,7 @@ class Spectroscopy_0:
                             LOCATION1 = []
                         LOCATION = ['']*self.NGAS
                         for igas in range(self.NGAS):
-                            LOCATION[igas] = LOCATION1[igas].decode('ascii')
+                            LOCATION[igas] = archnemesis_resolve_path(LOCATION1[igas].decode('ascii'))
                         self.LOCATION = LOCATION
                         
                         # Reading the header information
@@ -1498,20 +1501,20 @@ class Spectroscopy_0:
             Maximum wavenumber (cm-1) or wavelength (um)
         """
         
-        _lgr.info('Reading tables')
+        _lgr.detail('Reading tables')
         
         if self.ILBL==SpectralCalculationModeEnum.LINE_BY_LINE_RUNTIME:
 
             if not hasattr(self, 'LINE_DATA'):
                 raise AttributeError('Line-by-line RUNTIME calculation requires `LINE_DATA` attribute to already be created when reading tables.')
             
-            _lgr.info('RUNTIME calculation is loading desired wavenumber range from databases')
+            _lgr.detail('RUNTIME calculation is loading desired wavenumber range from databases')
             self.NG = 1
             self.G_ORD = np.array([0.])
             self.DELG = np.array([1.0])
             
             for igas in range(len(self.ID)):
-                _lgr.info(f'Reading table {self.LOCATION_LD[igas]=} {wavemin=} {wavemax=}')
+                _lgr.detail(f'Reading table {self.LOCATION_LD[igas]=} {wavemin=} {wavemax=}')
                 self.LINE_DATA[igas].set_params(
                     vmin = wavemin, 
                     vmax = wavemax,
@@ -1546,7 +1549,7 @@ class Spectroscopy_0:
 
                 kstore = np.zeros([self.NWAVE,self.NG,self.NP,self.NT,self.NGAS])
                 for igas in range(self.NGAS):
-                    _lgr.info(f'Reading table {self.LOCATION[igas]=} {wavemin=} {wavemax=}')
+                    _lgr.detail(f'Reading table {self.LOCATION[igas]=} {wavemin=} {wavemax=}')
                     gasID,isoID,nwave,wave,fwhm,ng,g_ord,del_g,npress,presslevels,ntemp,templevels,k_g = read_ktable(self.LOCATION[igas],self.WAVE.min(),self.WAVE.max())
                     kstore[:,:,:,:,igas] = k_g[:,:,:,:]
                 self.edit_K(kstore)
@@ -1555,7 +1558,7 @@ class Spectroscopy_0:
             elif self.ILBL==SpectralCalculationModeEnum.LINE_BY_LINE_TABLES: #LBL-tables
                 kstore = np.zeros([self.NWAVE,self.NP,abs(self.NT),self.NGAS])
                 for igas in range(self.NGAS):
-                    _lgr.info(f'Reading table {self.LOCATION[igas]=} {wavemin=} {wavemax=}')
+                    _lgr.detail(f'Reading table {self.LOCATION[igas]=} {wavemin=} {wavemax=}')
                     with LblTableFile(Path(self.LOCATION[igas]).with_suffix('.lta'), 'r') as f:
                         gasID, isoID, wavenumbers, pressures, temperatures, k = f.read(wave_min=self.WAVE.min(), wave_max=self.WAVE.max())
                         
@@ -2049,7 +2052,7 @@ class Spectroscopy_0:
             temp : np.ndarray,
             amb_frac : float | np.ndarray = 0.0, # [N_ambient_gasses] or [NGAS,N_ambient_gasses]
             wave : None | np.ndarray = None,
-    ) -> np.ndarray:
+    ) -> np.ndarray: # [NWAVE, NPOINTS, NGAS]
         """
         Calculate the absorption coefficient at a given pressure and temperature
         from the LineData class
@@ -2119,7 +2122,7 @@ class Spectroscopy_0:
                 p_l = press[ipoint]
                 t_l = temp[ipoint]
 
-                k[:,ipoint,igas]= self.LINE_DATA[igas].calculate_monochromatic_absorption(
+                k[:,ipoint,igas] = self.LINE_DATA[igas].calculate_monochromatic_absorption(
                     wave_grid=wave,            # wavenumbers or wavelengths
                     t_calc=t_l,                # kelvin
                     p_calc=p_l,                # Atmospheres
@@ -2135,19 +2138,9 @@ class Spectroscopy_0:
                     include_lines = line_data_params.include_lines,
                     include_continuum = line_data_params.include_continuum,
                     include_pressure_shift=line_data_params.include_pressure_shift, # whether to include pressure shift in the line positions
-                    #use_cache = line_data_params.use_cache,
-                    use_cache = False,
+                    use_cache = line_data_params.use_cache,
                 )
-                """
-                import matplotlib.pyplot as plt
-                
-                plt.figure()
-                plt.title(f'Spectroscopy_0::calc_klbl_online\n{t_l=} {p_l=}')
-                plt.plot(wave, k[:,ipoint,igas])
-                plt.yscale('log')
-                plt.show()
-                """
-
+        
         return k
 
 
@@ -3125,7 +3118,6 @@ def calc_lbltable(outname,                       #Name of the output .lta file
 
 def calc_lbltable_chunk(iwaves,Spectroscopy,self_frac): 
 
-    _lgr.dev(f'{id(Spectroscopy._frozen_attrs)=}')
     Spectroscopy.NWAVE = len(iwaves)
     Spectroscopy.WAVE = Spectroscopy.WAVE[iwaves]
     

@@ -40,6 +40,8 @@ from archnemesis.Data.planet_data import planet_info
 from archnemesis.enum import PlanetEnum, AtmosphericProfileFormatEnum, AtmosphericProfileTypeEnum
 from archnemesis.helpers import h5py_helper
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 #_lgr.setLevel(logging.DEBUG)
@@ -47,7 +49,7 @@ _lgr.setLevel(logging.INFO)
 
 
 
-class Atmosphere_0:
+class Atmosphere_0(DumpStrMixin):
     """
     Clear atmosphere. Simplest possible profile.
     """
@@ -61,104 +63,104 @@ class Atmosphere_0:
             NLOCATIONS=1, 
             IPLANET=PlanetEnum.CUSTOM, 
             AMFORM=AtmosphericProfileFormatEnum.CALC_MOLECULAR_WEIGHT_SCALE_VMR_TO_ONE
-        ):
+    ):
         """
-        Set up an atmosphere profile with NP points and NVMR gases.
-        Use the class methods to edit Height, Pressure, Temperature and
-        gas Volume Mixing Ratios after creating an Atmosphere_0 object, e.g.
-            atm = Atmosphere_0('Jupiter',100,6,[1,2,4,5,39,40],
-                      [0,0,0,0,0,0],0,1,1)
-            atm.edit_H(your_height_profile)
-            atm.edit_P(your_pressure_profile)
-            atm.edit_T(your_temperature_profile)
-            atm.edit_VMR(your_VMR_profile)
-        Can write to a *.prf file in Nemesis format.
+            Set up an atmosphere profile with NP points and NVMR gases.
+            Use the class methods to edit Height, Pressure, Temperature and
+            gas Volume Mixing Ratios after creating an Atmosphere_0 object, e.g.
+                atm = Atmosphere_0('Jupiter',100,6,[1,2,4,5,39,40],
+                        [0,0,0,0,0,0],0,1,1)
+                atm.edit_H(your_height_profile)
+                atm.edit_P(your_pressure_profile)
+                atm.edit_T(your_temperature_profile)
+                atm.edit_VMR(your_VMR_profile)
+            Can write to a *.prf file in Nemesis format.
 
-        Inputs
-        ------
-        @param runname: str
-            Name of this particular profile (no space)
-        @param NP: int,
-            Number of points defined in the profile
-        @param NVMR: int
-            Number of gases in the profile (expressed as volume mixing ratios)
-        @param NDUST: int
-            Number of aerosol species in the profile (expressed as particles per cubic meter)
-        @param IPLANET: int
-            Planet ID
-        @param LATITUDE: real
-            Planetocentric latitude
-        @param AMFORM: int,
-            Format of the atmospheric profile, default AMFORM=1:
-            assume that at each level the VMRs add up to 1.0.
+            Inputs
+            ------
+            @param runname: str
+                Name of this particular profile (no space)
+            @param NP: int,
+                Number of points defined in the profile
+            @param NVMR: int
+                Number of gases in the profile (expressed as volume mixing ratios)
+            @param NDUST: int
+                Number of aerosol species in the profile (expressed as particles per cubic meter)
+            @param IPLANET: int
+                Planet ID
+            @param LATITUDE: real
+                Planetocentric latitude
+            @param AMFORM: int,
+                Format of the atmospheric profile, default AMFORM=1:
+                assume that at each level the VMRs add up to 1.0.
 
-        Attributes
-        ----------
-        @attribute ID: 1D array
-            Gas ID for each gas to be defined in the profile
-        @attribute ISO: 1D array
-            Isotope ID for each gas, default 0 for all
-            isotopes in terrestrial relative abundance
-        @attribute H: 1D array
-            Height in m of each points above reference level:
-            ground for terrestrial planets,
-            usually 1-bar level for gas giants
-        @attribute P: 1D array
-            Pressure in Pa of each point defined in the profile
-        @attribute T: 1D array
-            Temperature in K at each point defined in the profile
-        @attribute VMR: 2D array
-            VMR[i,j] is Volume Mixing Ratio of gas j at vertical point i
-            the column j corresponds to the gas with RADTRANS ID ID[j]
-            and RADTRANS isotope ID ISO[j]
-        @attribute MOLWT: float
-            Molecular weight of the atmosphere in kg mol-1
-        @attribute PARAH2: 1D array
-            Verical profile of para-H2 fraction (para-H2/total amount of H2). 
-            The value 1-PARAH2 would be the ortho-H2 fraction.
+            Attributes
+            ----------
+            @attribute ID: 1D array
+                Gas ID for each gas to be defined in the profile
+            @attribute ISO: 1D array
+                Isotope ID for each gas, default 0 for all
+                isotopes in terrestrial relative abundance
+            @attribute H: 1D array
+                Height in m of each points above reference level:
+                ground for terrestrial planets,
+                usually 1-bar level for gas giants
+            @attribute P: 1D array
+                Pressure in Pa of each point defined in the profile
+            @attribute T: 1D array
+                Temperature in K at each point defined in the profile
+            @attribute VMR: 2D array
+                VMR[i,j] is Volume Mixing Ratio of gas j at vertical point i
+                the column j corresponds to the gas with RADTRANS ID ID[j]
+                and RADTRANS isotope ID ISO[j]
+            @attribute MOLWT: float
+                Molecular weight of the atmosphere in kg mol-1
+            @attribute PARAH2: 1D array
+                Verical profile of para-H2 fraction (para-H2/total amount of H2). 
+                The value 1-PARAH2 would be the ortho-H2 fraction.
 
-        
-        Methods
-        -------
-        Atmosphere_0.assess()
-        Atmosphere_0.summary_info()
-        Atmosphere_0.write_hdf5()
-        Atmosphere_0.read_hdf5()
+            
+            Methods
+            -------
+            Atmosphere_0.assess()
+            Atmosphere_0.summary_info()
+            Atmosphere_0.write_hdf5()
+            Atmosphere_0.read_hdf5()
 
-        Atmosphere_0.edit_H()
-        Atmosphere_0.edit_P()
-        Atmosphere_0.edit_T()
-        Atmosphere_0.edit_VMR()
-        Atmosphere_0.edit_DUST()
+            Atmosphere_0.edit_H()
+            Atmosphere_0.edit_P()
+            Atmosphere_0.edit_T()
+            Atmosphere_0.edit_VMR()
+            Atmosphere_0.edit_DUST()
 
-        Atmosphere_0.adjust_VMR()
-        Atmosphere_0.adjust_hydrostatP()
-        Atmosphere_0.adjust_hydrostatH()
-        Atmosphere_0.calc_molwt()
-        Atmosphere_0.calc_rho()
-        Atmosphere_0.calc_numdens()
-        Atmosphere_0.calc_radius()
-        Atmosphere_0.calc_grav()
+            Atmosphere_0.adjust_VMR()
+            Atmosphere_0.adjust_hydrostatP()
+            Atmosphere_0.adjust_hydrostatH()
+            Atmosphere_0.calc_molwt()
+            Atmosphere_0.calc_rho()
+            Atmosphere_0.calc_numdens()
+            Atmosphere_0.calc_radius()
+            Atmosphere_0.calc_grav()
 
-        Atmosphere_0.locate_gas()
-        Atmosphere_0.add_gas()
-        Atmosphere_0.remove_gas()
-        Atmosphere_0.update_gas()
-        
-        Atmosphere_0.select_location()
-        Atmosphere_0.calc_coldens()
-        
-        Atmosphere_0.read_ref()
-        Atmosphere_0.write_ref()
-        Atmosphere_0.read_aerosol()
-        Atmosphere_0.write_aerosol()
-        Atmosphere_0.read_parah2()
-        Atmosphere_0.write_parah2()
-        Atmosphere_0.read_vpf()
+            Atmosphere_0.locate_gas()
+            Atmosphere_0.add_gas()
+            Atmosphere_0.remove_gas()
+            Atmosphere_0.update_gas()
+            
+            Atmosphere_0.select_location()
+            Atmosphere_0.calc_coldens()
+            
+            Atmosphere_0.read_ref()
+            Atmosphere_0.write_ref()
+            Atmosphere_0.read_aerosol()
+            Atmosphere_0.write_aerosol()
+            Atmosphere_0.read_parah2()
+            Atmosphere_0.write_parah2()
+            Atmosphere_0.read_vpf()
 
-        Atmosphere_0.plot_Atm()
-        Atmosphere_0.plot_Dust()
-        Atmosphere_0.plot_map()
+            Atmosphere_0.plot_Atm()
+            Atmosphere_0.plot_Dust()
+            Atmosphere_0.plot_map()
         """
         self.runname = runname
         self.NP = NP

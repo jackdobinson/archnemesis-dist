@@ -36,6 +36,7 @@ from archnemesis.helpers import h5py_helper, path_redirect
 #import matplotlib.pyplot as plt
 #from typing import Optional
 
+from ._DumpStrMixin import DumpStrMixin
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ Created on Feb 16 10:00:00 2026
 Emissions Class.
 """
 
-class Emissions_0:
+class Emissions_0(DumpStrMixin):
 
     def __init__(
             self,

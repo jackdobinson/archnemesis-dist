@@ -29,11 +29,13 @@ import archnemesis.Data.constants as const
 from archnemesis.enum import PlanetEnum, AtmosphericProfileFormatEnum, SpectraUnitEnum, SpectralCalculationModeEnum
 import archnemesis.helpers.h5py_helper as h5py_helper
 
+from ._DumpStrMixin import DumpStrMixin
+
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
 
 
-class Telluric_0:
+class Telluric_0(DumpStrMixin):
     """
     Class to define the telluric atmosphere and observing geometry from the Earth. 
     Relevant for the anaylsis and simulation of ground-based observations.

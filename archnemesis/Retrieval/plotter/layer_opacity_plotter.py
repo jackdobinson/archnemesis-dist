@@ -2,7 +2,7 @@
 
 
 import dataclasses as dc
-from typing import TYPE_CHECKING
+from typing import ClassVar#, TYPE_CHECKING
 
 import numpy as np
 import matplotlib as mpl
@@ -12,8 +12,10 @@ from .value import Value
 
 from archnemesis.helpers.array_helper import get_edges_from_mids
 
-if TYPE_CHECKING:
-	from ..Retrieval import Retrieval
+from .base_plotter import BasePlotter
+
+#if TYPE_CHECKING:
+#	from ..Retrieval import Retrieval
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -22,19 +24,22 @@ _lgr.setLevel(logging.DEBUG)
 
 
 @dc.dataclass(slots=True)
-class LayerOpacityPlotter:
-	retrieval : "Retrieval"
+class LayerOpacityPlotter(BasePlotter):
+	plot_name : ClassVar[str] = 'layer_opacity'
 	
 	def can_plot(self):
 		return self.retrieval.Layer is not None
 	
-	def plot(self) -> tuple[str, mpl.figure.Figure, tuple[np.ndarray[mpl.axes.Axes]]]:
-		if self.retrieval.Layer.TAUTOT is None:
+	def _before_plot(self):
+		if self.retrieval.Layer.TAUTOT is None or self.retrieval.Layer.TAUTOT.shape[0] != self.retrieval.Spectroscopy.NWAVE:
 			_lgr.debug('Calculating layer opacity...')
 			self.retrieval.calculate_layer_opacity()
-		return 'layer_opacity', *self.do_plot(self.retrieval.Layer, self.retrieval.Spectroscopy, self.retrieval.Measurement)
+	
+	def _plot_impl(self):
+		return self.__class__.plot_fn(self.retrieval.Layer, self.retrieval.Spectroscopy, self.retrieval.Measurement)
 
-	def do_plot(self, Layer, Spectroscopy, Measurement, f=None) -> tuple[mpl.figure.Figure, tuple[np.ndarray[mpl.axes.Axes]]]:
+	@classmethod
+	def plot_fn(cls, Layer, Spectroscopy, Measurement, f=None) -> tuple[mpl.figure.Figure, tuple[np.ndarray[mpl.axes.Axes]]]:
 		
 		
 		wavecalc_min,wavecalc_max = Measurement.calc_wave_range(apply_doppler=True,IGEOM=0)

@@ -28,6 +28,9 @@ from archnemesis.enum import WaveUnitEnum
 
 from archnemesis.helpers import h5py_helper
 from archnemesis import planck
+from archnemesis.Data.path_data import archnemesis_path
+
+from ._DumpStrMixin import DumpStrMixin
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -45,7 +48,7 @@ Created on Tue Jul 22 17:27:12 2021
 Stellar Class.
 """
 
-class Stellar_0:
+class Stellar_0(DumpStrMixin):
 
     def __init__(self, SOLEXIST=True, DIST=None, RADIUS=None, ISPACE=None, NWAVE=None):
 
@@ -86,7 +89,7 @@ class Stellar_0:
         Stellar_0.write_solar_file
         """
 
-        from archnemesis.Data.path_data import archnemesis_path
+        
 
         #Input parameters
         self.SOLEXIST = SOLEXIST
@@ -116,7 +119,7 @@ class Stellar_0:
     @ISPACE.setter
     def ISPACE(self, value):
         self._ispace = WaveUnitEnum(value)
-
+    
 
     def assess(self):
         """
@@ -293,13 +296,18 @@ class Stellar_0:
         """
 
         with h5py.File(runname+'.h5','r') as f:
-            self.SOLEXIST = h5py_helper.retrieve_data(f, 'Stellar/SOLEXIST', bool, default=False)
-            self.ISPACE = h5py_helper.retrieve_data(f, 'Stellar/ISPACE', lambda x:WaveUnitEnum(np.int32(x)), default= WaveUnitEnum.Wavenumber_cm)
-            self.DIST = h5py_helper.retrieve_data(f, 'Stellar/DIST', np.float64)
-            self.RADIUS = h5py_helper.retrieve_data(f, 'Stellar/RADIUS', np.float64)
-            self.NWAVE = h5py_helper.retrieve_data(f, 'Stellar/NWAVE', np.int32)
-            self.WAVE = h5py_helper.retrieve_data(f, 'Stellar/WAVE', np.array)
-            self.SOLSPEC = h5py_helper.retrieve_data(f, 'Stellar/SOLSPEC', np.array)
+            if '/Stellar' not in f:
+                self.SOLEXIST = False
+                self.DIST     = None
+            
+            else:
+                self.SOLEXIST = h5py_helper.retrieve_data(f, 'Stellar/SOLEXIST', bool,                               default = True                      )
+                self.ISPACE   = h5py_helper.retrieve_data(f, 'Stellar/ISPACE',   lambda x:WaveUnitEnum(np.int32(x)), default = WaveUnitEnum.Wavenumber_cm)
+                self.DIST     = h5py_helper.retrieve_data(f, 'Stellar/DIST',     np.float64                                                              )
+                self.RADIUS   = h5py_helper.retrieve_data(f, 'Stellar/RADIUS',   np.float64                                                              )
+                self.NWAVE    = h5py_helper.retrieve_data(f, 'Stellar/NWAVE',    np.int32                                                                )
+                self.WAVE     = h5py_helper.retrieve_data(f, 'Stellar/WAVE',     np.array                                                                )
+                self.SOLSPEC  = h5py_helper.retrieve_data(f, 'Stellar/SOLSPEC',  np.array                                                                )
 
 
     def read_sol(self, runname, MakePlot=False):
