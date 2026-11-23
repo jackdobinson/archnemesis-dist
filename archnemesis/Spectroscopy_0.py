@@ -51,7 +51,7 @@ from ._DumpStrMixin import DumpStrMixin
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.INFO)
+_lgr.setLevel(logging.DETAIL)
 
 ###############################################################################################
 
@@ -1540,10 +1540,15 @@ class Spectroscopy_0(DumpStrMixin):
             iwh = self.NWAVE - 1
 
         wave1 = self.WAVE[iwl:iwh + 1]
-        self.NWAVE = len(wave1)
-        self.WAVE = wave1
+        try:
+            self.thaw_attrs('NWAVE', 'WAVE')
+            self.NWAVE = len(wave1)
+            self.WAVE = wave1
+        finally:
+            self.freeze_attrs('NWAVE', 'WAVE')
 
         if self.ONLINE==False:
+            
             #Tables must be read and stored on memory
             if self.ILBL==SpectralCalculationModeEnum.K_TABLES: #K-tables
 

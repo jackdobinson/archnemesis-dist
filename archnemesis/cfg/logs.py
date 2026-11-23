@@ -28,7 +28,7 @@ if BUILD_NAME == 'DEVELOPMENT':
     logging.addLevelName(DEV, 'DEV')
 
 
-NEW_LOGGER_ADAPTOR_LEVEL = logging.INFO
+NEW_LOGGER_ADAPTOR_LEVEL = logging.NOTSET
 
 pkg_lgr = logging.getLogger("archnemesis")
 pkg_lgr.setLevel(logging.DEBUG)
@@ -125,7 +125,7 @@ class ArchnemesisLoggerAdaptor(logging.LoggerAdapter):
     def setLevel(self, level):
         #print(f'ArchnemesisLoggerAdaptor::setLevel() {level=}')
         self.level = level
-        log_adaptor_filter.setLevel(self.adaptor_name, level)
+        log_adaptor_filter.setLevel(self.adaptor_name, self.level)
     
     def isEnabledFor(self, level):
         #print(f'ArchnemesisLoggerAdaptor::isEnabledFor() {level=}')

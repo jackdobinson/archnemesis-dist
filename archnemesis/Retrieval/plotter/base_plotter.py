@@ -5,6 +5,10 @@ from typing import TYPE_CHECKING, ClassVar
 import numpy as np
 import matplotlib as mpl
 
+import archnemesis.cfg.logs as logging
+_lgr = logging.getLogger(__name__)
+_lgr.setLevel(logging.INFO)
+
 if TYPE_CHECKING:
 	from ..Retrieval import Retrieval
 
@@ -28,7 +32,8 @@ class BasePlotter:
 		
 		try:
 			result = (self.plot_name, *self._plot_impl(*args, **kwargs))
-		except:
+		except Exception as e:
+			_lgr.error(f'Something went wrong when plotting "{self.plot_name}". Error: {e}')
 			result = (self.plot_name, None, tuple())
 		
 		self._after_plot()

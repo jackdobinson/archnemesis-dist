@@ -11,7 +11,7 @@ import argparse as ap
 
 from archnemesis.Retrieval import Retrieval, redirect_file_access
 from archnemesis.enum import ArchNemesisFileTypeEnum
-from archnemesis.helpers.argparse_helper import get_arg_usage_str
+from archnemesis.helpers.argparse_helper import get_arg_usage_str, action_enum_choice
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def create_parser():
 	parser.add_argument('--log_stream', action='append', choices=('package', 'progress'), help='Logging stream to set level of. Can be specified multiple times, must be paired with a `--log_stream_level` argument.', default=[])
 	parser.add_argument('--log_stream_level', action='append', choices=('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRIT'), help='Level to set logging stream to. Can be specified multiple times, must be paired with a `--log_stream` argument.', default=[])
 
-	parser.add_argument('--convert', type=lambda x: ArchNemesisFileTypeEnum[x.upper()], choices=tuple(x.name for x in ArchNemesisFileTypeEnum if x.name != 'UNDEFINED'), help='Will convert inputs to specified format', default=ArchNemesisFileTypeEnum.UNDEFINED)
+	parser.add_argument('--convert', action=action_enum_choice(ArchNemesisFileTypeEnum, reject_enum_values=(ArchNemesisFileTypeEnum.UNDEFINED,), default=ArchNemesisFileTypeEnum.UNDEFINED), help='Will convert inputs to specified format')
 	parser.add_argument('--no_plot', dest='do_plot', action='store_false', help='if present, will not create any plots', default=True)
 	parser.add_argument('--no_write', dest='do_write', action='store_false', help='if present, will not write the results to disk', default=True)
 	parser.add_argument('--redirect_path', type=redirect_file_access.Redirector.from_string, action='append', help='Creates a redirect from as string formatted as "{old_path}->{new_path}" any paths relative to {old_path} are redirected to be relative to {new_path}', default=[])

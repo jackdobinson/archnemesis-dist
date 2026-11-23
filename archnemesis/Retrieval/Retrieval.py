@@ -987,7 +987,9 @@ class Retrieval(DumpStrMixin):
 				components.append(field.name)
 		
 		
-		component_writers = dict()
+		component_writers = {
+			'Files' : [ans.Files.write_inp],
+		}
 		for component in components:
 			component_obj = getattr(self, component)
 			component_writers[component] = []
@@ -997,6 +999,7 @@ class Retrieval(DumpStrMixin):
 			for method_name, method in all_methods_of_component:
 				if method_name.startswith('write_'):
 					component_writers[component].append(method)
+					_lgr.debug(f'Found writer method "{component_obj.__class__.__name__}.{method_name}"')
 		
 		# Make sure we are in the correct directory to write the files
 		with self.working_directory_context():
@@ -1018,25 +1021,45 @@ class Retrieval(DumpStrMixin):
 				return
 			
 			if filetype is ArchNemesisFileTypeEnum.LEGACY:
-				# only want write_hdf5 methods
+				# do not want write_hdf5 methods
 				for component, component_writers in component_writers.items():
 					for component_writer in component_writers:
 						match (component_writer.__name__):
 							case "write_hdf5" |"write_input_hdf5" | "write_output_hdf5" | "write_table_hdf5" | "write_ciatable_hdf5": # don't use HDF5 writers
+								_lgr.debug(f'Not calling HDF5 writer "{component_writer.__name__}"')
 								continue
 							case "write_phase" | "write_solar_file": # skip these for now
+								_lgr.debug(f'Skipping "{component_writer.__name__}"')
 								continue
+							case "write_inp":
+								_lgr.debug(f'Calling "{component_writer.__name__}"')
+								component_writer(
+									self.runname,
+									self.Measurement.ISPACE,
+									self.Scatter.ISCAT,
+									self.Spectroscopy.ILBL,
+									self.Measurement.WOFF,
+									self.RetrievalEngine.NITER,
+									self.RetrievalEngine.PHILIMIT,
+									1, # NSPEC, this seems to be unused
+									1, # IOFF, this seems to be unused
+									self.RetrievalEngine.LIN,
+									-1, # IFORM, some sort of formatting number, -1 is default
+								)
 							case "write_xsc" | "write_sol" | "write_hap" | "write_sur": # these need the run name
-								_lgr.debug(f'Calling "{component_writer}"')
+								_lgr.debug(f'Calling "{component_writer.__name__}"')
 								component_writer(self.runname)
 							case "write_cov" :
+								_lgr.debug(f'Calling "{component_writer.__name__}"')
 								component_writer(self.runname, self.Variables)
 							case "write_mre" :
+								_lgr.debug(f'Calling "{component_writer.__name__}"')
 								component_writer(self.runname, self.Variables, self.Measurement)
 							case "write_raw" :
+								_lgr.debug(f'Calling "{component_writer.__name__}"')
 								component_writer(self.runname, self.Variables, self.Atmosphere)
 							case _:
-								_lgr.debug(f'Calling "{component_writer}"')
+								_lgr.debug(f'Calling "{component_writer.__name__}"')
 								component_writer()
 				return
 			else:
@@ -1523,6 +1546,10 @@ class Retrieval(DumpStrMixin):
 				Number of parallel forward models for numerical calculation of Jacobian matrix
 			write_itr : bool (default = False)
 				If True, it will write a .itr file with the retrieval metrics in every iteration
+			restart : bool (default = True)
+				If True, will reset the current state vector to the apriori state vector and perform
+				 the whole retrieval again, otherwise will start from the current value of the state
+				 vector.
 			do_plot : bool (default = False)
 				If True, makes some diagnostic plots at the end of the retrieval
 			do_write : bool (default = True)
@@ -1561,7 +1588,7 @@ class Retrieval(DumpStrMixin):
 			phi_history = None
 			chisq_history = None
 			
-			forward_model_instance = self._get_forward_model_instance(n_cores = n_cores)
+			forward_model_instance = self._get_forward_model_instance(n_cores = n_cores, new=restart)
 			
 			_lgr.info(f'Running optimal estimation in {self._working_directory}')
 			OptimalEstimationResult, _, phi_history, chisq_history = ans.coreretOE_impl(
@@ -1701,7 +1728,10 @@ class Retrieval(DumpStrMixin):
 				fpath = plot_path_fmt.format(self.file, retrieval_dir = self.working_directory, plot_name=plot_name)
 				_lgr.info(f'Saving figure "{plot_name}" to "{fpath}"')
 				fpath.parent.mkdir(parents=True, exist_ok=True)
-				fig.savefig(fpath, bbox_inches='tight')
+				try:
+					fig.savefig(fpath, bbox_inches='tight')
+				except Exception as e:
+					_lgr.error(f'Something went wrong when trying to save plot "{plot_name}" to "{fpath}": {e}')
 			
 		
 		return names, figs, axes
@@ -1759,69 +1789,67 @@ if __name__=='__main__':
 		_lgr.info('Not even loading retrievals, just exiting...')
 		sys.exit()
 	
-	with redirect_file_access.using(*args.redirect_path):
-		
-		for path in args.paths:
-		
-			if args.dir is None:
-				if os.path.isdir(path):
-					_lgr.info(f'Loading retrieval from directory "{path}"')
-					retrieval = Retrieval.from_dir(path)
-				else:
-					_lgr.info(f'Loading retrieval from file "{path}"')
-					retrieval = Retrieval.from_file(path)
+	for path in args.paths:
+	
+		if args.dir is None:
+			if os.path.isdir(path):
+				_lgr.info(f'Loading retrieval from directory "{path}"')
+				retrieval = Retrieval.from_dir(path, path_redirects=args.redirect_path)
 			else:
-				_lgr.info(f'Loading retrieval from file "{os.path.join(args.dir, path)}"')
-				retrieval = Retrieval.from_file(os.path.join(args.dir, path))
+				_lgr.info(f'Loading retrieval from file "{path}"')
+				retrieval = Retrieval.from_file(path, path_redirects=args.redirect_path)
+		else:
+			_lgr.info(f'Loading retrieval from file "{os.path.join(args.dir, path)}"')
+			retrieval = Retrieval.from_file(os.path.join(args.dir, path), path_redirects=args.redirect_path)
+		
+		
+		
+		_lgr.info('Performing operations on retrieval...')
+		for op in args.operation:
 			
+			_lgr.info(f'OPERATION: {op}')
+			print(retrieval.dump_str())
 			
+			if op == 'load_only':
+				pass
+			elif op == "plot":
+				retrieval.calculate_profiles() # must do this so we are plotting the "real" state of the retrieval
+				retrieval.calculate_layering()
+				retrieval.calculate_layer_opacity()
+				#retrieval.plot('WORKING_DIRECTORY')
+				retrieval.plot(args.plot_path_fmt)
+				if not args.no_show_plots:
+					plt.show()
+				plt.close('all')
 			
-			_lgr.info('Performing operations on retrieval...')
-			for op in args.operation:
+			elif op == "plot_apriori":
+				retrieval.calculate_apriori_profiles() # must do this so we are plotting the "real" state of the retrieval
+				retrieval.calculate_layering()
+				retrieval.calculate_layer_opacity()
+				retrieval.plot(args.plot_path_fmt, '_apriori')
+				if not args.no_show_plots:
+					plt.show()
+				plt.close('all')
+			
+			elif op == 'run_forward_model':
+				print(f'{retrieval.Stellar=}')
+				retrieval.run_forward_model()
+				print('#'*80)
+				print('#'*80)
+				print('#'*80)
+				retrieval.plot(args.plot_path_fmt, '_after_forward_model')
+				if not args.no_show_plots:
+					plt.show()
+				plt.close('all')
 				
-				_lgr.info(f'OPERATION: {op}')
-				print(retrieval.dump_str())
-				
-				if op == 'load_only':
-					pass
-				elif op == "plot":
-					retrieval.calculate_profiles() # must do this so we are plotting the "real" state of the retrieval
-					retrieval.calculate_layering()
-					retrieval.calculate_layer_opacity()
-					#retrieval.plot('WORKING_DIRECTORY')
-					retrieval.plot(args.plot_path_fmt)
-					if not args.no_show_plots:
-						plt.show()
-					plt.close('all')
-				
-				elif op == "plot_apriori":
-					retrieval.calculate_apriori_profiles() # must do this so we are plotting the "real" state of the retrieval
-					retrieval.calculate_layering()
-					retrieval.calculate_layer_opacity()
-					retrieval.plot(args.plot_path_fmt, '_apriori')
-					if not args.no_show_plots:
-						plt.show()
-					plt.close('all')
-				
-				elif op == 'run_forward_model':
-					print(f'{retrieval.Stellar=}')
-					retrieval.run_forward_model()
-					print('#'*80)
-					print('#'*80)
-					print('#'*80)
-					retrieval.plot(args.plot_path_fmt, '_after_forward_model')
-					if not args.no_show_plots:
-						plt.show()
-					plt.close('all')
-					
-				elif op == "run_optimal_estimation":
-					retrieval.run_optimal_estimation(args.iter, args.n_cores, args.write_itr, do_write=True)
-				
-				elif op == "continue_optimal_estimation":
-					retrieval.run_optimal_estimation(args.iter, args.n_cores, args.write_itr, restart=False, do_write=True)
-				
-				else:
-					raise RuntimeError(f'Unknown operation "{op}" for Retrieval.')
+			elif op == "run_optimal_estimation":
+				retrieval.run_optimal_estimation(args.iter, args.n_cores, args.write_itr, do_write=True)
+			
+			elif op == "continue_optimal_estimation":
+				retrieval.run_optimal_estimation(args.iter, args.n_cores, args.write_itr, restart=False, do_write=True)
+			
+			else:
+				raise RuntimeError(f'Unknown operation "{op}" for Retrieval.')
 
 
 

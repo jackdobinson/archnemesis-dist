@@ -19,7 +19,7 @@ from .base_plotter import BasePlotter
 
 import archnemesis.cfg.logs as logging
 _lgr = logging.getLogger(__name__)
-_lgr.setLevel(logging.DEBUG)
+_lgr.setLevel(logging.INFO)
 
 
 
@@ -40,7 +40,12 @@ class LayerOpacityPlotter(BasePlotter):
 
 	@classmethod
 	def plot_fn(cls, Layer, Spectroscopy, Measurement, f=None) -> tuple[mpl.figure.Figure, tuple[np.ndarray[mpl.axes.Axes]]]:
+		_lgr.debug(f'{Spectroscopy.WAVE.shape=} {Spectroscopy.NWAVE}')
+		_lgr.debug(f'{Layer.BASEP.shape=}')
+		_lgr.debug(f'{Layer.TAUTOT.shape=}')
 		
+		_lgr.debug(f'{Spectroscopy.LOCATION=}')
+		_lgr.debug(f'{Spectroscopy._locations=}')
 		
 		wavecalc_min,wavecalc_max = Measurement.calc_wave_range(apply_doppler=True,IGEOM=0)
 			
@@ -48,9 +53,7 @@ class LayerOpacityPlotter(BasePlotter):
 		if Spectroscopy.NGAS>0:
 			Spectroscopy.read_tables(wavemin=wavecalc_min,wavemax=wavecalc_max)
 		
-		_lgr.debug(f'{Spectroscopy.WAVE.shape=} {Spectroscopy.NWAVE}')
-		_lgr.debug(f'{Layer.BASEP.shape=}')
-		_lgr.debug(f'{Layer.TAUTOT.shape=}')
+		
 	
 		#Calculating new wave array
 		#Measurement.build_ils(IGEOM=0)

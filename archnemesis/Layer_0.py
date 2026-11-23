@@ -42,103 +42,103 @@ class Layer_0(DumpStrMixin):
     def __init__(self, RADIUS=None, LAYHT=0, LAYTYP=LayerTypeEnum.EQUAL_LOG_PRESSURE, LAYINT=LayerIntegrationSchemeEnum.ABSORBER_WEIGHTED_AVERAGE, NLAY=20, NINT=101,
                 LAYANG=0.0, H_base=None, P_base=None):
         """
-        After creating a Layer object, call the method
-            integrate(self, H, P, T, LAYANG, ID, VMR) to calculate
-            averaged layer properties.
+            After creating a Layer object, call the method
+                integrate(self, H, P, T, LAYANG, ID, VMR) to calculate
+                averaged layer properties.
 
-        Inputs
-        ------
+            Inputs
+            ------
 
-        @param RADIUS: real
-            Reference planetary radius where H=0.  Usually at surface for
-            terrestrial planets, or at 1 bar pressure level for gas giants.
-        @param LAYHT: real
-            Height of the base of the lowest layer. Default 0.0.
-        @param LAYTYP: LayerType (enum)
-            Integer specifying how to split up the layers. Default LayerTypeEnum.EQUAL_LOG_PRESSURE.
-            LayerTypeEnum.EQUAL_PRESSURE = by equal changes in pressure
-            LayerTypeEnum.EQUAL_LOG_PRESSURE = by equal changes in log pressure
-            LayerTypeEnum.EQUAL_HEIGHT = by equal changes in height
-            LayerTypeEnum.EQUAL_PATH_LENGTH = by equal changes in path length at LAYANG
-            LayerTypeEnum.BASE_PRESSURE = layer base pressure levels specified by P_base
-            LayerTypeEnum.BASE_HEIGHT = layer base height levels specified by H_base
-            Note BASE_PRESSURE and BASE_HEIGHT force NLAY = len(P_base) or len(H_base).
-        @param LAYINT: LayerIntegrationScheme (enum)
-            Layer integration scheme
-            LayerIntegrationSchemeEnum.MID_PATH = use properties at mid path
-            LayerIntegrationSchemeEnum.ABSORBER_WEIGHTED_AVERAGE = use absorber amount weighted average values
-        @param LAYANG: real
-            Angle from zenith at which to split the layers (Default is 0.0)
-        @param NLAY: int
-            Number of layers to split the atmosphere into. Default 20.
-        @param NINT: int
-            Number of integration points to be used if LAYINT=LayerIntegrationSchemeEnum.ABSORBER_WEIGHTED_AVERAGE.
-        @param H_base: 1D array
-            Heights of the layer bases defined by user. Default None.
-        @param P_base: 1D array
-            Pressures of the layer bases defined by user. Default None.
-
-
-        Attributes
-        ------
-    
-        @param BASEH: 1D array (NLAY)
-            Base altitude of each of the layers in the atmosphere (m)
-        @param BASEP: 1D array (NLAY)
-            Base pressure of each of the layers in the atmosphere (Pa)
-        @param DELH: 1D array (NLAY)
-            Width of each of the layers in the atmosphere (m)
-        @param HEIGHT: 1D array (NLAY)
-            Effective altitude each of the layers in the atmosphere (m)
-        @param PRESS: 1D array (NLAY)
-            Effective pressure of each layer (Pa) (the one at which the radiative transfer calculations are performed)
-        @param TEMP: 1D array (NLAY)
-            Effective temperature of each layer (Pa) (the one at which the radiative transfer calculations are performed)
-        @param TOTAM: 1D array (NLAY)
-            Gaseous line-of-sight column density in each layer (particles/m2)
-        @param AMOUNT: 2D array (NLAY,NVMR)
-            Gaseous line-of-sight column density of each gas in each layer (particles/m2)
-        @param PP: 2D array (NLAY,NVMR)
-            Partial pressure of each gas in each layer (Pa)
-        @param CONT: 2D array (NLAY,NDUST)
-            Gaseous line-of-sight column density of each dust population in each layer (particles/m2)
-
-        @param DTE: 2D array (NLAY,NP)
-            Matrix relating the temperatures in each layer wrt those in the input profiles
-        @param DTE: 2D array (NLAY,NP)
-            Matrix relating the gaseous abundances in each layer wrt those in the input profiles
-        @param DCO: 2D array (NLAY,NP)
-            Matrix relating the dust abundances in each layer wrt those in the input profiles
-        @param DPH: 2D array (NLAY,NP)
-            Matrix relating the para-H2 fractions in each layer wrt those in the input profiles
-
-        @param TAURAY: 2D array (NWAVE,NLAY)
-            Rayleigh scattering optical depth
-        @param TAUSCAT: 2D array (NWAVE,NLAY)
-            Aerosol scattering optical depth
-        @param TAUCLSCAT: 3D array (NWAVE,NLAY,NDUST)
-            Aerosol scattering optical depth by each aerosol type
-        @param TAUDUST: 2D array (NWAVE,NLAY)
-            Aerosol extinction optical depth (absorption + scattering)
-        @param TAUCIA: 2D array (NWAVE,NLAY)
-            CIA optical depth
-        @param TAUGAS: 3D array (NWAVE,NG,NLAY)
-            Gas optical depth
-        @param TAUTOT: 3D array (NWAVE,NG,NLAY)
-            Total optical depth
+            @param RADIUS: real
+                Reference planetary radius where H=0.  Usually at surface for
+                terrestrial planets, or at 1 bar pressure level for gas giants.
+            @param LAYHT: real
+                Height of the base of the lowest layer. Default 0.0.
+            @param LAYTYP: LayerType (enum)
+                Integer specifying how to split up the layers. Default LayerTypeEnum.EQUAL_LOG_PRESSURE.
+                LayerTypeEnum.EQUAL_PRESSURE = by equal changes in pressure
+                LayerTypeEnum.EQUAL_LOG_PRESSURE = by equal changes in log pressure
+                LayerTypeEnum.EQUAL_HEIGHT = by equal changes in height
+                LayerTypeEnum.EQUAL_PATH_LENGTH = by equal changes in path length at LAYANG
+                LayerTypeEnum.BASE_PRESSURE = layer base pressure levels specified by P_base
+                LayerTypeEnum.BASE_HEIGHT = layer base height levels specified by H_base
+                Note BASE_PRESSURE and BASE_HEIGHT force NLAY = len(P_base) or len(H_base).
+            @param LAYINT: LayerIntegrationScheme (enum)
+                Layer integration scheme
+                LayerIntegrationSchemeEnum.MID_PATH = use properties at mid path
+                LayerIntegrationSchemeEnum.ABSORBER_WEIGHTED_AVERAGE = use absorber amount weighted average values
+            @param LAYANG: real
+                Angle from zenith at which to split the layers (Default is 0.0)
+            @param NLAY: int
+                Number of layers to split the atmosphere into. Default 20.
+            @param NINT: int
+                Number of integration points to be used if LAYINT=LayerIntegrationSchemeEnum.ABSORBER_WEIGHTED_AVERAGE.
+            @param H_base: 1D array
+                Heights of the layer bases defined by user. Default None.
+            @param P_base: 1D array
+                Pressures of the layer bases defined by user. Default None.
 
 
-        Methods
-        -------
+            Attributes
+            ------
+        
+            @param BASEH: 1D array (NLAY)
+                Base altitude of each of the layers in the atmosphere (m)
+            @param BASEP: 1D array (NLAY)
+                Base pressure of each of the layers in the atmosphere (Pa)
+            @param DELH: 1D array (NLAY)
+                Width of each of the layers in the atmosphere (m)
+            @param HEIGHT: 1D array (NLAY)
+                Effective altitude each of the layers in the atmosphere (m)
+            @param PRESS: 1D array (NLAY)
+                Effective pressure of each layer (Pa) (the one at which the radiative transfer calculations are performed)
+            @param TEMP: 1D array (NLAY)
+                Effective temperature of each layer (Pa) (the one at which the radiative transfer calculations are performed)
+            @param TOTAM: 1D array (NLAY)
+                Gaseous line-of-sight column density in each layer (particles/m2)
+            @param AMOUNT: 2D array (NLAY,NVMR)
+                Gaseous line-of-sight column density of each gas in each layer (particles/m2)
+            @param PP: 2D array (NLAY,NVMR)
+                Partial pressure of each gas in each layer (Pa)
+            @param CONT: 2D array (NLAY,NDUST)
+                Gaseous line-of-sight column density of each dust population in each layer (particles/m2)
 
-        Layer_0.assess()
-        Layer_0.write_hdf5()
-        Layer_0.read_hdf5()
-        Layer_0.integrate()
-        Layer_0.integrateg()
-        Layer_0.layer_split()
-        Layer_0.layer_average()
-        Layer_0.layer_averageg()
+            @param DTE: 2D array (NLAY,NP)
+                Matrix relating the temperatures in each layer wrt those in the input profiles
+            @param DTE: 2D array (NLAY,NP)
+                Matrix relating the gaseous abundances in each layer wrt those in the input profiles
+            @param DCO: 2D array (NLAY,NP)
+                Matrix relating the dust abundances in each layer wrt those in the input profiles
+            @param DPH: 2D array (NLAY,NP)
+                Matrix relating the para-H2 fractions in each layer wrt those in the input profiles
+
+            @param TAURAY: 2D array (NWAVE,NLAY)
+                Rayleigh scattering optical depth
+            @param TAUSCAT: 2D array (NWAVE,NLAY)
+                Aerosol scattering optical depth
+            @param TAUCLSCAT: 3D array (NWAVE,NLAY,NDUST)
+                Aerosol scattering optical depth by each aerosol type
+            @param TAUDUST: 2D array (NWAVE,NLAY)
+                Aerosol extinction optical depth (absorption + scattering)
+            @param TAUCIA: 2D array (NWAVE,NLAY)
+                CIA optical depth
+            @param TAUGAS: 3D array (NWAVE,NG,NLAY)
+                Gas optical depth
+            @param TAUTOT: 3D array (NWAVE,NG,NLAY)
+                Total optical depth
+
+
+            Methods
+            -------
+
+            Layer_0.assess()
+            Layer_0.write_hdf5()
+            Layer_0.read_hdf5()
+            Layer_0.integrate()
+            Layer_0.integrateg()
+            Layer_0.layer_split()
+            Layer_0.layer_average()
+            Layer_0.layer_averageg()
 
         """
         self.RADIUS = RADIUS
