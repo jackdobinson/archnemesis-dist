@@ -542,9 +542,9 @@ class Variables_0(DumpStrMixin):
         """
 
         #Generally, we use h = 0.1*sqrt(SA), i.e. 0.1 x the a priori error (as in NEMESIS)
-        #If the a priori covariance matrix is not defined, we use h = 0.05*x
+        #There should always be an a priori covariance matrix, throw an error if there is not
+        assert self.SA is not None, "Variables_0::calc_DSTEP() the an apriori covariance matrix must always be non-none."
         dstep = np.zeros(self.NX)
-        #dstep[:] = self.XN * 0.05
         dstep[:] = 0.01 * np.sqrt(np.diag(self.SA))
 
         #Changing the step size for certain parameterisations
