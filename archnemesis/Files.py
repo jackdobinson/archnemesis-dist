@@ -528,6 +528,10 @@ def read_input_files(runname):
     Measurement.runname = runname
     Measurement.read_spx()
     
+    #As in NEMESIS, the reference atmosphere is shifted to the latitude of the measurement (.spx file)
+    if Atm.NLOCATIONS == 1:
+        Atm.LATITUDE = float(Measurement.LATITUDE)
+    
     #Checking if forward modelling error file exists
     if os.path.exists(fmerrname)==True:
 
@@ -540,6 +544,9 @@ def read_input_files(runname):
     #Reading .sha file if FWHM>0.0
     if Measurement.FWHM > 0.0:
         Measurement.read_sha()
+        #Reading .fwh file if it exists (FWHM varying with wavelength)
+        if os.path.exists(runname+'.fwh')==True:
+            Measurement.read_fwh()
     #Reading .fil if FWHM<0.0
     elif Measurement.FWHM < 0.0:
         Measurement.read_fil()

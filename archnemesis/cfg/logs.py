@@ -31,12 +31,12 @@ if BUILD_NAME == 'DEVELOPMENT':
 NEW_LOGGER_ADAPTOR_LEVEL = logging.NOTSET
 
 pkg_lgr = logging.getLogger("archnemesis")
-pkg_lgr.setLevel(logging.DEBUG)
+pkg_lgr.setLevel(logging.INFO)
 pkg_lgr.propagate = False
 pkg_formatter = logging.Formatter('%(levelname)s :: %(funcName)s :: %(filename)s-%(lineno)d :: %(message)s')
 
 progress_lgr = logging.getLogger("archnemesis.progress")
-progress_lgr.setLevel(logging.DEBUG)
+progress_lgr.setLevel(logging.INFO)
 progress_lgr.propagate = False
 progress_formatter = logging.Formatter('%(levelname)s :: %(funcName)s :: PROGRESS :: %(message)s')
 
